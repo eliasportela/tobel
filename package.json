@@ -1,20 +1,35 @@
 {
   "name": "lecard-whatsapp",
-  "version": "0.1.0",
+  "author": "storkdigital.com.br",
+  "description": "A WhatsApp Bot",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "build": "vue-cli-service build",
+    "electron:build": "vue-cli-service electron:build",
+    "electron:serve": "vue-cli-service electron:serve",
+    "electron:generate-icons": "electron-icon-builder --input=./public/icon.png --output=build --flatten",
+    "postinstall": "electron-builder install-app-deps",
+    "postuninstall": "electron-builder install-app-deps"
   },
+  "main": "background.js",
   "dependencies": {
     "core-js": "^3.6.5",
+    "electron-fetch": "^1.6.0",
     "vue": "^2.6.11",
-    "vue-router": "^3.2.0"
+    "vue-resource": "^1.5.1",
+    "vue-router": "^3.2.0",
+    "vue-sweetalert2": "^3.0.7"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
     "@vue/cli-plugin-router": "~4.5.0",
     "@vue/cli-service": "~4.5.0",
+    "electron": "6.0.0",
+    "electron-devtools-installer": "^3.1.0",
+    "electron-icon-builder": "^1.0.2",
+    "vue-cli-plugin-electron-builder": "~2.0.0-rc.4",
     "vue-template-compiler": "^2.6.11"
   }
 }
