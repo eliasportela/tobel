@@ -62,10 +62,18 @@ export default {
       const dados = key ? {key} : this.dados
       this.$http.post('autenticar', dados)
         .then(res => {
-          this.loading = false;
           if (res.data.success) {
             this.setUserData(res.data);
-            ipcRenderer.send('login-lecard', res.data);
+
+            if (key) {
+              ipcRenderer.send('login-lecard', res.data);
+
+            } else {
+              window.location.reload();
+            }
+
+          } else {
+            this.loading = false;
           }
 
         }, res => {
@@ -88,6 +96,7 @@ export default {
   },
 
   created() {
+    this.loading = false;
     const key = localStorage.getItem('key');
     if (key) {
       this.logar(key)

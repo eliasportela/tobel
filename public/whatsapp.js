@@ -354,18 +354,11 @@ function initWhatsapp () {
     });
   };
 
-  window.WappBot.messageReplaceKey = (message) => {
-    const cardapio = localStorage.getItem('url_site');
-    return message.replace("$_CARDAPIO", cardapio)
-  };
-
   window.WappBot.prepareMessageToSend = (newMessage, chatId) => {
-    let message = '';
     // const user = validUsers.find((u) => u.chatId === chatId);
     // if (user && !localStorage.getItem('pauseWpp')) {
     if (!localStorage.getItem('pauseWpp')) {
-      message = window.WappBot.messageReplaceKey(newMessage)
-      window.WAPI.sendMessage(chatId, message);
+      window.WAPI.sendMessage(chatId, newMessage);
     }
   };
 
@@ -384,22 +377,22 @@ function initWhatsapp () {
   window.WAPI._newMessagesListener = window.Store.Msg.on("add", newMessage => {
     if (newMessage && newMessage.isNewMsg && !newMessage.isSentByMe && !newMessage.isGroupMsg) {
       let message = window.WAPI.processMessageObj(newMessage, false, false);
-      if (message) {
+      if (message && message.body && !localStorage.getItem('pauseWpp') && !message.isMedia) {
         const chatId = message.chatId._serialized;
+
+        if (chatId === "status@broadcast") {
+          return;
+        }
 
         const event = new CustomEvent('message_received', {
           detail: {
             from: chatId,
-            text: message.body
+            text: message.body,
+            contact: message.sender.pushname
           }
         });
 
-        if (!message.isMMS) {
-          document.dispatchEvent(event)
-
-        } else {
-          window.WappBot.prepareMessageToSend("Desculpe, ainda não entendo áudios ou imagens, mas você pode me mandar uma mensagem que será um prazer te responder.", chatId);
-        }
+        document.dispatchEvent(event);
       }
     }
   });

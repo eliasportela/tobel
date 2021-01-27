@@ -7,6 +7,7 @@ const  fs = require('fs');
 const path = require('path');
 const isDevelopment = process.env.NODE_ENV !== 'production'
 import fetch from 'electron-fetch'
+import FormData from 'form-data'
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
@@ -70,7 +71,7 @@ function createWindow() {
 
   win.on('closed', () => {
     app.quit()
-  })
+  });
 }
 
 // Quit when all windows are closed.
@@ -94,7 +95,7 @@ app.on('activate', () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-  createWindow()
+  createWindow();
 
   globalShortcut.register('CommandOrControl+L', () => {
     win.webContents.openDevTools();
@@ -160,24 +161,28 @@ ipcMain.on('import-scripts', (event, arg) => {
 });
 
 ipcMain.on('asynchronous-message', (event, arg) => {
-  fetch("https://lecard-chatbot.herokuapp.com/message", {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ messageText: arg.text })
-  }).then(function(response) {
-    response.json().then(post => {
-      if (!post && !post.messageResponse) return;
-      const msg = {
-        from: arg.from,
-        msg: post.messageResponse
-      };
-      event.reply('asynchronous-reply', msg)
-    });
-  });
+  const form = new FormData();
+  form.append('text', arg.text);
+  form.append('user_id', arg.from);
+  form.append('contact', arg.contact);
+
+  fetch(process.env.VUE_APP_BASE_SERVER + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
+    .then(res => res.json())
+    .then(json => {
+      if (json.success && json.msgs) {
+        json.msgs.forEach(msg => {
+          sendMessage(event, arg.from, msg);
+        })
+      }
+    })
+    .catch(err => console.log(err));
 });
+
+function sendMessage(event, from, msg) {
+  setTimeout(() => {
+    event.reply('asynchronous-reply', { from, msg })
+  }, 500);
+}
 
 ipcMain.on('login-lecard', (event, arg) => {
   if (!wpp) {

@@ -6,6 +6,7 @@ module.exports = {
         appId: "delivery.lecard.whatsapp",
         productName: "LeBot - Lecard ChatBot",
         artifactName: 'whatsapp-lecard-${version}.${ext}',
+        publish: ['github'],
         win: {
           target: [
             {
@@ -20,4 +21,4 @@ module.exports = {
       }
     }
   }
-}
+};
