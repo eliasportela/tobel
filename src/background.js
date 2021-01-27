@@ -8,6 +8,7 @@ const path = require('path');
 const isDevelopment = process.env.NODE_ENV !== 'production'
 import fetch from 'electron-fetch'
 import FormData from 'form-data'
+import { autoUpdater } from "electron-updater"
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
@@ -66,7 +67,8 @@ function createWindow() {
   } else {
     createProtocol('app')
     // Load the index.html when not in development
-    win.loadURL('app://./index.html')
+    win.loadURL('app://./index.html');
+    checkUpdate();
   }
 
   win.on('closed', () => {
@@ -170,18 +172,19 @@ ipcMain.on('asynchronous-message', (event, arg) => {
     .then(res => res.json())
     .then(json => {
       if (json.success && json.msgs) {
+        let i = 0;
         json.msgs.forEach(msg => {
-          sendMessage(event, arg.from, msg);
+          sendMessage(event, arg.from, msg, i++);
         })
       }
     })
     .catch(err => console.log(err));
 });
 
-function sendMessage(event, from, msg) {
+function sendMessage(event, from, msg, i) {
   setTimeout(() => {
     event.reply('asynchronous-reply', { from, msg })
-  }, 500);
+  }, 1000 * i);
 }
 
 ipcMain.on('login-lecard', (event, arg) => {
@@ -190,3 +193,13 @@ ipcMain.on('login-lecard', (event, arg) => {
     createWpp(arg)
   }
 });
+
+function checkUpdate() {
+  autoUpdater.checkForUpdates()
+
+  autoUpdater.on('update-downloaded', (info) => {
+    setTimeout(() => {
+      autoUpdater.quitAndInstall();
+    }, 4000);
+  })
+}
