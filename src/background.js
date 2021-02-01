@@ -1,7 +1,7 @@
 'use strict'
 /* global __static */
 
-import { app, protocol, BrowserWindow, ipcMain, Menu, globalShortcut } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain, Menu, globalShortcut, dialog, shell } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 const  fs = require('fs');
 const path = require('path');
@@ -15,6 +15,7 @@ app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/5
 
 let win
 let wpp
+let messagebox = false;
 
 let pauseWpp = false;
 function createMenuContext(){
@@ -35,6 +36,27 @@ function createMenuContext(){
           label: 'Deslogar',
           click: () => {
             logoutApp();
+          }
+        },
+      ]
+    },
+    {
+      label: 'Ajuda',
+      submenu: [
+        {
+          label: 'Comandos LeBot',
+          click: () => {
+            messagebox = dialog.showMessageBox(wpp, {
+              type: 'info',
+              buttons: ['OK'],
+              title: 'Comandos LeBot',
+              message: 'Para usar basta digitar um dos comandas abaixo na conversa do cliente' +
+                '\n\n1 - "Lebot Ok": Pausa o bot para o cliente.' +
+                '\n\n2 - "Lebot Add": Adiciona o número do cliente a lista de bloqueados para o que o sistema nunca envie mensagem para ela de forma automática.' +
+                '\n\n3 - "Lebot Remover": Remove o número do cliente da lista de bloqueados para o que o sistema volte a enviar mensagens automáticas.'
+            }, () => {
+              messagebox = false;
+            });
           }
         },
       ]
@@ -123,7 +145,10 @@ if (isDevelopment) {
   }
 }
 
-let dados = null;
+let dados = {
+  empresa: ''
+};
+
 function createWpp(data) {
   dados = data;
 
@@ -141,7 +166,12 @@ function createWpp(data) {
 
   wpp.on('closed', () => {
     app.quit()
-  })
+  });
+
+  wpp.webContents.on("new-window", function(event, url) {
+    event.preventDefault();
+    shell.openExternal(url);
+  });
 }
 
 function desativarWpp() {
@@ -166,7 +196,13 @@ ipcMain.on('asynchronous-message', (event, arg) => {
   const form = new FormData();
   form.append('text', arg.text);
   form.append('user_id', arg.from);
-  form.append('contact', arg.contact);
+  form.append('isMe', arg.isMe.toString());
+  form.append('isGroupMsg', arg.isGroupMsg.toString());
+
+  if (!arg.isMe) {
+    form.append('contact', arg.contact);
+    form.append('number', arg.number);
+  }
 
   fetch(process.env.VUE_APP_BASE_SERVER + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
     .then(res => res.json())
@@ -177,8 +213,7 @@ ipcMain.on('asynchronous-message', (event, arg) => {
           sendMessage(event, arg.from, msg, i++);
         })
       }
-    })
-    .catch(err => console.log(err));
+    }).catch(err => console.log(err));
 });
 
 function sendMessage(event, from, msg, i) {
@@ -190,12 +225,29 @@ function sendMessage(event, from, msg, i) {
 ipcMain.on('login-lecard', (event, arg) => {
   if (!wpp) {
     win.hide();
-    createWpp(arg)
+    createWpp(arg);
   }
 });
 
+ipcMain.on('socket-event', (event, arg) => {
+  if (messagebox || !wpp) {
+    return;
+  }
+
+  const options = {
+    type: 'warning',
+    buttons: ['OK'],
+    title: 'Solicitação de atendimento',
+    message: (arg.telefone ? 'O cliente: ' + arg.telefone : 'Um cliente') + ' solicitou atendimento!',
+  };
+
+  messagebox = dialog.showMessageBox(wpp, options, () => {
+    messagebox = false;
+  });
+});
+
 function checkUpdate() {
-  autoUpdater.checkForUpdates()
+  autoUpdater.checkForUpdates();
 
   autoUpdater.on('update-downloaded', (info) => {
     setTimeout(() => {

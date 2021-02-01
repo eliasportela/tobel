@@ -45,7 +45,8 @@ export default {
       dados: {
         email: '',
         senha: ''
-      }
+      },
+      empresa: ''
     }
   },
   methods: {
@@ -64,9 +65,11 @@ export default {
         .then(res => {
           if (res.data.success) {
             this.setUserData(res.data);
-
             if (key) {
               ipcRenderer.send('login-lecard', res.data);
+
+              this.empresa = res.data.empresa;
+              this.$socket.emit('empresa_connected', this.empresa)
 
             } else {
               window.location.reload();
@@ -96,12 +99,19 @@ export default {
   },
 
   created() {
-    this.loading = false;
     const key = localStorage.getItem('key');
     if (key) {
       this.logar(key)
     } else {
       this.loading = false
+    }
+  },
+
+  sockets: {
+    connect() {
+      if (this.empresa) {
+        this.$socket.emit('empresa_connected', this.empresa)
+      }
     }
   }
 }

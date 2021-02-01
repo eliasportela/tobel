@@ -1,4 +1,5 @@
-const {ipcRenderer} = require('electron');
+const { ipcRenderer } = require('electron');
+// import swal from 'sweetalert';
 
 document.addEventListener("message_received", (e) => {
   ipcRenderer.send('asynchronous-message', e.detail)
@@ -26,5 +27,5 @@ ipcRenderer.on('is_ready_to_inject', (event, arg) => {
 document.addEventListener("DOMContentLoaded", function(event) {
   setTimeout(() => {
     ipcRenderer.send('import-scripts')
-  }, 5000)
+  }, 5000);
 });

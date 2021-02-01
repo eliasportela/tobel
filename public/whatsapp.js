@@ -375,24 +375,30 @@ function initWhatsapp () {
   sessionStorage.removeItem("saved_msgs");
 
   window.WAPI._newMessagesListener = window.Store.Msg.on("add", newMessage => {
-    if (newMessage && newMessage.isNewMsg && !newMessage.isSentByMe && !newMessage.isGroupMsg) {
-      let message = window.WAPI.processMessageObj(newMessage, false, false);
+    if (newMessage && newMessage.isNewMsg && !newMessage.isGroupMsg) {
+      let message = window.WAPI.processMessageObj(newMessage, true, false);
+
       if (message && message.body && !localStorage.getItem('pauseWpp') && !message.isMedia) {
         const chatId = message.chatId._serialized;
-
         if (chatId === "status@broadcast") {
           return;
         }
 
-        const event = new CustomEvent('message_received', {
-          detail: {
+        if (!message.sender.isMe || message.body.trim().toLowerCase().startsWith("lebot")) {
+          const detail = {
             from: chatId,
             text: message.body,
-            contact: message.sender.pushname
-          }
-        });
+            isMe: message.sender.isMe,
+            isGroupMsg: message.isGroupMsg
+          };
 
-        document.dispatchEvent(event);
+          if (!message.sender.isMe) {
+            detail.contact = message.sender.pushname;
+            detail.number = message.chatId.user;
+          }
+
+          document.dispatchEvent(new CustomEvent('message_received', { detail }));
+        }
       }
     }
   });
