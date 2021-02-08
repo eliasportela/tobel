@@ -9,6 +9,7 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 import fetch from 'electron-fetch'
 import FormData from 'form-data'
 import { autoUpdater } from "electron-updater"
+const Config = require('electron-config');
 
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
@@ -180,6 +181,9 @@ function desativarWpp() {
 }
 
 function logoutApp() {
+  const config = new Config();
+  config.clear();
+
   win.webContents.executeJavaScript('localStorage.clear();').then(() => {
     app.quit();
   })
@@ -200,8 +204,13 @@ ipcMain.on('asynchronous-message', (event, arg) => {
   form.append('isGroupMsg', arg.isGroupMsg.toString());
 
   if (!arg.isMe) {
-    form.append('contact', arg.contact);
-    form.append('number', arg.number);
+    if (arg.contact) {
+      form.append('contact', arg.contact);
+    }
+
+    if (arg.number) {
+      form.append('number', arg.number);
+    }
   }
 
   fetch(process.env.VUE_APP_BASE_SERVER + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
@@ -244,6 +253,17 @@ ipcMain.on('socket-event', (event, arg) => {
   messagebox = dialog.showMessageBox(wpp, options, () => {
     messagebox = false;
   });
+});
+
+ipcMain.on('socket-send', (event, arg) => {
+  if (arg.to && arg.msg && Array.isArray(arg.msg) && wpp) {
+    let i = 0;
+    arg.msg.forEach(msg => {
+      setTimeout(() => {
+        wpp.webContents.send('asynchronous-reply', { from: arg.to, msg })
+      }, 1000 * i);
+    });
+  }
 });
 
 function checkUpdate() {

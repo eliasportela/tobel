@@ -10,6 +10,10 @@
     sockets: {
       request_human(data) {
         ipcRenderer.send('socket-event', data);
+      },
+
+      delivery_whatsapp(data) {
+        ipcRenderer.send('socket-send', data);
       }
     }
   }

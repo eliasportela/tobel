@@ -33,6 +33,8 @@
 
 <script>
 const { ipcRenderer } = require('electron');
+const Config = require('electron-config');
+const config = new Config();
 
 export default {
   name: 'Login',
@@ -41,6 +43,7 @@ export default {
       urlBase: '',
       token: '',
       msg: '',
+      key: '',
       loading: true,
       dados: {
         email: '',
@@ -95,13 +98,16 @@ export default {
 
     setUserData(data) {
       localStorage.setItem("key", data.token);
+      config.set("key", data.token);
     }
   },
 
   created() {
-    const key = localStorage.getItem('key');
-    if (key) {
-      this.logar(key)
+    localStorage.clear();
+    this.key = config.get('key');
+
+    if (this.key) {
+      this.logar(this.key)
     } else {
       this.loading = false
     }
