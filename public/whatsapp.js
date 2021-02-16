@@ -384,7 +384,8 @@ function initWhatsapp () {
           return;
         }
 
-        if (!message.sender.isMe || message.body.trim().toLowerCase().startsWith("lebot")) {
+        const clearmessage = message.body.trim().toLowerCase();
+        if ((!message.sender.isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
           const detail = {
             from: chatId,
             text: message.body,

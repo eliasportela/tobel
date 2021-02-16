@@ -14,19 +14,22 @@ const Config = require('electron-config');
 process.env['ELECTRON_DISABLE_SECURITY_WARNINGS'] = 'true';
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 
-let win
-let wpp
-let messagebox = false;
+// ************** ELECTRON CONFIGS **************//
 
+let win;
+let wpp;
+let messagebox = false;
+let dados = { empresa: '' };
 let pauseWpp = false;
+let quit = true;
+
 function createMenuContext(){
   return Menu.buildFromTemplate([
     {
-      label: 'Opções',
+      label: 'Opcões',
       submenu: [
         {
-          id: 1,
-          label: pauseWpp ? 'Ativar LeBot' : 'Pausar LeBot',
+          label: pauseWpp ? 'Ativar Bot' : 'Pausar Bot',
           click: () => {
             desativarWpp();
             pauseWpp = !pauseWpp;
@@ -34,18 +37,19 @@ function createMenuContext(){
           }
         },
         {
-          label: 'Deslogar',
+          label: 'Configurações',
           click: () => {
-            logoutApp();
+            quit = false;
+            win.show();
           }
-        },
+        }
       ]
     },
     {
       label: 'Ajuda',
       submenu: [
         {
-          label: 'Comandos LeBot',
+          label: 'Comandos Bot',
           click: () => {
             messagebox = dialog.showMessageBox(wpp, {
               type: 'info',
@@ -60,27 +64,65 @@ function createMenuContext(){
             });
           }
         },
+        {
+          label: 'Versão',
+          click: () => {
+            messagebox = dialog.showMessageBox(wpp, {
+              type: 'info',
+              buttons: ['OK'],
+              title: 'Lincença',
+              message: 'LeCard Whatsapp. Versão: ' + app.getVersion()
+            }, () => {
+              messagebox = false;
+            });
+          }
+        },
+        {
+          label: 'Licença',
+          click: () => {
+            messagebox = dialog.showMessageBox(wpp, {
+              type: 'info',
+              buttons: ['OK'],
+              title: 'Lincença',
+              message: 'Empresa: ' + (dados.dados ? dados.dados.nome_fantasia : "") + '\nStatus: Ativo'
+            }, () => {
+              messagebox = false;
+            });
+          }
+        },
       ]
-    }
+    },
+    {
+      label: 'Sair',
+      submenu: [
+        {
+          label: 'Logout',
+          click: () => {
+            logoutApp();
+          }
+        }
+      ]
+    },
   ])
 }
 
-Menu.setApplicationMenu(createMenuContext())
+Menu.setApplicationMenu(createMenuContext());
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
-])
+]);
 
 function createWindow() {
   // Create the browser window.
   win = new BrowserWindow({
-    width: 1000,
-    height: 600,
+    width: 450,
+    height: 480,
+    resizable: false,
     webPreferences: {
       nodeIntegration: process.env.ELECTRON_NODE_INTEGRATION
     },
     icon: path.join(__static, 'icon.png')
-  })
+  });
   win.setMenu(null);
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
@@ -93,6 +135,14 @@ function createWindow() {
     win.loadURL('app://./index.html');
     checkUpdate();
   }
+
+  win.on('close', function(e){
+    if(!quit){
+      e.preventDefault();
+      win.hide();
+      quit = true;
+    }
+  });
 
   win.on('closed', () => {
     app.quit()
@@ -114,7 +164,7 @@ app.on('activate', () => {
   if (win === null) {
     createWindow()
   }
-})
+});
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -129,9 +179,8 @@ app.on('ready', async () => {
       wpp.webContents.openDevTools();
     }
   })
-})
+});
 
-// Exit cleanly on request from parent process in development mode.
 if (isDevelopment) {
   if (process.platform === 'win32') {
     process.on('message', (data) => {
@@ -145,10 +194,6 @@ if (isDevelopment) {
     })
   }
 }
-
-let dados = {
-  empresa: ''
-};
 
 function createWpp(data) {
   dados = data;
@@ -173,7 +218,13 @@ function createWpp(data) {
     event.preventDefault();
     shell.openExternal(url);
   });
+
+  wpp.once('focus', () => {
+    wpp.flashFrame(false)
+  });
 }
+
+// ************ FUNCOES ************ //
 
 function desativarWpp() {
   let script = pauseWpp ? 'localStorage.removeItem("pauseWpp", 1);' : 'localStorage.setItem("pauseWpp", 1);';
@@ -188,6 +239,33 @@ function logoutApp() {
     app.quit();
   })
 }
+
+function checkUpdate() {
+  autoUpdater.checkForUpdates();
+
+  autoUpdater.on('update-downloaded', (info) => {
+    setTimeout(() => {
+      autoUpdater.quitAndInstall();
+    }, 4000);
+  })
+}
+
+function sendMessage(event, from, msg, i) {
+  setTimeout(() => {
+    event.reply('asynchronous-reply', { from, msg })
+  }, 1000 * i);
+}
+
+// ************ IPC MAINS ************ //
+
+ipcMain.on('toggle-wpp', (event, arg) => {
+  win.hide();
+  quit = true;
+
+  if (arg && !wpp) {
+    createWpp(arg);
+  }
+});
 
 ipcMain.on('import-scripts', (event, arg) => {
   const file = fs.readFileSync(__static + '/whatsapp.js', "utf8");
@@ -225,16 +303,9 @@ ipcMain.on('asynchronous-message', (event, arg) => {
     }).catch(err => console.log(err));
 });
 
-function sendMessage(event, from, msg, i) {
-  setTimeout(() => {
-    event.reply('asynchronous-reply', { from, msg })
-  }, 1000 * i);
-}
-
-ipcMain.on('login-lecard', (event, arg) => {
-  if (!wpp) {
-    win.hide();
-    createWpp(arg);
+ipcMain.on('focus', () => {
+  if (wpp) {
+    wpp.show()
   }
 });
 
@@ -242,6 +313,8 @@ ipcMain.on('socket-event', (event, arg) => {
   if (messagebox || !wpp) {
     return;
   }
+
+  wpp.flashFrame(true);
 
   const options = {
     type: 'warning',
@@ -252,6 +325,9 @@ ipcMain.on('socket-event', (event, arg) => {
 
   messagebox = dialog.showMessageBox(wpp, options, () => {
     messagebox = false;
+    wpp.flashFrame(false);
+    wpp.show();
+    event.reply('toggle-notification', false);
   });
 });
 
@@ -266,12 +342,4 @@ ipcMain.on('socket-send', (event, arg) => {
   }
 });
 
-function checkUpdate() {
-  autoUpdater.checkForUpdates();
-
-  autoUpdater.on('update-downloaded', (info) => {
-    setTimeout(() => {
-      autoUpdater.quitAndInstall();
-    }, 4000);
-  })
-}
+// ************ IPC MAINS ************ //

@@ -1,124 +1,77 @@
 <template>
-  <div>
-    <div class="p-5">
-      <div class="text-center">
-        <img src="../assets/logo-zap.png" style="width: 90px; border-radius: 12px">
-        <h4 class="text-secondary font-weight-bold mt-5">LeBot - Integrador Whatsapp</h4>
+  <div class="container-fluid mt-2 mb-3">
+    <div class="text-center mt-5">
+      <img src="../assets/logo-zap.png" class="d-inline-block" alt="Logo Lecard" style="width: 64px; border-radius: 6px">
+      <h5 class="font-weight-bold mt-2">Login</h5>
+    </div>
+    <div class="mt-4">
+      <div class="alert alert-danger alert-dismissible fade show text-center small" role="alert" v-show="msg">
+        {{msg}}
       </div>
-      <div class="mt-4" style="width: 400px; margin: auto">
+      <form @submit.prevent="logar()">
         <div>
-          <div class="alert alert-danger alert-dismissible fade show text-center" role="alert" v-show="msg">
-            {{msg}}
-          </div>
-          <form @submit.prevent="logar()">
-            <div>
-              <input type="email" id="usuario" v-model="dados.email" class="form-control mb-3" placeholder="E-mail" minlength="4" required>
-            </div>
-            <div>
-              <input type="password" id="inputSenha" v-model="dados.senha" class="form-control mb-3" placeholder="Senha" minlength="6" required>
-            </div>
-            <div class="form-group">
-              <div class="custom-control custom-checkbox">
-                  <input type="checkbox" class="custom-control-input" id="checkboxSenha" @change="mostrarSenha()">
-                  <label class="custom-control-label" for="checkboxSenha">Exibir senha</label>
-              </div>
-            </div>
-            <button class="btn btn-secondary btn-block" :disabled="loading">{{loading ? 'Aguarde' : 'Login'}}</button>
-          </form>
+          <input type="email" id="usuario" v-model="dados.email" class="form-control mb-3" placeholder="E-mail" minlength="4" required>
         </div>
-      </div>
+        <div>
+          <input type="password" id="inputSenha" v-model="dados.senha" class="form-control mb-3" placeholder="Senha" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <div class="custom-control custom-checkbox">
+            <input type="checkbox" class="custom-control-input" id="checkboxSenha" @change="mostrarSenha()">
+            <label class="custom-control-label" for="checkboxSenha">Exibir senha</label>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-block" :disabled="loading">{{loading ? 'Aguarde' : 'Login'}}</button>
+      </form>
     </div>
   </div>
 </template>
 
 <script>
-const { ipcRenderer } = require('electron');
-const Config = require('electron-config');
-const config = new Config();
-
-export default {
-  name: 'Login',
-  data() {
-    return {
-      urlBase: '',
-      token: '',
-      msg: '',
-      key: '',
-      loading: true,
-      dados: {
-        email: '',
-        senha: ''
-      },
-      empresa: ''
-    }
-  },
-  methods: {
-    mostrarSenha() {
-      const input = document.getElementById("inputSenha");
-      if (input.type === "password") {
-        input.type = "text";
-      } else {
-        input.type = "password";
+  export default {
+    name: 'Login',
+    data() {
+      return {
+        msg: '',
+        loading: false,
+        dados: {
+          email: '',
+          senha: ''
+        }
       }
     },
 
-    logar(key) {
-      const dados = key ? {key} : this.dados
-      this.$http.post('autenticar', dados)
-        .then(res => {
-          if (res.data.success) {
-            this.setUserData(res.data);
-            if (key) {
-              ipcRenderer.send('login-lecard', res.data);
+    methods: {
+      mostrarSenha() {
+        const input = document.getElementById("inputSenha");
+        if (input.type === "password") {
+          input.type = "text";
+        } else {
+          input.type = "password";
+        }
+      },
 
-              this.empresa = res.data.empresa;
-              this.$socket.emit('empresa_connected', this.empresa)
+      logar() {
+        if (this.loading) {
+          return;
+        }
+        this.loading = true;
 
-            } else {
-              window.location.reload();
+        this.$http.post('autenticar', this.dados)
+          .then(res => {
+            this.loading = false;
+
+            if (res.data.success) {
+              this.$emit('setConfigs', res.data);
             }
 
-          } else {
+          }, res => {
+            console.log(res);
             this.loading = false;
-          }
-
-        }, res => {
-          console.log(res);
-          this.loading = false;
-          let msg = res.data.msg;
-
-          if (res.status === 401) {
-            this.msg = msg;
-            this.dados.senha = '';
-          } else {
-            alert(msg ? msg : 'Erro temporário');
-          }
-        });
-    },
-
-    setUserData(data) {
-      localStorage.setItem("key", data.token);
-      config.set("key", data.token);
-    }
-  },
-
-  created() {
-    localStorage.clear();
-    this.key = config.get('key');
-
-    if (this.key) {
-      this.logar(this.key)
-    } else {
-      this.loading = false
-    }
-  },
-
-  sockets: {
-    connect() {
-      if (this.empresa) {
-        this.$socket.emit('empresa_connected', this.empresa)
+            let msg = res.data.msg;
+            this.msg = msg ? msg : 'Erro temporário'
+          });
       }
     }
   }
-}
 </script>
