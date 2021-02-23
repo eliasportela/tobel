@@ -1,25 +1,5 @@
-const validUsers = [
-  {
-    chatId: '5516993626508@c.us',
-    lastMsg: false,
-    stepMsg: 0
-  }
-];
-
 function initWhatsapp () {
-  window.WappBot = {
-    configWappBot: {
-      useApi: false,
-      uriApi: "http://localhost:3500/message",
-      ignoreChat: [],
-      messageInitial: {
-        text: "Hello I'm WappBot send a reply \n",
-        image: null
-      },
-      messageIncorrect: "Incorrect option entered, we remind you that the options are: \n",
-      messageOption: {}
-    }
-  };
+  window.WappBot = {};
 
   /* eslint-disable */
   /**
@@ -253,6 +233,11 @@ function initWhatsapp () {
     return chatIds;
   };
 
+  window.WAPI.getChatActive = function() {
+    const user = window.Store.Chat.models ? window.Store.Chat.models.find(chat => chat.active) : false;
+    return user && user.id && !user.isGroup ? user.id._serialized : false;
+  };
+
   window.WAPI.processMessageObj = function(messageObj, includeMe, includeNotifications) {
     if (messageObj.isNotification) {
       if (includeNotifications) return WAPI._serializeMessageObj(messageObj);
@@ -265,53 +250,39 @@ function initWhatsapp () {
     return;
   };
 
-  window.WAPI.sendImage = async function(imgBase64, chatid, filename, caption) {
+  window.WAPI.sendImage = async function(chatid, image64, filename, caption) {
     let id = chatid;
     if (!window.WAPI.getAllChatIds().find(chat => chat == chatid))
       id = new window.Store.UserConstructor(chatid, { intentionallyUsePrivateConstructor: true });
-    var chat = WAPI.getChat(id);
-    // create new chat
-    try {
-      var mediaBlob = await window.WAPI.base64ImageToFile(imgBase64, filename);
-      var mc = new Store.MediaCollection(chat);
-      mc.processFiles([mediaBlob], chat, 1).then(() => {
-        var media = mc.models[0];
-        media.sendToChat(chat, { caption: caption });
-      });
-    } catch (error) {
-      if (window.Store.Chat.length === 0) return false;
+    const chat = WAPI.getChat(id);
+    if (chat) {
+      try {
+        var mediaBlob = window.WAPI.base64ImageToFile(image64, filename);
+        var mc = new window.Store.MediaCollection(chat);
+        mc.processAttachments([ { file: mediaBlob }, 1 ], chat, 1 ).then(() => {
+          var media = mc.models[0];
+          media.sendToChat(chat, { caption: caption });
+        });
 
-      let firstChat = Store.Chat.models[0];
-      let originalID = firstChat.id;
-      firstChat.id =
-        typeof originalID === "string"
-          ? id
-          : new window.Store.UserConstructor(id, { intentionallyUsePrivateConstructor: true });
-      let mediaBlob = await window.WAPI.base64ImageToFile(imgBase64, filename);
-      var mc = new Store.MediaCollection(chat);
-      chat = WAPI.getChat(id);
-      mc.processAttachments([{file: mediaBlob}, 1], chat, 1).then(() => {
-        let media = mc.models[0];
-        media.sendToChat(chat, { caption: caption });
-      });
-      return true;
+      } catch (error) {
+        console.log(error)
+      }
     }
   };
 
   window.WAPI.base64ImageToFile = function(image, filename) {
-    return new Promise(async resolve => {
-      if (!image.includes("base64")) {
-        image = await window.WappBot.toDataURL("https://cors-anywhere.herokuapp.com/" + image); // convert url in base64
-      }
-      var arr = image.split(","),
-        mime = arr[0].match(/:(.*?);/)[1],
-        bstr = atob(arr[1]),
-        n = bstr.length,
-        u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      resolve(new File([u8arr], filename, { type: mime }));
+    var arr = image.split(",");
+    var mime = arr[0].match(/:(.*?);/)[1];
+    var bstr = atob(arr[1]);
+    var n = bstr.length;
+    var u8arr = new Uint8Array(n);
+
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+
+    return new File([u8arr], filename, {
+      type: mime
     });
   };
 
@@ -319,22 +290,12 @@ function initWhatsapp () {
     let id = idChat;
     if (!window.WAPI.getAllChatIds().find(chat => chat == idChat))
       id = new window.Store.UserConstructor(idChat, { intentionallyUsePrivateConstructor: true });
-    var chat = WAPI.getChat(id);
+    const chat = WAPI.getChat(id);
     try {
       // create new chat
       return chat.sendMessage(message);
     } catch (e) {
-      if (window.Store.Chat.length === 0) return false;
-
-      firstChat = Store.Chat.models[0];
-      var originalID = firstChat.id;
-      firstChat.id =
-        typeof originalID === "string"
-          ? id
-          : new window.Store.UserConstructor(id, { intentionallyUsePrivateConstructor: true });
-      var chat = WAPI.getChat(firstChat.id);
-      chat.sendMessage(message);
-      return true;
+      return false;
     }
   };
 
@@ -362,6 +323,14 @@ function initWhatsapp () {
     }
   };
 
+  window.WappBot.prepareImageToSend = (chatId, image) => {
+    window.WAPI.sendImage(chatId, image.content, image.filename, image.caption);
+  };
+
+  window.WAPI.getMe = () => {
+    return window.Store.Conn;
+  };
+
   /**
    * New messages observable functions.
    */
@@ -371,38 +340,46 @@ function initWhatsapp () {
   window.WAPI._newMessagesDebouncer = null;
   window.WAPI._newMessagesCallbacks = [];
 
-  window.Store.Msg.off("add");
-  sessionStorage.removeItem("saved_msgs");
+  if (window.Store.Msg) {
+    window.Store.Msg.off("add");
+    sessionStorage.removeItem("saved_msgs");
 
-  window.WAPI._newMessagesListener = window.Store.Msg.on("add", newMessage => {
-    if (newMessage && newMessage.isNewMsg && !newMessage.isGroupMsg) {
-      let message = window.WAPI.processMessageObj(newMessage, true, false);
+    window.WAPI._newMessagesListener = window.Store.Msg.on("add", newMessage => {
+      if (newMessage && newMessage.isNewMsg && !newMessage.isGroupMsg) {
+        let message = window.WAPI.processMessageObj(newMessage, true, false);
 
-      if (message && message.body && !localStorage.getItem('pauseWpp') && !message.isMedia) {
-        const chatId = message.chatId._serialized;
-        if (chatId === "status@broadcast") {
-          return;
-        }
+        if (!localStorage.getItem('pauseWpp') && message && !message.isMedia) {
 
-        const clearmessage = message.body.trim().toLowerCase();
-        if ((!message.sender.isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
-          const detail = {
-            from: chatId,
-            text: message.body,
-            isMe: message.sender.isMe,
-            isGroupMsg: message.isGroupMsg
-          };
-
-          if (!message.sender.isMe) {
-            detail.contact = message.sender.pushname;
-            detail.number = message.chatId.user;
+          const chatId = message.chatId._serialized;
+          if (chatId === "status@broadcast") {
+            return;
           }
 
-          document.dispatchEvent(new CustomEvent('message_received', { detail }));
+          if (!message.body) {
+            window.WappBot.prepareMessageToSend("Desculpe, ainda não consigo enteder áudios. Posso te ajudar se me enviar frases ou perguntas curtas.", chatId);
+            return;
+          }
+
+          const clearmessage = message.body.trim().toLowerCase();
+          if ((!message.sender.isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+            const detail = {
+              from: chatId,
+              text: message.body,
+              isMe: message.sender.isMe
+            };
+
+            if (!message.sender.isMe) {
+              detail.contact = message.sender.pushname;
+              detail.number = message.chatId.user;
+            }
+
+            document.dispatchEvent(new CustomEvent('message_received', { detail }));
+          }
         }
       }
-    }
-  });
+    });
+
+  }
 
   // function differenceTime(time) {
   //   const difference = Math.floor((new Date().getTime() - time)/1000/60);
@@ -425,13 +402,74 @@ function initWhatsapp () {
   // };
 }
 
+// Button
+// function initTab() {
+//   let interval = undefined;
+//   function makeSmartTab() {
+//     clearInterval(interval);
+//
+//     interval = setInterval(() => {
+//       const footer = document.getElementsByTagName("footer")[0];
+//       if (footer !== undefined && footer.dataset.applied === undefined) {
+//         footer.dataset.applied = 'true';
+//
+//         const event = new CustomEvent('active_tab', {'detail': {action: 'check_expired'}});
+//         document.dispatchEvent(event);
+//       }
+//     }, 1000);
+//   }
+//
+//   makeSmartTab();
+// }
+
+// document.addEventListener('active_tab', function (e) {
+//   console.log('active_tab', e);
+//
+//   const user = window.WAPI.getChatActive();
+//   if (user){
+//     const event = new CustomEvent('action_active_tab', {
+//       'detail': {
+//         action: e.detail.action,
+//         senderId: user
+//       }
+//     });
+//     document.dispatchEvent(event);
+//   }
+//
+// }, false);
+
 document.addEventListener('inject-script', function () {
-  if (!window.WappBot && !window.WAPI) {
-    initWhatsapp();
-  }
+  startup();
 }, false);
 
+function startup() {
+  if (document.getElementById('pane-side')) {
+    try {
+      injectScript();
 
-// window.addEventListener("unload", window.WAPI._unloadInform, false);
-// window.addEventListener("beforeunload", window.WAPI._unloadInform, false);
-// window.addEventListener("pageunload", window.WAPI._unloadInform, false);
+    } catch (e) {
+      console.log(e);
+      document.dispatchEvent(new CustomEvent('inject-script-fail'));
+    }
+
+  } else {
+    console.log('Startup AGAIN');
+    setTimeout(function () {
+      startup();
+    }, 4000);
+  }
+}
+
+function injectScript() {
+  initWhatsapp();
+  const me = window.WAPI.getMe();
+
+  if (me && me.__x_wid && me.__x_wid.user) {
+    console.log('Me:', me.__x_wid.user);
+    document.dispatchEvent(new CustomEvent('inject-script-done'));
+
+  } else {
+    console.log('Not Inject');
+    document.dispatchEvent(new CustomEvent('inject-script-fail'));
+  }
+}

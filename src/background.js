@@ -29,7 +29,7 @@ function createMenuContext(){
       label: 'Opcões',
       submenu: [
         {
-          label: pauseWpp ? 'Ativar Bot' : 'Pausar Bot',
+          label: pauseWpp ? 'Ativar o Bot' : 'Pausar o LeBot',
           click: () => {
             desativarWpp();
             pauseWpp = !pauseWpp;
@@ -41,6 +41,12 @@ function createMenuContext(){
           click: () => {
             quit = false;
             win.show();
+          }
+        },
+        {
+          label: 'Logout',
+          click: () => {
+            logoutApp();
           }
         }
       ]
@@ -65,26 +71,13 @@ function createMenuContext(){
           }
         },
         {
-          label: 'Versão',
-          click: () => {
-            messagebox = dialog.showMessageBox(wpp, {
-              type: 'info',
-              buttons: ['OK'],
-              title: 'Lincença',
-              message: 'LeCard Whatsapp. Versão: ' + app.getVersion()
-            }, () => {
-              messagebox = false;
-            });
-          }
-        },
-        {
           label: 'Licença',
           click: () => {
             messagebox = dialog.showMessageBox(wpp, {
               type: 'info',
               buttons: ['OK'],
               title: 'Lincença',
-              message: 'Empresa: ' + (dados.dados ? dados.dados.nome_fantasia : "") + '\nStatus: Ativo'
+              message: 'Empresa: ' + (dados.dados ? dados.dados.nome_fantasia : "") + '\nStatus: Ativo\nVersão: ' + app.getVersion()
             }, () => {
               messagebox = false;
             });
@@ -93,12 +86,24 @@ function createMenuContext(){
       ]
     },
     {
-      label: 'Sair',
+      label: 'Chat',
       submenu: [
         {
-          label: 'Logout',
+          label: 'Pausar Chat do Usuário',
           click: () => {
-            logoutApp();
+            toggleChat('lebot ok');
+          }
+        },
+        {
+          label: 'Adicionar a Block-List',
+          click: () => {
+            toggleChat('lebot add');
+          }
+        },
+        {
+          label: 'Remover da Block-List',
+          click: () => {
+            toggleChat('lebot remover');
           }
         }
       ]
@@ -208,7 +213,15 @@ function createWpp(data) {
     icon: path.join(__static, 'icon.png')
   });
   wpp.loadURL('https://web.whatsapp.com/');
-  // if (!process.env.IS_TEST) wpp.webContents.openDevTools()
+
+  wpp.webContents.on('dom-ready', function(e) {
+    const file = fs.readFileSync(__static + '/whatsapp.js', "utf8");
+    setTimeout(() => {
+      wpp.webContents.executeJavaScript(file).then(() => {
+        wpp.webContents.send('is_ready_to_inject');
+      });
+    }, 10000)
+  });
 
   wpp.on('closed', () => {
     app.quit()
@@ -250,36 +263,12 @@ function checkUpdate() {
   })
 }
 
-function sendMessage(event, from, msg, i) {
-  setTimeout(() => {
-    event.reply('asynchronous-reply', { from, msg })
-  }, 1000 * i);
-}
-
-// ************ IPC MAINS ************ //
-
-ipcMain.on('toggle-wpp', (event, arg) => {
-  win.hide();
-  quit = true;
-
-  if (arg && !wpp) {
-    createWpp(arg);
-  }
-});
-
-ipcMain.on('import-scripts', (event, arg) => {
-  const file = fs.readFileSync(__static + '/whatsapp.js', "utf8");
-  wpp.webContents.executeJavaScript(file).then(() => {
-    event.reply('is_ready_to_inject', dados);
-  })
-});
-
-ipcMain.on('asynchronous-message', (event, arg) => {
+function sendToServer(event, arg) {
   const form = new FormData();
   form.append('text', arg.text);
   form.append('user_id', arg.from);
   form.append('isMe', arg.isMe.toString());
-  form.append('isGroupMsg', arg.isGroupMsg.toString());
+  // form.append('isGroupMsg', arg.isGroupMsg.toString());
 
   if (!arg.isMe) {
     if (arg.contact) {
@@ -295,12 +284,39 @@ ipcMain.on('asynchronous-message', (event, arg) => {
     .then(res => res.json())
     .then(json => {
       if (json.success && json.msgs) {
-        let i = 0;
-        json.msgs.forEach(msg => {
-          sendMessage(event, arg.from, msg, i++);
-        })
+        if (event) {
+          let i = 0;
+          json.msgs.forEach(msg => {
+            sendMessage(event, arg.from, msg, i++);
+          })
+        }
       }
     }).catch(err => console.log(err));
+}
+
+function sendMessage(event, from, msg, i) {
+  setTimeout(() => {
+    event.reply('asynchronous-reply', { from, msg })
+  }, 1000 * i);
+}
+
+function toggleChat(msg) {
+  wpp.webContents.send('toggle-chat', msg);
+}
+
+// ************ IPC MAINS ************ //
+
+ipcMain.on('toggle-wpp', (event, arg) => {
+  win.hide();
+  quit = true;
+
+  if (arg && !wpp) {
+    createWpp(arg);
+  }
+});
+
+ipcMain.on('asynchronous-message', (event, arg) => {
+  sendToServer(event, arg)
 });
 
 ipcMain.on('focus', () => {
@@ -339,6 +355,17 @@ ipcMain.on('socket-send', (event, arg) => {
         wpp.webContents.send('asynchronous-reply', { from: arg.to, msg })
       }, 1000 * i);
     });
+  }
+});
+
+ipcMain.on('toggle-chat', (event, arg) => {
+  if (arg && arg.from && arg.text) {
+    const dados = {
+      from: arg.from,
+      text: arg.text,
+      isMe: true
+    };
+    sendToServer(event, dados);
   }
 });
 
