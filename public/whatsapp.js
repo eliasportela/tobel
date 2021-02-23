@@ -356,7 +356,7 @@ function initWhatsapp () {
           }
 
           if (!message.body) {
-            window.WappBot.prepareMessageToSend("Desculpe, ainda não consigo enteder áudios. Posso te ajudar se me enviar frases ou perguntas curtas.", chatId);
+            window.WappBot.prepareMessageToSend("Desculpe, ainda não consigo entender áudios 😥. Posso te ajudar se me enviar frases ou perguntas curtas.", chatId);
             return;
           }
 

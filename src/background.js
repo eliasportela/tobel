@@ -89,19 +89,19 @@ function createMenuContext(){
       label: 'Chat',
       submenu: [
         {
-          label: 'Pausar Chat do Usuário',
+          label: 'Pausar usuário',
           click: () => {
             toggleChat('lebot ok');
           }
         },
         {
-          label: 'Adicionar a Block-List',
+          label: 'Adicionar usuário à Blocklist',
           click: () => {
             toggleChat('lebot add');
           }
         },
         {
-          label: 'Remover da Block-List',
+          label: 'Remover usuário da Blocklist',
           click: () => {
             toggleChat('lebot remover');
           }
