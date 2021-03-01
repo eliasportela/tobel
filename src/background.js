@@ -23,6 +23,13 @@ let dados = { empresa: '' };
 let pauseWpp = false;
 let quit = true;
 
+if (!isDevelopment) {
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: app.getPath('exe')
+  });
+}
+
 function createMenuContext(){
   return Menu.buildFromTemplate([
     {
@@ -113,9 +120,9 @@ function createMenuContext(){
 
 Menu.setApplicationMenu(createMenuContext());
 
-protocol.registerSchemesAsPrivileged([
-  { scheme: 'app', privileges: { secure: true, standard: true } }
-]);
+protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { secure: true, standard: true } }]);
+app.commandLine.appendSwitch('--autoplay-policy','no-user-gesture-required');
+app.setAppUserModelId('delivery.lecard.whatsapp');
 
 function createWindow() {
   // Create the browser window.
@@ -206,6 +213,8 @@ function createWpp(data) {
   wpp = new BrowserWindow({
     width: 1000,
     height: 600,
+    minWidth: 1000,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: true,
       preload: path.join(__static, 'preload.js'),
@@ -234,6 +243,8 @@ function createWpp(data) {
   wpp.once('focus', () => {
     wpp.flashFrame(false)
   });
+
+  wpp.maximize();
 }
 
 // ************ FUNCOES ************ //
