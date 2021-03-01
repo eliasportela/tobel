@@ -215,12 +215,11 @@ function createWpp(data) {
   wpp.loadURL('https://web.whatsapp.com/');
 
   wpp.webContents.on('dom-ready', function(e) {
-    const file = fs.readFileSync(__static + '/whatsapp.js', "utf8");
-    setTimeout(() => {
-      wpp.webContents.executeJavaScript(file).then(() => {
-        wpp.webContents.send('is_ready_to_inject');
-      });
-    }, 10000)
+    const file = fs.readFileSync(__static + '/api.js', "utf8");
+    wpp.webContents.executeJavaScript(file);
+
+    const file2 = fs.readFileSync(__static + '/whatsapp.js', "utf8");
+    wpp.webContents.executeJavaScript(file2);
   });
 
   wpp.on('closed', () => {
