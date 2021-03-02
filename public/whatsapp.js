@@ -13,26 +13,30 @@ const intervalTry = setInterval(() => {
       if (!msg.isGroupMsg && !msg.isStatusV3 && !localStorage.getItem('pauseWpp')) {
         // const event_send_seen = new CustomEvent('seen_received', { 'detail': { sender: sender._serialized } });
         // document.dispatchEvent(event_send_seen);
-        const chatId = sender._serialized;
+
+        const isMe = msg.__x_isSentByMe;
+        const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
 
         if (!msg.__x_body) {
-          const content = "Desculpe, ainda não consigo entender áudios 😥. Posso te ajudar se me enviar frases ou perguntas curtas.";
-          sendMessage(chatId, { content });
+          if (!isMe) {
+            const content = "Desculpe, ainda não consigo entender áudios 😥. Posso te ajudar se me enviar frases ou perguntas curtas.";
+            sendMessage(chatId, { content });
+          }
+
           return;
         }
 
         const clearmessage = msg.__x_body.trim().toLowerCase();
-
-        if (msg.__x_type === "chat" && (!msg.isSentByMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+        if (msg.__x_type === "chat" && (!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
           const detail = {
             from: chatId,
             text: msg.__x_body,
-            isMe: msg.isSentByMe
+            isMe
           };
 
-          if (!msg.isSentByMe && msg.senderObj) {
-            detail.contact = msg.senderObj.pushname;
-            detail.number = msg.sender.user;
+          if (!isMe && msg.__x_senderObj) {
+            detail.contact = msg.__x_senderObj.pushname;
+            detail.number = sender.user;
           }
 
           // console.log(detail);
