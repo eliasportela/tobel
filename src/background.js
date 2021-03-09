@@ -215,6 +215,7 @@ function createWpp(data) {
     height: 600,
     minWidth: 1000,
     minHeight: 600,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       preload: path.join(__static, 'preload.js'),
@@ -245,6 +246,7 @@ function createWpp(data) {
   });
 
   wpp.maximize();
+  wpp.show();
 }
 
 // ************ FUNCOES ************ //
@@ -278,7 +280,7 @@ function sendToServer(event, arg) {
   form.append('text', arg.text);
   form.append('user_id', arg.from);
   form.append('isMe', arg.isMe.toString());
-  // form.append('isGroupMsg', arg.isGroupMsg.toString());
+  form.append('isAudio', arg.isAudio.toString());
 
   if (!arg.isMe) {
     if (arg.contact) {

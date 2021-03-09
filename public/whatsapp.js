@@ -16,22 +16,20 @@ const intervalTry = setInterval(() => {
 
         const isMe = msg.__x_isSentByMe;
         const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
+        const body = msg.__x_body;
 
-        if (!msg.__x_body) {
-          if (!isMe) {
-            const content = "Desculpe, ainda não consigo entender áudios 😥. Posso te ajudar se me enviar frases ou perguntas curtas.";
-            sendMessage(chatId, { content });
-          }
-
+        if (msg.__x_type !== "chat" && msg.__x_type !== "ptt") {
           return;
         }
 
-        const clearmessage = msg.__x_body.trim().toLowerCase();
-        if (msg.__x_type === "chat" && (!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+        const clearmessage = body ? body.trim().toLowerCase() : "";
+        if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+
           const detail = {
             from: chatId,
-            text: msg.__x_body,
-            isMe
+            text: body ? body : "#",
+            isMe,
+            isAudio: msg.__x_type === "ptt"
           };
 
           if (!isMe && msg.__x_senderObj) {
