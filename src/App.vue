@@ -7,7 +7,7 @@
       <div class="m-auto text-center">
         <img src="./assets/logo-zap.png" class="d-inline-block animated flipInY infinite" alt="Logo Lecard"
              style="width: 64px; border-radius: 6px">
-        <div class="small mt-2 text-secondary">Por favor aguarde..</div>
+        <div class="small mt-2 text-secondary">Por favor aguarde</div>
       </div>
     </div>
   </div>
@@ -38,11 +38,13 @@
             }
 
           }, res => {
-            config.clear();
             this.load = false;
 
             if (res.status !== 401) {
               this.$swal("Atenção!", "Não conseguimos acessar sua conexão com a internet. Por favor verifique se seu computador tem uma conexão estável.");
+
+            } else {
+              config.clear();
             }
           });
       },
@@ -55,6 +57,7 @@
           localStorage.setItem("token", data.empresa);
           config.set("key", data.token);
           config.set("token", data.empresa);
+          data.base_url = config.get('homologacao') ? process.env.VUE_APP_BASE_HOMOLOGACAO : process.env.VUE_APP_BASE_SERVER;
 
           this.$socket.emit('empresa_connected', data.empresa);
           this.getConfigs(data, data.token);

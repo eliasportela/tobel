@@ -4,6 +4,7 @@ import router from './router'
 import VueResource from 'vue-resource'
 import VueSocketIO from 'vue-socket.io';
 import VueSweetalert2 from 'vue-sweetalert2'
+const Config = require('electron-config');
 
 import './assets/bootstrap.min.css'
 import 'animate.css/animate.css'
@@ -15,10 +16,13 @@ Vue.use(new VueSocketIO({
   connection: process.env.VUE_APP_BASE_SOCKET
 }));
 
-Vue.config.productionTip = false
+Vue.config.productionTip = false;
 Vue.http.options.emulateJSON = true;
 Vue.http.options.emulateHTTP = true;
-Vue.http.options.root = process.env.VUE_APP_BASE_SERVER + 'api/';
+
+const config = new Config();
+const base_server = config.get('homologacao') ? process.env.VUE_APP_BASE_HOMOLOGACAO : process.env.VUE_APP_BASE_SERVER;
+Vue.http.options.root = base_server + 'api/';
 
 Vue.use(VueResource);
 

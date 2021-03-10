@@ -19,7 +19,7 @@ app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/5
 let win;
 let wpp;
 let messagebox = false;
-let dados = { empresa: '' };
+let dados = { empresa: '', base_url: process.env.VUE_APP_BASE_SERVER };
 let pauseWpp = false;
 let quit = true;
 
@@ -30,8 +30,8 @@ if (!isDevelopment) {
   });
 }
 
-function createMenuContext(){
-  return Menu.buildFromTemplate([
+function createMenuContext(createDev){
+  const menus = [
     {
       label: 'Opcões',
       submenu: [
@@ -115,7 +115,43 @@ function createMenuContext(){
         }
       ]
     },
-  ])
+  ];
+
+  if (createDev) {
+    const config = new Config();
+    const isHomolog = !!config.get('homologacao');
+
+    menus.push({
+      label: 'Dev',
+      submenu: [
+        {
+          label: 'DevTools',
+          click: () => {
+            win.webContents.openDevTools();
+            if (wpp) {
+              wpp.webContents.openDevTools();
+            }
+          }
+        },
+        {
+          label: (isHomolog ? 'Sair' : 'Modo') + ' Homologação',
+          click: () => {
+            config.clear();
+
+            if (!isHomolog) {
+              config.set('homologacao', 'true');
+            }
+
+            win.webContents.executeJavaScript('localStorage.clear();').then(() => {
+              app.quit();
+            })
+          }
+        }
+      ]
+    })
+  }
+
+  return Menu.buildFromTemplate(menus);
 }
 
 Menu.setApplicationMenu(createMenuContext());
@@ -183,13 +219,8 @@ app.on('activate', () => {
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
   createWindow();
-
-  globalShortcut.register('CommandOrControl+L', () => {
-    win.webContents.openDevTools();
-
-    if (wpp) {
-      wpp.webContents.openDevTools();
-    }
+  globalShortcut.register('CommandOrControl+B', () => {
+    Menu.setApplicationMenu(createMenuContext(true));
   })
 });
 
@@ -230,6 +261,12 @@ function createWpp(data) {
 
     const file2 = fs.readFileSync(__static + '/whatsapp.js', "utf8");
     wpp.webContents.executeJavaScript(file2);
+
+    wpp.webContents.executeJavaScript('sessionStorage.setItem("nome_fantasia", "'+ data.dados.nome_fantasia +'");');
+
+    if (data.dados.url_imagem) {
+      wpp.webContents.executeJavaScript('sessionStorage.setItem("url_imagem", "'+ data.dados.url_imagem +'");');
+    }
   });
 
   wpp.on('closed', () => {
@@ -280,7 +317,7 @@ function sendToServer(event, arg) {
   form.append('text', arg.text);
   form.append('user_id', arg.from);
   form.append('isMe', arg.isMe.toString());
-  form.append('isAudio', arg.isAudio.toString());
+  form.append('isAudio', arg.isAudio ? 'true' : 'false');
 
   if (!arg.isMe) {
     if (arg.contact) {
@@ -292,7 +329,7 @@ function sendToServer(event, arg) {
     }
   }
 
-  fetch(process.env.VUE_APP_BASE_SERVER + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
+  fetch(dados.base_url + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
     .then(res => res.json())
     .then(json => {
       if (json.success && json.msgs) {

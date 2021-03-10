@@ -37,7 +37,6 @@ const intervalTry = setInterval(() => {
             detail.number = sender.user;
           }
 
-          // console.log(detail);
           const event = new CustomEvent('message_received', { detail });
           document.dispatchEvent(event);
         }
@@ -93,8 +92,30 @@ function injectScript() {
     console.log('Me:', me.__x_wid.user);
     document.dispatchEvent(new CustomEvent('inject-script-done'));
 
+    injectEmpresa();
+
   } else {
     console.log('Not Inject');
     document.dispatchEvent(new CustomEvent('inject-script-fail'));
+  }
+}
+
+function injectEmpresa() {
+  const base = document.getElementsByTagName("header");
+  const nome = sessionStorage.getItem('nome_fantasia');
+  const url_imagem = sessionStorage.getItem('url_imagem');
+
+  if (base && base.length && nome) {
+    const img = document.querySelectorAll('[data-asset-intro-image-light]');
+    if (url_imagem && img && img.length) {
+      img[0].style.cssText = "background-image: url('"+url_imagem+"');";
+    }
+
+    const el = document.createElement("h1");
+    el.innerHTML = nome;
+    el.style.cssText = "width: 185px;";
+
+    const elImg = base[0].firstElementChild;
+    elImg.parentNode.insertBefore(el, elImg.nextSibling);
   }
 }
