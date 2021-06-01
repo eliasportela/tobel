@@ -18,7 +18,7 @@ const intervalTry = setInterval(() => {
         const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
         const body = msg.__x_body;
 
-        if (msg.__x_type !== "chat" && msg.__x_type !== "ptt") {
+        if (msg.__x_type !== "chat" && msg.__x_type !== "ptt" && msg.__x_type !== "location") {
           return;
         }
 
@@ -37,6 +37,11 @@ const intervalTry = setInterval(() => {
             detail.number = sender.user;
           }
 
+          if (msg.__x_type === "location" && (!msg.__x_isLive || ((msg.__x_isLive && msg.__x_chat.__x_liveLocation !== undefined)))) {
+            detail.location = { lat: msg.__x_lat, lng: msg.__x_lng };
+          }
+
+          // console.log(detail);
           const event = new CustomEvent('message_received', { detail });
           document.dispatchEvent(event);
         }

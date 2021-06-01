@@ -78,6 +78,13 @@
 
             this.load = false;
 
+            if (res.data && res.data.bandeiras) {
+              res.data.bandeiras.forEach(b => {
+                console.log('Empresa conectada: ' + b.token);
+                this.$socket.emit('empresa_connected', b.token);
+              })
+            }
+
           }, res => {
             console.log(res);
             this.load = false;
@@ -103,8 +110,8 @@
     sockets: {
       connect() {
         if (config.get('token')) {
-          console.log('Empresa conectada: ' + config.get('token'))
-          this.$socket.emit('empresa_connected', config.get('token'))
+          console.log('Empresa conectada: ' + config.get('token'));
+          this.$socket.emit('empresa_connected', config.get('token'));
         }
       },
 

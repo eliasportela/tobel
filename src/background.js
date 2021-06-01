@@ -318,6 +318,7 @@ function sendToServer(event, arg) {
   form.append('user_id', arg.from);
   form.append('isMe', arg.isMe.toString());
   form.append('isAudio', arg.isAudio ? 'true' : 'false');
+  form.append('location', arg.location ? JSON.stringify(arg.location) : '');
 
   if (!arg.isMe) {
     if (arg.contact) {
