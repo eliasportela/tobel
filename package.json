@@ -2,7 +2,7 @@
   "name": "lecard-whatsapp",
   "author": "storkdigital.com.br",
   "description": "A WhatsApp Bot",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",

@@ -47,12 +47,11 @@
       });
       return result;
     },
-
     activeTab: function () {
       let result = null;
       if (Store != undefined &&
         Store.Chat != undefined &&
-        Store.Chat.models != undefined) {
+        Store.Chat.models != undefined){
 
         Store.Chat.models.forEach(x => {
           if (x.hasOwnProperty("__x_active") && x.__x_active) {
@@ -64,7 +63,6 @@
 
       return result;
     },
-
     /*
     Returns a WhatsApp Chat object from a given chat id.
     */
@@ -72,7 +70,7 @@
       let result = null;
       if (Store != undefined &&
         Store.Chat != undefined &&
-        Store.Chat.models != undefined) {
+        Store.Chat.models != undefined){
 
         Store.Chat.models.forEach(x => {
           if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
@@ -113,16 +111,13 @@
     Calls a callback with an error object.
     */
     error: function (err, callback) {
-      setTimeout(x => {
-        (callback || Core.nop)({error: err});
-      }, 1);
+      setTimeout(x => { (callback || Core.nop)({ error: err }); }, 1);
     },
 
     /*
     Does nothing.
     */
-    nop: function () {
-    }
+    nop: function () { }
 
   };
 
@@ -215,10 +210,11 @@
       Message received
       */
       {
-        predicate: msg => msg.__x_isUserCreatedType && !msg.__x_isNotification,
+        predicate: msg => msg.__x_isUserCreatedType && !msg.__x_isNotification && !msg.__x_isSentByMe,
         handler: function (msg) {
           var sender = msg.__x_sender;
           var chat = msg.__x_from;
+          var message = msg.__x_id._serialized;
 
           API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
         }
@@ -231,6 +227,21 @@
         handler: function (msg) {
           var to = msg.__x_to;
           API.listener.ExternalHandlers.MESSAGE_SENT.forEach(x => x(to, msg, msg));
+        }
+      },
+      {
+        predicate: msg => msg.__x_type == 'payment',
+        handler: function (msg) {
+          var sender = msg.__x_sender;
+          var chat = msg.__x_from;
+          const isPayment = msg.__x_paymentStatus === 3;
+          if (isPayment) {
+            try {
+              API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
+            } catch (error) {
+              console.log('isso aqui eh culpa do diegon', error)
+            }
+          }
         }
       }
     ];
@@ -388,7 +399,7 @@
       }
 
       chat.setArchive(!!archive_status).then(function () {
-        (callback || Core.nop)({status: 200});
+        (callback || Core.nop)({ status: 200 });
       });
     },
 
@@ -440,7 +451,7 @@
       }
 
       group.revokeGroupInvite().then(function (e) {
-        (callback || Core.nop)({status: e});
+        (callback || Core.nop)({ status: e });
       });
     },
 
@@ -459,7 +470,7 @@
       }
 
       user.setBlock(blocked_status).then(function (e) {
-        (callback || Core.nop)({status: e});
+        (callback || Core.nop)({ status: e });
       });
     },
 
@@ -471,14 +482,14 @@
       callback - to be invoked after the operation completes
     */
 
-    getProfilePicFromId: function (id, callback) {
-      window.Store.ProfilePicThumb.find(id).then(function (d) {
-        if (d.__x_img !== undefined) {
+    getProfilePicFromId: function(id, callback) {
+      window.Store.ProfilePicThumb.find(id).then(function(d) {
+        if(d.__x_img !== undefined) {
           callback({success: true, imagem: d.__x_img});
         } else {
           callback({success: false});
         }
-      }, function (e) {
+      }, function(e) {
         callback({success: false});
       })
     },
@@ -488,17 +499,17 @@
       var chat = Core.chat(chat_id);
       if (chat == null) {
         Core.error(API.Error.CHAT_NOT_FOUND, callback)
-        console.log('not found')
         return;
       }
 
       window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
-        // console.log(e);
-        (callback || Core.nop)({status: e});
+        console.log(e);
+        (callback || Core.nop)({ status: e });
       });
     },
 
     getMe: function () {
+
       return Store.Conn;
     },
 
@@ -510,9 +521,9 @@
         return;
       }
 
-      window.Store.SendTextMsgToChat(chat, message_text, {linkPreview: link_preview}).then(function (e) {
+      window.Store.SendTextMsgToChat(chat, message_text, { linkPreview: link_preview }).then(function (e) {
         console.log(e);
-        (callback || Core.nop)({status: e});
+        (callback || Core.nop)({ status: e });
       });
     },
 
@@ -598,7 +609,7 @@
 
 
       window.Store.SendSeen(chat).then(function (e) {
-        (callback || Core.nop)({status: e});
+        (callback || Core.nop)({ status: e });
       });
 
       // chat.sendSeen().then(function (e) {
@@ -660,9 +671,7 @@
     */
     getContactList: function () {
       var result = [];
-      Store.Contact.models.forEach(x => {
-        result.push(x.__x_id);
-      });
+      Store.Contact.models.forEach(x => { result.push(x.__x_id); });
       return result;
     },
 
@@ -787,15 +796,14 @@
     }
   };
 })();
-
+// Store.ChatClass.default.prototype.sendMessage = function (e) {Store.SendTextMsgToChat(this,e);}
 window.makeStore = function () {
 
-  if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat) {
+  if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat){
     (function () {
-      var onErrorTryAgain = function (modules) {
+      var onErrorTryAgain = function(modules){
         getStore(modules);
       }
-
       function getStore(modules) {
         console.log("INICIALIZANDO STORE");
         let foundCount = 0;
@@ -814,41 +822,23 @@ window.makeStore = function () {
           },
           {
             id: "SendSeen",
-            conditions: (module) => (module.sendSeen) ? module.sendSeen : null
+            conditions:  (module) => (module.sendSeen) ? module.sendSeen : null
           },
           {
             id: "Store",
             conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null
           },
           // { id: "Store", conditions: (module) => (module.Chat && module.Msg) ? null : null },
-          {id: "Wap", conditions: (module) => (module.createGroup) ? module : null},
-          {
-            id: "MediaCollection",
-            conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments !== undefined) ? module.default : null
-          },
-          {
-            id: "WapDelete",
-            conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null
-          },
-          {
-            id: "Conn",
-            conditions: (module) => (module.default && module.default.ref && module.default.refTTL) ? module.default : null
-          },
-          {
-            id: "WapQuery",
-            conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null)
-          },
-          {id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null},
-          {id: "PrepRawMedia", conditions: (module) => (module.prepRawMedia) ? module : null},
-          {id: "CreateFromData", conditions: (module) => (module.createFromData) ? module : null},
-          {
-            id: "ProtoConstructor",
-            conditions: (module) => (module.prototype && module.prototype.constructor.toString().indexOf('binaryProtocol deprecated version') >= 0) ? module : null
-          },
-          {
-            id: "UserConstructor",
-            conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null
-          }
+          { id: "Wap", conditions: (module) => (module.createGroup) ? module : null },
+          { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments !== undefined) ? module.default : null },
+          { id: "WapDelete", conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null },
+          { id: "Conn", conditions: (module) => (module.default && module.default.ref && module.default.refTTL) ? module.default : null },
+          { id: "WapQuery", conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null) },
+          { id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null },
+          { id: "PrepRawMedia", conditions: (module) => (module.prepRawMedia) ? module : null },
+          { id: "CreateFromData", conditions: (module) => (module.createFromData) ? module : null },
+          { id: "ProtoConstructor", conditions: (module) => (module.prototype && module.prototype.constructor.toString().indexOf('binaryProtocol deprecated version') >= 0) ? module : null },
+          { id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null }
         ];
 
         // debugger;
@@ -890,7 +880,7 @@ window.makeStore = function () {
               // 	window.Store.SendTextMsgToChat(this, e);
               // }
               console.log(window.Store);
-              if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat) {
+              if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat){
                 console.error("NAAO TEM VALORES NO STORAGE")
 
                 setTimeout(() => {
@@ -922,41 +912,23 @@ window.makeStore = function () {
           },
           {
             id: "SendSeen",
-            conditions: (module) => (module.sendSeen) ? module.sendSeen : null
+            conditions:  (module) => (module.sendSeen) ? module.sendSeen : null
           },
           {
             id: "Store",
             conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null
           },
           // { id: "Store", conditions: (module) => (module.Chat && module.Msg) ? null : null },
-          {id: "Wap", conditions: (module) => (module.createGroup) ? module : null},
-          {
-            id: "MediaCollection",
-            conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments !== undefined) ? module.default : null
-          },
-          {
-            id: "WapDelete",
-            conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null
-          },
-          {
-            id: "Conn",
-            conditions: (module) => (module.default && module.default.ref && module.default.refTTL) ? module.default : null
-          },
-          {
-            id: "WapQuery",
-            conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null)
-          },
-          {id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null},
-          {id: "PrepRawMedia", conditions: (module) => (module.prepRawMedia) ? module : null},
-          {id: "CreateFromData", conditions: (module) => (module.createFromData) ? module : null},
-          {
-            id: "ProtoConstructor",
-            conditions: (module) => (module.prototype && module.prototype.constructor.toString().indexOf('binaryProtocol deprecated version') >= 0) ? module : null
-          },
-          {
-            id: "UserConstructor",
-            conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null
-          }
+          { id: "Wap", conditions: (module) => (module.createGroup) ? module : null },
+          { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments !== undefined) ? module.default : null },
+          { id: "WapDelete", conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null },
+          { id: "Conn", conditions: (module) => (module.default && module.default.ref && module.default.refTTL) ? module.default : null },
+          { id: "WapQuery", conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null) },
+          { id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null },
+          { id: "PrepRawMedia", conditions: (module) => (module.prepRawMedia) ? module : null },
+          { id: "CreateFromData", conditions: (module) => (module.createFromData) ? module : null },
+          { id: "ProtoConstructor", conditions: (module) => (module.prototype && module.prototype.constructor.toString().indexOf('binaryProtocol deprecated version') >= 0) ? module : null },
+          { id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null }
         ];
         for (let idx in modules) {
           if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
@@ -984,14 +956,14 @@ window.makeStore = function () {
             window.Store[needObj.id] = needObj.foundedModule;
           }
         });
-        // console.log(window.Store)
+        console.log(window.Store)
         return window.Store;
       }
 
       // console.log("EPA", Debug.VERSION);
       // setTimeout(() => {
       if (Debug.VERSION === "0.4.1307") {
-        webpackJsonp([], {'parasite': (x, y, z) => getStore(z)}, ['parasite']);
+        webpackJsonp([], { 'parasite': (x, y, z) => getStore(z) }, ['parasite']);
       } else if (Debug.VERSION === "2.2104.10") {
         // console.error("3")
 
@@ -1009,9 +981,11 @@ window.makeStore = function () {
       }
       else {
         let tag = new Date().getTime();
-        webpackChunkbuild.push([
+        webpackChunkwhatsapp_web_client.push([
           ["parasite" + tag],
-          {},
+          {
+
+          },
           function (o, e, t) {
             let modules = [];
             for (let idx in o.m) {
@@ -1027,4 +1001,17 @@ window.makeStore = function () {
       // }, 6000);
     })();
   }
-};
+}
+
+
+// var intervalTry = setInterval(() => {
+
+// 	if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat){
+// API.init();
+// 		console.log("STORE", window.Store);
+// 	}
+// 	else{
+// 		clearInterval(intervalTry);
+// 	}
+
+// }, 3000);
