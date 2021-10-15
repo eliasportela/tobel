@@ -10,6 +10,10 @@ document.addEventListener("toggle-reply", (e) => {
   toggleChat(e.detail);
 }, false);
 
+document.addEventListener("go-page", (e) => {
+  ipcRenderer.send('go-page', e.detail);
+}, false);
+
 ipcRenderer.on('asynchronous-reply', (event, arg) => {
   sendMessage(arg.from, { content: arg.msg }, () => {
     return null

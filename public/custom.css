@@ -3,8 +3,8 @@
 }
 
 .adminButton {
-	height: 50px;
-	width: 50px;
+	height: 45px;
+	width: 45px;
 	background-color: #1CC88A;
 	border-radius: 50%;
 	display: block;
@@ -22,8 +22,8 @@
 
 .adminButton img {
 	padding-top: 1px;
-	width: 44px;
-	height: 45px;
+	width: 40px;
+	height: 40px;
 }
 
 .adminButtons button.hide {
@@ -84,7 +84,6 @@
 }
 
 .adminButtons button:nth-child(4) {
-	background-color: #FF3244;
 	transition: opacity .2s ease-in-out .15s, transform .15s ease-in-out;
 }
 
@@ -120,6 +119,11 @@
 .adminToggle:checked~.adminButtons button {
 	opacity: 1;
 	visibility: visible;
+}
+
+.adminToggle:disabled~#buttonOptions {
+	opacity: 0.5;
+	cursor: not-allowed;
 }
 
 .load {

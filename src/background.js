@@ -47,7 +47,7 @@ function createMenuContext(createDev){
           label: 'Configurações',
           click: () => {
             quit = false;
-            win.webContents.send('config');
+            win.webContents.send('go-page', 'config');
             win.show();
           }
         },
@@ -97,28 +97,10 @@ function createMenuContext(createDev){
       label: 'Chat',
       submenu: [
         {
-          label: 'Pausar usuário',
-          click: () => {
-            toggleChat('lebot ok');
-          }
-        },
-        {
-          label: 'Adicionar usuário à Blocklist',
-          click: () => {
-            toggleChat('lebot add');
-          }
-        },
-        {
-          label: 'Remover usuário da Blocklist',
-          click: () => {
-            toggleChat('lebot remover');
-          }
-        },
-        {
           label: 'Visualizar Blocklist',
           click: () => {
             quit = false;
-            win.webContents.send('go-blocklist', true);
+            win.webContents.send('go-page', 'blocklist');
             win.show();
           }
         }
@@ -285,7 +267,7 @@ function createWpp(data) {
       wpp.webContents.insertCSS(file3);
 
       //get blocklist
-      win.webContents.send('go-blocklist', false);
+      win.webContents.send('getBlocklist');
 
     }, 2000);
 
@@ -364,7 +346,7 @@ function sendToServer(event, arg) {
         }
 
         if (arg.blocklist) {
-          win.webContents.send('go-blocklist', false);
+          win.webContents.send('getBlocklist');
         }
       }
     }).catch(err => console.log(err));
@@ -393,6 +375,12 @@ ipcMain.on('toggle-wpp', (event, arg) => {
 
 ipcMain.on('blocklist', (event, arg) => {
   wpp.webContents.send('fill-blocklist', arg);
+});
+
+ipcMain.on('go-page', (event, arg) => {
+  quit = false;
+  win.webContents.send('go-page', arg);
+  win.show();
 });
 
 ipcMain.on('asynchronous-message', (event, arg) => {

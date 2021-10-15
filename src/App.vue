@@ -3,21 +3,17 @@
     <div v-if="!load">
       <router-view @setConfigs="setUserData"/>
     </div>
-    <div class="d-flex justify-content-center" style="height: 400px" v-else>
-      <div class="m-auto text-center">
-        <img src="./assets/logo-zap.png" class="d-inline-block animated flipInY infinite" alt="Logo Lecard"
-             style="width: 64px; border-radius: 6px">
-        <div class="small mt-2 text-secondary">Por favor aguarde</div>
-      </div>
-    </div>
+    <loading v-else/>
   </div>
 </template>
 <script>
+  import Loading from "./components/Loading";
   const { ipcRenderer } = require('electron');
   const Config = require('electron-config');
   const config = new Config();
 
   export default {
+    components: {Loading},
     data() {
       return {
         load: true,
@@ -42,7 +38,7 @@
             this.load = false;
 
             if (res.status !== 401) {
-              this.$swal("Atenção!", "Não conseguimos acessar sua conexão com a internet. Por favor verifique se seu computador tem uma conexão estável.");
+              this.$swal("Não conseguimos acessar sua conexão com a internet. Por favor verifique se seu computador tem uma conexão estável.");
 
             } else {
               config.clear();
@@ -122,19 +118,17 @@
     },
 
     created() {
-      ipcRenderer.on('config', (event, arg) => {
-        if (this.$route.name !== "Config") {
-          this.$router.push("/config");
+      ipcRenderer.on('go-page', (event, arg) => {
+        const url = "/" + (arg.url ? arg.url : arg);
+
+        if (this.$route.fullPath !== url) {
+          this.$router.push(url);
+          this.$emit('reloadDados');
         }
       });
 
-      ipcRenderer.on('go-blocklist', (event, arg) => {
-        if (arg && this.$route.name !== "Blocklist") {
-          this.$router.push("/blocklist");
-
-        } else if (!arg) {
-          this.getBlocklist();
-        }
+      ipcRenderer.on('getBlocklist', (event, arg) => {
+        this.getBlocklist();
       });
     },
 
@@ -179,3 +173,9 @@
   });
 
 </script>
+
+<style>
+  .pointer {
+    cursor: pointer;
+  }
+</style>

@@ -3,14 +3,17 @@ import App from './App.vue'
 import router from './router'
 import VueResource from 'vue-resource'
 import VueSocketIO from 'vue-socket.io';
-import VueSweetalert2 from 'vue-sweetalert2'
+import VueSwal from 'vue-swal'
+import VueTheMask from 'vue-the-mask'
 const Config = require('electron-config');
 
 import './assets/bootstrap.min.css'
 import 'animate.css/animate.css'
+import '@fortawesome/fontawesome-free/css/all.css'
 
 Vue.use(VueResource);
-Vue.use(VueSweetalert2);
+Vue.use(VueSwal);
+Vue.use(VueTheMask);
 Vue.use(new VueSocketIO({
   debug: false,
   connection: process.env.VUE_APP_BASE_SOCKET

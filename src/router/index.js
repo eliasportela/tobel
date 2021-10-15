@@ -3,8 +3,9 @@ import VueRouter from 'vue-router'
 import Login from '../views/Login.vue'
 import Config from '../views/Configs.vue'
 import Blocklist from '../views/Blocklist.vue'
+import Cliente from '../views/Cliente.vue'
 
-Vue.use(VueRouter)
+Vue.use(VueRouter);
 
 const routes = [
   {
@@ -14,18 +15,23 @@ const routes = [
   },
   {
     path: '/config',
-    name: 'Config',
+    name: 'config',
     component: Config
   },
   {
     path: '/blocklist',
-    name: 'Blocklist',
+    name: 'blocklist',
     component: Blocklist
+  },
+  {
+    path: '/cliente/:id',
+    name: 'cliente',
+    component: Cliente
   }
 ];
 
 const router = new VueRouter({
   routes
-})
+});
 
 export default router

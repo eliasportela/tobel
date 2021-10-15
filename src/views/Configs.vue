@@ -80,23 +80,19 @@
         <a href="javascript:" class="text-success small" @click="menu = (menu === 1 ? 2 : 1)">{{menu === 2 ? "Voltar" : "Config. Avançadas"}}</a>
       </div>
     </div>
-    <div class="d-flex justify-content-center" style="height: 400px" v-else>
-      <div class="m-auto text-center">
-        <img src="../assets/logo-zap.png" class="d-inline-block animated flipInY infinite" alt="Logo Lecard"
-             style="width: 64px; border-radius: 6px">
-        <div class="small mt-2 text-secondary">Carregando dados..</div>
-      </div>
-    </div>
+    <loading v-else/>
   </div>
 </template>
 
 <script>
+import Loading from "../components/Loading";
 const { ipcRenderer } = require('electron');
 const Config = require('electron-config');
 const config = new Config();
 
 export default {
   name: 'Login',
+  components: {Loading},
   data() {
     return {
       token: '',
@@ -159,10 +155,10 @@ export default {
           if (data.token) {
 
             if (localStorage.getItem('token') === data.token) {
-              this.$swal("", "Esta ja é a sua empresa atual");
+              this.$swal("Esta ja é a sua empresa atual");
 
             } else if (this.dados.bandeiras.find(b => b.token === data.token)) {
-              this.$swal("", "Empresa já adicionada na lista");
+              this.$swal("Empresa já adicionada na lista");
 
             } else {
               this.dados.bandeiras.push({
@@ -173,7 +169,7 @@ export default {
               console.log('Empresa conectada: ' + data.token);
               this.$socket.emit('empresa_connected', data.token);
 
-              this.$swal("", "Empresa adicionada com sucesso!");
+              this.$swal("Empresa adicionada com sucesso!");
               this.salvaConfigs();
 
               this.login.email = '';
@@ -185,7 +181,7 @@ export default {
           console.log(res);
           this.load = false;
           let msg = res.data.msg;
-          this.$swal("", (msg ? msg : 'Erro temporário'));
+          this.$swal((msg ? msg : 'Erro temporário'));
         });
     },
 
