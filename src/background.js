@@ -47,6 +47,7 @@ function createMenuContext(createDev){
           label: 'Configurações',
           click: () => {
             quit = false;
+            win.webContents.send('config');
             win.show();
           }
         },
@@ -111,6 +112,14 @@ function createMenuContext(createDev){
           label: 'Remover usuário da Blocklist',
           click: () => {
             toggleChat('lebot remover');
+          }
+        },
+        {
+          label: 'Visualizar Blocklist',
+          click: () => {
+            quit = false;
+            win.webContents.send('go-blocklist', true);
+            win.show();
           }
         }
       ]
@@ -256,17 +265,30 @@ function createWpp(data) {
   wpp.loadURL('https://web.whatsapp.com/');
 
   wpp.webContents.on('dom-ready', function(e) {
-    const file = fs.readFileSync(__static + '/api.js', "utf8");
-    wpp.webContents.executeJavaScript(file);
 
-    const file2 = fs.readFileSync(__static + '/whatsapp.js', "utf8");
-    wpp.webContents.executeJavaScript(file2);
+    setTimeout(() => {
+      if (data.dados) {
+        wpp.webContents.executeJavaScript('sessionStorage.setItem("nome_fantasia", "'+ data.dados.nome_fantasia +'");');
 
-    wpp.webContents.executeJavaScript('sessionStorage.setItem("nome_fantasia", "'+ data.dados.nome_fantasia +'");');
+        if (data.dados.url_imagem) {
+          wpp.webContents.executeJavaScript('sessionStorage.setItem("url_imagem", "'+ data.dados.url_imagem +'");');
+        }
+      }
 
-    if (data.dados.url_imagem) {
-      wpp.webContents.executeJavaScript('sessionStorage.setItem("url_imagem", "'+ data.dados.url_imagem +'");');
-    }
+      const file = fs.readFileSync(__static + '/api.js', "utf8");
+      wpp.webContents.executeJavaScript(file);
+
+      const file2 = fs.readFileSync(__static + '/whatsapp.js', "utf8");
+      wpp.webContents.executeJavaScript(file2);
+
+      const file3 = fs.readFileSync(__static + '/custom.css', "utf8");
+      wpp.webContents.insertCSS(file3);
+
+      //get blocklist
+      win.webContents.send('go-blocklist', false);
+
+    }, 2000);
+
   });
 
   wpp.on('closed', () => {
@@ -340,6 +362,10 @@ function sendToServer(event, arg) {
             sendMessage(event, arg.from, msg, i++);
           })
         }
+
+        if (arg.blocklist) {
+          win.webContents.send('go-blocklist', false);
+        }
       }
     }).catch(err => console.log(err));
 }
@@ -363,6 +389,10 @@ ipcMain.on('toggle-wpp', (event, arg) => {
   if (arg && !wpp) {
     createWpp(arg);
   }
+});
+
+ipcMain.on('blocklist', (event, arg) => {
+  wpp.webContents.send('fill-blocklist', arg);
 });
 
 ipcMain.on('asynchronous-message', (event, arg) => {
@@ -413,6 +443,7 @@ ipcMain.on('toggle-chat', (event, arg) => {
     const dados = {
       from: arg.from,
       text: arg.text,
+      blocklist: true,
       isMe: true
     };
     sendToServer(event, dados);

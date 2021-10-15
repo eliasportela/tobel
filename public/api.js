@@ -1,4 +1,6 @@
-﻿const convertToBase64 = (imgUrl) => new Promise(resolve => {
+﻿console.error("EPAA, ANTIGO")
+
+const convertToBase64 = (imgUrl) => new Promise(resolve => {
   var img = new Image();
   img.src = imgUrl;
   img.setAttribute('crossOrigin', 'anonymous');
@@ -234,7 +236,7 @@
         handler: function (msg) {
           var sender = msg.__x_sender;
           var chat = msg.__x_from;
-          const isPayment = msg.__x_paymentStatus === 3;
+          const isPayment = msg.__x_paymentStatus === 3 || msg.__x_paymentStatus === 4;
           if (isPayment) {
             try {
               API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
@@ -503,7 +505,7 @@
       }
 
       window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
-        console.log(e);
+        // console.log(e);
         (callback || Core.nop)({ status: e });
       });
     },
@@ -799,101 +801,10 @@
 // Store.ChatClass.default.prototype.sendMessage = function (e) {Store.SendTextMsgToChat(this,e);}
 window.makeStore = function () {
 
-  if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat){
+  console.log(webpackChunkwhatsapp_web_client.length)
+  if (webpackChunkwhatsapp_web_client.length > 12 &&
+    (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat) ){
     (function () {
-      var onErrorTryAgain = function(modules){
-        getStore(modules);
-      }
-      function getStore(modules) {
-        console.log("INICIALIZANDO STORE");
-        let foundCount = 0;
-        let neededObjects = [
-          {
-            id: "SendTextMsgToChat",
-            conditions: (module) => (module.sendTextMsgToChat) ? module.sendTextMsgToChat : null
-          },
-          {
-            id: "ChatClass",
-            conditions: (module) => (module.default && module.default.prototype && module.default.prototype.Collection !== undefined && module.default.prototype.Collection === "Chat") ? module : null
-          },
-          {
-            id: "OpenChat",
-            conditions: (module) => (module.default && module.default.prototype && module.default.prototype.openChat) ? module.default : null
-          },
-          {
-            id: "SendSeen",
-            conditions:  (module) => (module.sendSeen) ? module.sendSeen : null
-          },
-          {
-            id: "Store",
-            conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null
-          },
-          // { id: "Store", conditions: (module) => (module.Chat && module.Msg) ? null : null },
-          { id: "Wap", conditions: (module) => (module.createGroup) ? module : null },
-          { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments !== undefined) ? module.default : null },
-          { id: "WapDelete", conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null },
-          { id: "Conn", conditions: (module) => (module.default && module.default.ref && module.default.refTTL) ? module.default : null },
-          { id: "WapQuery", conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null) },
-          { id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null },
-          { id: "PrepRawMedia", conditions: (module) => (module.prepRawMedia) ? module : null },
-          { id: "CreateFromData", conditions: (module) => (module.createFromData) ? module : null },
-          { id: "ProtoConstructor", conditions: (module) => (module.prototype && module.prototype.constructor.toString().indexOf('binaryProtocol deprecated version') >= 0) ? module : null },
-          { id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null }
-        ];
-
-        // debugger;
-        for (let idx in modules) {
-          if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
-            let first = Object.values(modules[idx])[0];
-            if ((typeof first === "object") && (first.exports)) {
-              for (let idx2 in modules[idx]) {
-                let module = modules(idx2);
-                if (!module) {
-                  continue;
-                }
-
-                neededObjects.forEach((needObj) => {
-                  if (!needObj.conditions || needObj.foundedModule) return;
-                  let neededModule = needObj.conditions(module);
-                  if (neededModule !== null) {
-                    foundCount++;
-                    needObj.foundedModule = neededModule;
-                  }
-                });
-
-                if (foundCount == neededObjects.length) {
-                  break;
-                }
-              }
-
-              let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
-              window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
-              neededObjects.splice(neededObjects.indexOf(neededStore), 1);
-              neededObjects.forEach((needObj) => {
-                if (needObj.foundedModule) {
-                  window.Store[needObj.id] = needObj.foundedModule;
-                }
-              });
-
-              // debugger;
-              // window.Store.ChatClass.default.prototype.sendMessage = function (e) {
-              // 	window.Store.SendTextMsgToChat(this, e);
-              // }
-              console.log(window.Store);
-              if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat){
-                console.error("NAAO TEM VALORES NO STORAGE")
-
-                setTimeout(() => {
-                  onErrorTryAgain(modules);
-                }, 10000);
-              }
-              // else{
-              return window.Store;
-              // }
-            }
-          }
-        }
-      }
 
       function getStore2(modules) {
         let foundCount = 0;
@@ -960,45 +871,23 @@ window.makeStore = function () {
         return window.Store;
       }
 
-      // console.log("EPA", Debug.VERSION);
-      // setTimeout(() => {
-      if (Debug.VERSION === "0.4.1307") {
-        webpackJsonp([], { 'parasite': (x, y, z) => getStore(z) }, ['parasite']);
-      } else if (Debug.VERSION === "2.2104.10") {
-        // console.error("3")
 
-        // console.log("teste", webpackJsonp)
-        webpackJsonp.push([
-          ["parasite"],
-          {
-            parasite: function (o, e, t) {
-              console.log(t)
-              getStore(t);
-            }
-          },
-          [["parasite"]]
-        ]);
-      }
-      else {
-        let tag = new Date().getTime();
-        webpackChunkwhatsapp_web_client.push([
-          ["parasite" + tag],
-          {
+      let tag = new Date().getTime();
+      webpackChunkwhatsapp_web_client.push([
+        ["parasite" + tag],
+        {
 
-          },
-          function (o, e, t) {
-            let modules = [];
-            for (let idx in o.m) {
-              let module = o(idx);
-              modules.push(module);
-            }
-            getStore2(modules);
+        },
+        function (o, e, t) {
+          let modules = [];
+          for (let idx in o.m) {
+            let module = o(idx);
+            modules.push(module);
           }
-        ]);
-      }
+          getStore2(modules);
+        }
+      ]);
 
-      // webpackJsonp([], { 'parasite': (x, y, z) => getStore(z) }, ['parasite']);
-      // }, 6000);
     })();
   }
 }
@@ -1007,7 +896,8 @@ window.makeStore = function () {
 // var intervalTry = setInterval(() => {
 
 // 	if (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat){
-// API.init();
+
+API.init();
 // 		console.log("STORE", window.Store);
 // 	}
 // 	else{
@@ -1015,3 +905,5 @@ window.makeStore = function () {
 // 	}
 
 // }, 3000);
+
+

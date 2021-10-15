@@ -3,7 +3,11 @@ const { ipcRenderer } = require('electron');
 localStorage.removeItem('pauseWpp');
 
 document.addEventListener("message_received", (e) => {
-  ipcRenderer.send('asynchronous-message', e.detail)
+  ipcRenderer.send('asynchronous-message', e.detail);
+}, false);
+
+document.addEventListener("toggle-reply", (e) => {
+  toggleChat(e.detail);
 }, false);
 
 ipcRenderer.on('asynchronous-reply', (event, arg) => {
@@ -14,26 +18,25 @@ ipcRenderer.on('asynchronous-reply', (event, arg) => {
   // window.API.sendLinkMessage(arg.from, "Oiii: https://m.facebook.com/", "https://m.facebook.com/", () => {})
 });
 
+ipcRenderer.on("fill-blocklist", (event, arg) => {
+  fillBlockList(arg);
+}, false);
+
 ipcRenderer.on('toggle-chat', (event, arg) => {
+  toggleChat(arg);
+});
+
+function toggleChat(arg) {
   const user = window.API.getActiveTab();
 
   if (user && user.id && user.id._serialized) {
+    const user_id = user.id._serialized;
+
     const dados = {
       text: arg,
-      from: user.id._serialized
+      from: user_id
     };
 
     ipcRenderer.send('toggle-chat', dados);
   }
-});
-
-const is_read = setInterval(() => {
-  if (localStorage.getItem('logout-token')) {
-    // console.log("USUARIO LOGOUU");
-    clearInterval(is_read);
-    document.dispatchEvent(new CustomEvent('inject-script'));
-
-  } else {
-    console.log("WAITING TO LOGIN")
-  }
-}, 4000);
+}

@@ -21,6 +21,7 @@
     data() {
       return {
         load: true,
+        token: '',
         notification: '',
         key: ''
       }
@@ -53,6 +54,9 @@
         this.load = true;
 
         if (data) {
+          this.key = data.token;
+          this.token = data.empresa;
+
           localStorage.setItem("key", data.token);
           localStorage.setItem("token", data.empresa);
           config.set("key", data.token);
@@ -90,6 +94,16 @@
             this.load = false;
           });
       },
+
+      getBlocklist() {
+        this.$http.get('chatbot/blocklist/' + this.key)
+          .then(res => {
+            ipcRenderer.send('blocklist', res.data);
+
+          }, res => {
+            console.log(res);
+          });
+      }
     },
 
     mounted() {
@@ -105,6 +119,23 @@
       } else {
         this.load = false;
       }
+    },
+
+    created() {
+      ipcRenderer.on('config', (event, arg) => {
+        if (this.$route.name !== "Config") {
+          this.$router.push("/config");
+        }
+      });
+
+      ipcRenderer.on('go-blocklist', (event, arg) => {
+        if (arg && this.$route.name !== "Blocklist") {
+          this.$router.push("/blocklist");
+
+        } else if (!arg) {
+          this.getBlocklist();
+        }
+      });
     },
 
     sockets: {

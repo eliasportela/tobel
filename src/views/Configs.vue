@@ -1,8 +1,11 @@
 <template>
-  <div class="container-fluid mt-2 mb-3">
+  <div class="container-fluid mb-3">
     <div v-if="!load">
-      <div class="border rounded-sm px-3 pb-3" v-show="menu === 1">
-        <h6 class="font-weight-bold mt-4 mb-3 text-center">Configurações do Bot</h6>
+      <div class="py-3 border-bottom mb-3">
+        <router-link to="config" class="menu text-decoration-none active">Configs</router-link>
+        <router-link to="blocklist" class="menu text-decoration-none">Blocklist</router-link>
+      </div>
+      <div v-show="menu === 1">
         <form @submit.prevent="salvaConfigs()">
           <div class="row">
             <div class="col-6 mb-3">
@@ -54,7 +57,7 @@
           </div>
         </form>
       </div>
-      <div class="border rounded-sm px-3 pb-3" v-show="menu === 2">
+      <div v-show="menu === 2">
         <h6 class="font-weight-bold mt-4 mb-3 text-center">Adicionar Empresa</h6>
         <form @submit.prevent="logar()">
           <div class="mb-2">
@@ -198,3 +201,21 @@ export default {
   }
 }
 </script>
+
+<style>
+  .menu {
+    margin-right: 14px;
+    padding-bottom: 6px;
+    display: inline-block;
+    color: #1d2124;
+  }
+
+  .menu.active, .menu:hover {
+    border-bottom: 1px solid var(--success);
+    color: var(--success);
+  }
+
+  .menu.active {
+    font-weight: bold;
+  }
+</style>
