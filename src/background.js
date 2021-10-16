@@ -99,8 +99,8 @@ function createMenuContext(createDev){
         {
           label: 'Visualizar Blocklist',
           click: () => {
-            quit = false;
             win.webContents.send('go-page', 'blocklist');
+            quit = false;
             win.show();
           }
         }
@@ -378,8 +378,8 @@ ipcMain.on('blocklist', (event, arg) => {
 });
 
 ipcMain.on('go-page', (event, arg) => {
-  quit = false;
   win.webContents.send('go-page', arg);
+  quit = false;
   win.show();
 });
 

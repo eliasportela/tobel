@@ -1,15 +1,11 @@
 <template>
-  <div class="container-fluid mt-0 mb-4">
+  <div class="container-fluid mt-3 mb-4">
     <div v-if="!load">
-      <div class="d-flex justify-content-between py-3 border-bottom mb-3">
-        <div>
-          <router-link to="config" class="menu text-decoration-none">Configs</router-link>
-          <router-link to="blocklist" class="menu text-decoration-none active">Blocklist</router-link>
-        </div>
-        <button class="btn btn-sm btn-success" @click="atualizar()">Atualizar</button>
-      </div>
       <div class="px-2">
-        <h6 class="small">Clientes adicionados em sua blocklist</h6>
+        <div class="d-flex justify-content-between align-items-end mb-3">
+          <h6 class="m-0">Clientes em sua blocklist</h6>
+          <button class="btn btn-sm btn-success" @click="atualizar()" title="Atualizar"><i class="fa fa-redo-alt"></i></button>
+        </div>
         <table class="table border">
           <tr v-for="u in users">
             <td class="align-middle">

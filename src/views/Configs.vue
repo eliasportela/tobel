@@ -1,18 +1,64 @@
 <template>
-  <div class="container-fluid mb-3">
+  <div class="container-fluid my-3">
     <div v-if="!load">
-      <div class="py-3 border-bottom mb-3">
-        <router-link to="config" class="menu text-decoration-none active">Configs</router-link>
-        <router-link to="blocklist" class="menu text-decoration-none">Blocklist</router-link>
-      </div>
+      <modal-menu :menus="menus" :selected="menu" @changeMenu="(m) => {this.menu = m}"/>
+
       <div v-show="menu === 1">
         <form @submit.prevent="salvaConfigs()">
           <div class="row">
-            <div class="col-6 mb-3">
+            <div class="col-12 mb-2">
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="boasvindas" @change="toggleMsgBoasVindas" :checked="dados.msg_boasvindas">
+                <label class="custom-control-label" for="boasvindas">Habilitar mensagem de boas-vindas</label>
+              </div>
+              <div v-if="dados.msg_boasvindas !== null">
+              <textarea id="msg_boasvindas" class="form-control" v-model="dados.msg_boasvindas" rows="4" style="resize: none"
+                        placeholder="Configure uma mensagem inicial para seu cliente" required></textarea>
+                <label class="small font-weight-bold mt-1">Mensagem automática de boas-vindas para o cliente</label>
+              </div>
+            </div>
+            <div class="col-12 mb-2">
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="reserva" @change="toggleMsgReserva" :checked="dados.msg_reserva">
+                <label class="custom-control-label" for="reserva">Habilitar reservas de mesas ou encomendas</label>
+              </div>
+              <div v-if="dados.msg_reserva !== null">
+              <textarea id="msg_reserva" class="form-control" v-model="dados.msg_reserva" rows="4" style="resize: none"
+                        placeholder="Informe a mensagem de resposta para solicitações de reservas/encomendas" required></textarea>
+                <label class="small font-weight-bold mt-1">Mensagem para solicitações de reservas/encomendas</label>
+              </div>
+            </div>
+            <div class="col-12 mb-2">
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="atendimento" @change="dados.atendimento = dados.atendimento === '1' ? '0' : '1'" :checked="dados.atendimento === '1'">
+                <label class="custom-control-label" for="atendimento">Habilitar atendimento humano</label>
+              </div>
+              <div v-if="dados.atendimento === '1'">
+                <input type="number" id="atendimentoTempo" class="form-control w-25" v-model="dados.atendimento_tempo" placeholder="Minutos">
+                <label class="small mt-1 font-weight-bold" for="atendimentoTempo">Configure os minutos para esperar por um atendente</label>
+              </div>
+              <div v-else>
+              <textarea id="atendimentoMsg" class="form-control" v-model="dados.atendimento_msg" rows="4"
+                        placeholder="Caso você acredite que precisa de uma pessoa para lhe auxiliar, tente entrar em contato através do nosso telefone: (35) 92222-2222"
+                        style="resize: none"></textarea>
+                <label class="small font-weight-bold mt-1">Resposta automática para solicitações de atendentes</label>
+              </div>
+            </div>
+          </div>
+          <hr>
+          <div>
+            <button class="btn btn-success btn-block" type="submit">Salvar</button>
+          </div>
+        </form>
+      </div>
+      <div v-show="menu === 2">
+        <form action="">
+          <div class="row">
+            <div class="col-6 mb-2">
               <label class="small mb-0 font-weight-bold" for="nomeBot">Nome</label>
               <input type="text" id="nomeBot" class="form-control" v-model="dados.nome_bot" placeholder="Nome customizado do BOT" required>
             </div>
-            <div class="col-6 mb-3">
+            <div class="col-6 mb-2">
               <label class="small mb-0 font-weight-bold" for="nomeBot">Ícone</label>
               <select class="form-control" v-model="dados.icon_bot">s
                 <option value="🤖">🤖 (Robo)</option>
@@ -34,38 +80,22 @@
                 <option value="🍣">🍣</option>
               </select>
             </div>
-            <div class="col-12">
-              <div class="custom-control custom-checkbox">
-                <input type="checkbox" class="custom-control-input" id="atendimento" @change="dados.atendimento = dados.atendimento === '1' ? '0' : '1'" :checked="dados.atendimento === '1'">
-                <label class="custom-control-label" for="atendimento">Habilitar atendimento humano</label>
-              </div>
-            </div>
-            <div class="col-12 mb-3" v-if="dados.atendimento === '1'">
-              <label class="small mb-0 font-weight-bold" for="atendimentoTempo">Tempo de atendimento (minutos)</label>
-              <input type="number" id="atendimentoTempo" class="form-control" v-model="dados.atendimento_tempo" placeholder="Tempo médio de atendimento">
-              <div class="small">Configure o tempo de espera para a solicitação de atendente</div>
-            </div>
-            <div class="col-12 mb-3 mt-2" v-else>
-          <textarea id="atendimentoMsg" class="form-control" v-model="dados.atendimento_msg" rows="5"
-                    placeholder="Caso você acredite que precisa de uma pessoa para lhe auxiliar, tente entrar em contato através do nosso telefone: (35) 92222-2222"
-                    style="resize: none"></textarea>
-              <div class="small">Configure a resposta automática quando o cliente solicitar um atendente humano</div>
-            </div>
-            <div class="col-12 mb-2 mt-2">
-              <button class="btn btn-success btn-block" type="submit">Salvar</button>
-            </div>
+          </div>
+          <hr>
+          <div>
+            <button class="btn btn-success btn-block" type="submit">Salvar</button>
           </div>
         </form>
       </div>
-      <div v-show="menu === 2">
+      <div v-show="menu === 3">
         <h6 class="font-weight-bold mt-4 mb-3 text-center">Adicionar Empresa</h6>
         <form @submit.prevent="logar()">
           <div class="mb-2">
-            <label class="small mb-0 font-weight-bold" for="nomeBot">Usuário</label>
+            <label class="small mb-0 font-weight-bold" for="email">Usuário</label>
             <input type="text" id="email" class="form-control" v-model="login.email" placeholder="Email" required>
           </div>
           <div class="mb-3">
-            <label class="small mb-0 font-weight-bold" for="nomeBot">Senha</label>
+            <label class="small mb-0 font-weight-bold" for="senha">Senha</label>
             <input type="password" id="senha" class="form-control" v-model="login.senha" placeholder="Senha" required>
           </div>
           <button class="btn btn-success btn-block mb-4">Adicionar</button>
@@ -76,9 +106,6 @@
           <div class="col-3 text-right"><button class="btn btn-sm btn-danger" @click="removerEmpresa(b)">Remover</button></div>
         </div>
       </div>
-      <div class="text-center mt-3">
-        <a href="javascript:" class="text-success small" @click="menu = (menu === 1 ? 2 : 1)">{{menu === 2 ? "Voltar" : "Config. Avançadas"}}</a>
-      </div>
     </div>
     <loading v-else/>
   </div>
@@ -86,22 +113,32 @@
 
 <script>
 import Loading from "../components/Loading";
+import ModalMenu from "../components/ModalMenu";
 const { ipcRenderer } = require('electron');
 const Config = require('electron-config');
 const config = new Config();
 
 export default {
   name: 'Login',
-  components: {Loading},
+  components: {ModalMenu, Loading},
   data() {
     return {
       token: '',
       load: true,
+
+      menus: [
+        { nome: 'Dados', active: true },
+        { nome: 'Chatbot', active: true },
+        { nome: 'Franquia', active: true }
+      ],
       menu: 1,
+
       dados: {
         id_chatbot: '',
         nome_bot: 'LeBot',
         icon_bot: '🤖',
+        msg_reserva: null,
+        msg_boasvindas: null,
         atendimento: '1',
         atendimento_tempo: '1',
         atendimento_msg: '',
@@ -134,6 +171,8 @@ export default {
         .then(res => {
           // ipcRenderer.send('toggle-wpp', null);
           this.load = false;
+
+          this.$swal("Dados salvados com sucesso!")
 
         }, res => {
           console.log(res);
@@ -188,6 +227,21 @@ export default {
     removerEmpresa(empresa) {
       this.dados.bandeiras = this.dados.bandeiras.filter(b => b !== empresa);
       this.salvaConfigs();
+    },
+
+    toggleMsgBoasVindas() {
+      this.dados.msg_boasvindas = this.dados.msg_boasvindas ? null : "";
+    },
+
+    toggleMsgReserva() {
+      if (this.dados.msg_reserva) {
+        this.dados.msg_reserva = null;
+
+      } else {
+        this.dados.msg_reserva = 'Para adiantar seu atendimento, por favor informe:\n' +
+          '- A reserva é para que dia e horário?\n' +
+          '- Quantas pessoas?'
+      }
     }
   },
 

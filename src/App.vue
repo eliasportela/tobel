@@ -72,7 +72,7 @@
           .then(res => {
             ipcRenderer.send('toggle-wpp', data);
 
-            if (this.$route.name !== "Config") {
+            if (this.$route.name !== "config") {
               this.$router.push('/config');
             }
 

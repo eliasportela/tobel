@@ -86,7 +86,7 @@ function checkPhone() {
 let blocklist = [];
 
 function fillBlockList(list) {
-  console.log(list);
+  // console.log(list);
   blocklist = list;
 }
 
@@ -101,12 +101,12 @@ function injectEmpresa() {
       img[0].style.cssText = "background-image: url('"+url_imagem+"');";
     }
 
-    const el = document.createElement("h1");
-    el.innerHTML = nome;
-    el.style.cssText = "width: 185px;";
-
-    const elImg = base[0].firstElementChild;
-    elImg.parentNode.insertBefore(el, elImg.nextSibling);
+    // const el = document.createElement("h1");
+    // el.innerHTML = nome;
+    // el.style.cssText = "width: 185px;";
+    //
+    // const elImg = base[0].firstElementChild;
+    // elImg.parentNode.insertBefore(el, elImg.nextSibling);
   }
 }
 
