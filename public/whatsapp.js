@@ -218,8 +218,8 @@ function mountMyButton() {
     + '</button>'
     + '<div class="adminButtons">'
     + '<button title="Pausar o LeBot p/ este cliente" id="pause" >'+ imgPause +'</button>'
+    + '<button title="Ativar o LeBot p/ este cliente" id="play" class="hide">' + imgPlay + '</button>'
     + '<button title="Adicionar usuário à Blocklist" id="stop" >'+ imgStop +'</button>'
-    + '<button title="Remover usuário da Blocklist" id="play" class="hide">' + imgPlay + '</button>'
     + '<button title="Dados do cliente" id="menu" ><img style="width: 100%;" src="' + imgUser + '"></img></button>'
     + '</div>'
     + '</div>';

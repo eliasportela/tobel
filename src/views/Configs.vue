@@ -172,7 +172,7 @@ export default {
           // ipcRenderer.send('toggle-wpp', null);
           this.load = false;
 
-          this.$swal("Dados salvados com sucesso!")
+          this.$swal("Dados salvos com sucesso!")
 
         }, res => {
           console.log(res);
