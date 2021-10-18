@@ -8,7 +8,7 @@
           <div class="row">
             <div class="col-12 mb-2">
               <div class="custom-control custom-checkbox">
-                <input type="checkbox" class="custom-control-input" id="boasvindas" @change="toggleMsgBoasVindas" :checked="dados.msg_boasvindas">
+                <input type="checkbox" class="custom-control-input" id="boasvindas" @change="toggleMsgBoasVindas" :checked="dados.msg_boasvindas !== null">
                 <label class="custom-control-label" for="boasvindas">Habilitar mensagem de boas-vindas</label>
               </div>
               <div v-if="dados.msg_boasvindas !== null">
@@ -19,7 +19,7 @@
             </div>
             <div class="col-12 mb-2">
               <div class="custom-control custom-checkbox">
-                <input type="checkbox" class="custom-control-input" id="reserva" @change="toggleMsgReserva" :checked="dados.msg_reserva">
+                <input type="checkbox" class="custom-control-input" id="reserva" @change="toggleMsgReserva" :checked="dados.msg_reserva !== null">
                 <label class="custom-control-label" for="reserva">Habilitar reservas de mesas ou encomendas</label>
               </div>
               <div v-if="dados.msg_reserva !== null">
@@ -230,17 +230,16 @@ export default {
     },
 
     toggleMsgBoasVindas() {
-      this.dados.msg_boasvindas = this.dados.msg_boasvindas ? null : "";
+      this.dados.msg_boasvindas = this.dados.msg_boasvindas === null ? "" : null;
     },
 
     toggleMsgReserva() {
-      if (this.dados.msg_reserva) {
-        this.dados.msg_reserva = null;
-
-      } else {
+      if (this.dados.msg_reserva === null) {
         this.dados.msg_reserva = 'Para adiantar seu atendimento, por favor informe:\n' +
           '- A reserva é para que dia e horário?\n' +
-          '- Quantas pessoas?'
+          '- Quantas pessoas?';
+      } else {
+        this.dados.msg_reserva = null;
       }
     }
   },

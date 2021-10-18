@@ -54,7 +54,19 @@ function createMenuContext(createDev){
         {
           label: 'Logout',
           click: () => {
-            logoutApp();
+            messagebox = dialog.showMessageBox(wpp, {
+              type: 'warning',
+              defaultId: 0,
+              buttons: ['Não', 'Sim'],
+              title: 'Fazer Logout',
+              message: 'Deseja realmente sair?'
+            }).then(res => {
+              messagebox = false;
+
+              if (res.response) {
+                logoutApp();
+              }
+            });
           }
         }
       ]
@@ -355,7 +367,7 @@ function sendToServer(event, arg) {
 function sendMessage(event, from, msg, i) {
   setTimeout(() => {
     event.reply('asynchronous-reply', { from, msg })
-  }, 1000 * i);
+  }, 2000 * (i + 1));
 }
 
 function toggleChat(msg) {
