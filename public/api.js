@@ -1,4 +1,4 @@
-﻿console.error("EPAA, ANTIGO")
+﻿// console.error("EPAA, ANTIGO")
 
 const convertToBase64 = (imgUrl) => new Promise(resolve => {
   var img = new Image();
