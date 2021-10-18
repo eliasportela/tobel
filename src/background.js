@@ -190,8 +190,11 @@ function createWindow() {
   win.on('close', function(e){
     if(!quit){
       e.preventDefault();
-      win.hide();
       quit = true;
+
+      if (win) {
+        win.hide();
+      }
     }
   });
 
@@ -283,6 +286,12 @@ function createWpp(data) {
 
     }, 2000);
 
+  });
+
+  wpp.on('close', () => {
+    quit = true;
+    win = null;
+    wpp = null;
   });
 
   wpp.on('closed', () => {
