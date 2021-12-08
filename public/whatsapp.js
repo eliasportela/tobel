@@ -4,12 +4,23 @@ document.addEventListener('seen_send', function (e) {
   });
 }, false);
 
+let injected = false;
+let injectedCount = 0;
+
+let interval = null;
+let buttonStop = null;
+let buttonPlay = null;
+let buttonPause = null;
+let buttonMenu = null;
+
 const intervalTry = setInterval(() => {
   if (window.API.listener !== undefined) {
     clearInterval(intervalTry);
 
     console.log("LEBOT INICIADO");
+
     checkPhone();
+    makeSmartOptions();
 
     window.API.listener.ExternalHandlers.MESSAGE_RECEIVED.push(function (sender, chat, msg) {
 
@@ -76,11 +87,20 @@ function checkPhone() {
 
     if (phone) {
       console.log("Phone: " + phone);
-      injectEmpresa();
-      makeSmartOptions();
     }
 
   }, (2000));
+
+  injected = setInterval(() => {
+    injectedCount++;
+
+    if (injectedCount < 60) {
+      injectEmpresa();
+
+    } else {
+      clearInterval(injected);
+    }
+  }, 1000);
 }
 
 let blocklist = [];
@@ -97,8 +117,9 @@ function injectEmpresa() {
 
   if (base && base.length && nome) {
     const img = document.querySelectorAll('[data-asset-intro-image-light]');
+
     if (url_imagem && img && img.length) {
-      img[0].style.cssText = "background-image: url('"+url_imagem+"');";
+      img[0].style.cssText = "background-image: url('"+url_imagem+"'); opacity: 1;";
     }
 
     // const el = document.createElement("h1");
@@ -108,14 +129,10 @@ function injectEmpresa() {
     // elImg.parentNode.insertBefore(el, elImg.nextSibling);
 
     base[0].firstElementChild.innerHTML = nome;
+    console.log('Injected Company');
+    clearInterval(injected);
   }
 }
-
-let interval = null;
-let buttonStop = null;
-let buttonPlay = null;
-let buttonPause = null;
-let buttonMenu = null;
 
 function makeSmartOptions() {
   clearInterval(interval);
@@ -124,6 +141,7 @@ function makeSmartOptions() {
     const footer = document.getElementsByTagName("footer")[0];
 
     if (footer != undefined && footer.dataset.appliend == undefined) {
+
       footer.dataset.appliend = true;
       senderId = null;
       const div = (footer.getElementsByTagName('div')[0]);
@@ -197,7 +215,7 @@ function makeSmartOptions() {
     } else {
       makeSmartOptions();
     }
-  }, 1000);
+  }, 2000);
 }
 
 let senderId = null;

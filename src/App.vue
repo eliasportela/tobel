@@ -151,9 +151,7 @@
           ipcRenderer.send('focus');
         };
 
-        if (audio.paused) {
-          audio.play();
-        }
+        this.playNotification();
         ipcRenderer.send('socket-event', data);
       },
 
@@ -164,11 +162,11 @@
   }
 
   ipcRenderer.on('toggle-notification', (event, arg) => {
-    if (arg && audio.paused) {
-      audio.play();
+    if (arg) {
+      this.playNotification();
 
     } else if (!arg) {
-      audio.pause();
+      this.pauseNotification();
     }
   });
 

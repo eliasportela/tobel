@@ -11,6 +11,8 @@ import './assets/bootstrap.min.css'
 import 'animate.css/animate.css'
 import '@fortawesome/fontawesome-free/css/all.css'
 
+const audio = new Audio("https://lecard-cdn.nyc3.digitaloceanspaces.com/lecard-gestor/lebot-bell.mp3");
+
 Vue.use(VueResource);
 Vue.use(VueSwal);
 Vue.use(VueTheMask);
@@ -18,6 +20,23 @@ Vue.use(new VueSocketIO({
   debug: false,
   connection: process.env.VUE_APP_BASE_SOCKET
 }));
+
+Vue.mixin({
+  methods: {
+    playNotification() {
+      if (audio.paused) {
+        audio.play();
+      }
+    },
+
+    pauseNotification() {
+      if (!audio.paused) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    }
+  }
+});
 
 Vue.config.productionTip = false;
 Vue.http.options.emulateJSON = true;
@@ -32,4 +51,4 @@ Vue.use(VueResource);
 new Vue({
   router,
   render: h => h(App)
-}).$mount('#app')
+}).$mount('#app');
