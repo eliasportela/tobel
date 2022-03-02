@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <!--<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">-->
+  <!--<meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">-->
+  <title>LeBot</title>
+
+  <meta name="viewport" content= "width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../assets/bootstrap.min.css"/>
+
+  <style>
+    .container {
+      height: 95vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+
+</head>
+<body>
+
+<div class="container text-center">
+  <div>
+    <h3>Ops!</h3>
+    <p>Verifique sua conexão com a internet e tente novamente.</p>
+    <div>
+      <button id="btnLoad" class="btn btn-success">Recarregar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('btnLoad').onclick = () => {
+    document.dispatchEvent(new CustomEvent('btnLoad'));
+  }
+</script>
+
+</body>
+</html>

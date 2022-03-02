@@ -1,43 +1,33 @@
 {
   "name": "lecard-whatsapp",
   "author": "storkdigital.com.br",
-  "description": "A WhatsApp Bot",
-  "version": "1.2.6",
+  "description": "WhatsApp Bot",
+  "version": "1.3.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "vue-cli-service electron:serve",
-    "electron:generate-icons": "electron-icon-builder --input=./public/icon.png --output=build --flatten",
-    "electron:realese": "electron:build -wl -- -p always",
-    "postinstall": "electron-builder install-app-deps",
-    "postuninstall": "electron-builder install-app-deps"
+    "start": "electron .",
+    "electron-trace": "electron --trace-warnings .",
+    "realese": "electron-builder -wl -- -p always"
   },
-  "main": "background.js",
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.14.0",
-    "animate.css": "^3.7.2",
-    "core-js": "^3.6.5",
-    "electron-config": "^2.0.0",
-    "electron-fetch": "^1.6.0",
-    "electron-updater": "^4.3.5",
-    "socket.io-client": "^3.1.0",
-    "vue": "^2.6.11",
-    "vue-resource": "^1.5.1",
-    "vue-router": "^3.2.0",
-    "vue-socket.io": "3.0.5",
-    "vue-swal": "^1.0.0",
-    "vue-the-mask": "^0.11.1"
+  "build": {
+    "asar": "true",
+    "productName": "LeBot",
+    "appId": "delivery.lecard.whatsapp",
+    "artifactName": "lebot-${version}.${ext}",
+    "mac": {
+      "icon": "./icons/icon.icns",
+      "category": "public.app-category.utilities"
+    }
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-router": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
-    "electron": "^7.2.4",
-    "electron-devtools-installer": "^3.1.0",
-    "electron-icon-builder": "^1.0.2",
-    "vue-cli-plugin-electron-builder": "~2.0.0-rc.4",
-    "vue-template-compiler": "^2.6.11"
+    "electron": "^17.1.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "electron-config": "^2.0.0",
+    "electron-fetch": "^1.7.4",
+    "electron-updater": "^4.6.5",
+    "form-data": "^4.0.0"
   }
 }

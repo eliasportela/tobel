@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+  <!--<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">-->
+  <!--<meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">-->
+  <title>LeBot</title>
+
+  <meta name="viewport" content= "width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../assets/bootstrap.min.css"/>
+
+  <style>
+    body {
+      background-color: var(--success);
+    }
+
+    .container {
+      height: 95vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loader {
+      border: 16px solid #f3f3f3; /* Light grey */
+      border-top: 16px solid #badec5; /* Blue */
+      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      animation: spin 2s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+
+</head>
+<body>
+
+<div class="container text-center">
+  <div>
+    <div class="loader"></div>
+  </div>
+</div>
+
+</body>
+</html>
