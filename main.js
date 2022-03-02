@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, shell} = require('electron');
+const {app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer} = require('electron');
 const path = require('path');
 const fs = require('fs');
 const FormData = require('form-data');
@@ -93,15 +93,13 @@ function createWindow () {
 
   win.once('ready-to-show', () => {
     loading = false;
-    winLoad.close();
+    // winLoad.hide();
     win.show();
     loadDependences();
   });
 }
 
 function createBot(data) {
-  win.hide();
-
   wpp = new BrowserWindow({
     width: 1000,
     height: 600,
@@ -333,8 +331,13 @@ function createMenuContext(createDev){
           label: 'DevTools',
           click: () => {
             win.webContents.openDevTools();
+
             if (wpp) {
               wpp.webContents.openDevTools();
+            }
+
+            if (winLoad) {
+              winLoad.webContents.openDevTools();
             }
           }
         },
@@ -415,6 +418,61 @@ function goPage(page) {
   });
 }
 
+function connectSocket() {
+  if (!process.env.BASE_SOCKET) {
+    return;
+  }
+
+  const io = require('socket.io-client');
+  const socket = io(process.env.BASE_SOCKET);
+
+  socket.on('connect', () => {
+    if (dados.empresa) {
+      console.log('empresa_connected', dados.empresa);
+      socket.emit('empresa_connected', dados.empresa);
+    }
+  });
+
+  socket.on('delivery_whatsapp', (data) => {
+    sendSocketMessage(data);
+  });
+
+  socket.on('request_human', (data) => {
+    showDialog(data);
+  });
+}
+
+function sendSocketMessage(arg) {
+  if (arg.to && arg.msg && Array.isArray(arg.msg) && wpp) {
+    let i = 0;
+    arg.msg.forEach(msg => {
+      setTimeout(() => {
+        wpp.webContents.send('asynchronous-reply', { from: arg.to, msg })
+      }, 1000 * i);
+    });
+  }
+}
+
+function showDialog(arg) {
+  if (!wpp) {
+    return;
+  }
+
+  wpp.flashFrame(true);
+
+  const options = {
+    type: 'warning',
+    buttons: ['OK'],
+    title: 'Solicitação de atendimento',
+    message: (arg.telefone ? 'O cliente: ' + arg.telefone : 'Um cliente') + ' solicitou atendimento!',
+  };
+
+  dialog.showMessageBox(wpp, options, () => {
+    wpp.flashFrame(false);
+    wpp.show();
+  });
+}
+
 // Eventos
 ipcMain.on('reloadUrl', () => {
   win.loadURL(base_login + loginPars).then(() => {}).catch(() => {
@@ -426,7 +484,9 @@ function loadDependences() {
   ipcMain.on('login', (event, arg) => {
     if (arg && arg.token && !wpp) {
       dados = arg;
+      win.hide();
       createBot(arg);
+      connectSocket();
     }
   });
 
@@ -441,39 +501,6 @@ function loadDependences() {
   ipcMain.on('focus', () => {
     if (wpp) {
       wpp.show()
-    }
-  });
-
-  ipcMain.on('socket-event', (event, arg) => {
-    if (messagebox || !wpp) {
-      return;
-    }
-
-    wpp.flashFrame(true);
-
-    const options = {
-      type: 'warning',
-      buttons: ['OK'],
-      title: 'Solicitação de atendimento',
-      message: (arg.telefone ? 'O cliente: ' + arg.telefone : 'Um cliente') + ' solicitou atendimento!',
-    };
-
-    messagebox = dialog.showMessageBox(wpp, options, () => {
-      messagebox = false;
-      wpp.flashFrame(false);
-      wpp.show();
-      event.reply('toggle-notification', false);
-    });
-  });
-
-  ipcMain.on('socket-send', (event, arg) => {
-    if (arg.to && arg.msg && Array.isArray(arg.msg) && wpp) {
-      let i = 0;
-      arg.msg.forEach(msg => {
-        setTimeout(() => {
-          wpp.webContents.send('asynchronous-reply', { from: arg.to, msg })
-        }, 1000 * i);
-      });
     }
   });
 
