@@ -4,14 +4,14 @@ const path = require('path');
 const fs = require('fs');
 const FormData = require('form-data');
 const Config = require('electron-config');
-const fetch = require('electron-fetch').default
+const fetch = require('electron-fetch').default;
 
-require('dotenv').config();
+const env = JSON.parse(fs.readFileSync(path.join(__dirname, './config.json'), 'utf8'));
 
-const ENV_BS = process.env.BASE_SERVER;
-const ENV_BS_HHH = process.env.BASE_SERVER_HHH;
-const ENV_LG = process.env.BASE_LOGIN;
-const ENV_LG_HHH = process.env.BASE_LOGIN_HHH;
+const ENV_BS = env.BASE_SERVER;
+const ENV_BS_HHH = env.BASE_SERVER_HHH;
+const ENV_LG = env.BASE_LOGIN;
+const ENV_LG_HHH = env.BASE_LOGIN_HHH;
 
 const config = new Config();
 let isHomolog = !!config.get('homologacao');
@@ -93,7 +93,7 @@ function createWindow () {
 
   win.once('ready-to-show', () => {
     loading = false;
-    // winLoad.hide();
+    winLoad.hide();
     win.show();
     loadDependences();
   });
@@ -173,6 +173,7 @@ app.whenReady().then(() => {
     icon: path.join(__dirname, 'icon.png')
   });
 
+  winLoad.setMenu(null);
   winLoad.loadFile("pages/loading.html");
 
   winLoad.once('ready-to-show', () => {
@@ -419,12 +420,12 @@ function goPage(page) {
 }
 
 function connectSocket() {
-  if (!process.env.BASE_SOCKET) {
+  if (!env.BASE_SOCKET) {
     return;
   }
 
   const io = require('socket.io-client');
-  const socket = io(process.env.BASE_SOCKET);
+  const socket = io(env.BASE_SOCKET);
 
   socket.on('connect', () => {
     if (dados.empresa) {

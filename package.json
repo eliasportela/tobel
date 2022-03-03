@@ -8,23 +8,20 @@
   "scripts": {
     "start": "electron .",
     "electron-trace": "electron --trace-warnings .",
-    "realese": "electron-builder -wl -- -p always"
+    "build": "electron-builder --x64 --ia32",
+    "realese": "electron-builder --x64 --ia32 --publish always"
   },
   "build": {
     "asar": "true",
-    "productName": "LeBot",
+    "productName": "LeBot - LeCard ChatBot",
     "appId": "delivery.lecard.whatsapp",
-    "artifactName": "lebot-${version}.${ext}",
-    "mac": {
-      "icon": "./icons/icon.icns",
-      "category": "public.app-category.utilities"
-    }
+    "artifactName": "lebot-${version}.${ext}"
   },
   "devDependencies": {
-    "electron": "^17.1.0"
+    "electron": "^17.1.0",
+    "electron-builder": "^22.10.5"
   },
   "dependencies": {
-    "dotenv": "^16.0.0",
     "electron-config": "^2.0.0",
     "electron-fetch": "^1.7.4",
     "electron-updater": "^4.6.5",
