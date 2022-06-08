@@ -29,7 +29,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     */
     group: function (_id) {
       let result = null;
-      Store.GroupMetadata.models.forEach(x => {
+      (Store.GroupMetadata.models || Store.GroupMetadata.getModelsArray()).forEach(x => {
         if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
           result = x;
         }
@@ -42,7 +42,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     */
     contact: function (_id) {
       let result = null;
-      Store.Contact.models.forEach(x => {
+      (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
         if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
           result = x;
         }
@@ -53,9 +53,10 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
       let result = null;
       if (Store != undefined &&
         Store.Chat != undefined &&
-        Store.Chat.models != undefined){
+        (Store.Chat.models != undefined ||
+          Store.Chat.getModelsArray())){
 
-        Store.Chat.models.forEach(x => {
+        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
           if (x.hasOwnProperty("__x_active") && x.__x_active) {
             result = x;
           }
@@ -72,9 +73,10 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
       let result = null;
       if (Store != undefined &&
         Store.Chat != undefined &&
-        Store.Chat.models != undefined){
+        (Store.Chat.models != undefined ||
+          Store.Chat.getModelsArray())){
 
-        Store.Chat.models.forEach(x => {
+        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
           if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
             result = x;
           }
@@ -88,7 +90,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     */
     msg: function (_id) {
       let result = null;
-      Store.Msg.models.forEach(x => {
+      (Store.Msg.models || Store.Msg.getModelsArray()).forEach(x => {
         if (x.hasOwnProperty("__x_id") && x.__x_id._serialized == _id) {
           result = x;
         }
@@ -241,7 +243,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
             try {
               API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
             } catch (error) {
-              console.log('isso aqui eh culpa do diegon', error)
+              // console.log('isso aqui eh culpa do diegon', error)
             }
           }
         }
@@ -269,7 +271,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     var check_update = function () {
 
       if (window.Store != undefined && Store.Msg != undefined) {
-        Store.Msg.models.forEach(model => {
+        (Store.Msg.models || Store.Msg.getModelsArray()).forEach(model => {
           if (model.__x_isNewMsg) {
             model.__x_isNewMsg = false;
             handle_msg(model);
@@ -316,7 +318,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     */
     findContactId: function (phone_number) {
       var result = null;
-      Store.Contact.models.forEach(x => {
+      (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
         if (x.hasOwnProperty("__x_id") && (x.__x_id.match(/\d+/g) || []).join("") == phone_number) {
           result = x.__x_id;
         }
@@ -330,7 +332,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     */
     findChatIds: function (title) {
       var result = [];
-      Store.Chat.models.forEach(x => {
+      (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
         if (x.hasOwnProperty("__x_formattedTitle") && ~(x.__x_formattedTitle.indexOf(title))) {
           result.push(x.__x_id);
         }
@@ -524,7 +526,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
       }
 
       window.Store.SendTextMsgToChat(chat, message_text, { linkPreview: link_preview }).then(function (e) {
-        console.log(e);
+        // console.log(e);
         (callback || Core.nop)({ status: e });
       });
     },
@@ -537,18 +539,18 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
         window.getContact(id).then(contact => {
           if (contact.status === 404) {
 
-            callback({success: false, message: "Contato não encontrado."})
+            callback({success: false, message: "Contato nao encontrado."})
           } else {
             Store.Chat.find(contact.jid).then(chat => {
               chat.sendMessage(message);
               callback({success: true})
             }).catch(reject => {
-              callback({success: false, message: "Chat não encontrado."})
+              callback({success: false, message: "Chat nao encontrado."})
             });
           }
         });
       } catch (e) {
-        callback({success: false, message: "Chat não encontrado.", err: e})
+        callback({success: false, message: "Chat nao encontrado.", err: e})
       }
     },
 
@@ -570,7 +572,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
             chat,
             1
           ).then(() => {
-            var media = mc.models[0];
+            var media = (mc.models || mc.getModelsArray())[0];
             media.sendToChat(chat, {
               caption: caption,
             });
@@ -663,7 +665,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
       null - if the message was not found in any chat
     */
     getMessageInfo: function (message_id) {
-      return Core.find(Store.Msg.models, x => x.__x_id._serialized == message_id);
+      return Core.find((Store.Msg.models || Store.Msg.getModelsArray()), x => x.__x_id._serialized == message_id);
     },
 
     /*
@@ -673,7 +675,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
     */
     getContactList: function () {
       var result = [];
-      Store.Contact.models.forEach(x => { result.push(x.__x_id); });
+      (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => { result.push(x.__x_id); });
       return result;
     },
 
