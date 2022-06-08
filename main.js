@@ -31,7 +31,7 @@ let pauseWpp = false;
 let quit = true;
 let messagebox = false;
 let loading = true;
-let showVersionAvaliable = false
+let showVersionAvaliable = false;
 
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 Menu.setApplicationMenu(createMenuContext());
@@ -572,34 +572,33 @@ function loadDependences() {
 
 function checkAutoUpdater() {
   setTimeout(() => {
-    autoUpdater.checkForUpdates();
-  }, (1000*60));
+    if (!showVersionAvaliable) {
+      autoUpdater.checkForUpdates();
+    }
+  }, (30000));
 
   autoUpdater.on('update-downloaded', () => {
-    try {
-      const dialogOpts = {
-        type: 'info',
-        buttons: ['Reiniciar', 'Mais tarde'],
-        title: 'Aplicar atualização',
-        message: "",
-        detail: 'Uma nova versão foi baixada, por favor, reinicie para aplicar as mudanças.'
-      };
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['OK'],
+      title: 'Nova versão disponível!',
+      message: "",
+      detail: 'Uma nova versão foi baixada, por favor aguarde enquanto atualizamos o sistema'
+    };
 
-      dialog.showMessageBox(win, dialogOpts, null).then((returnValue) => {
-        if (returnValue.response === 0) autoUpdater.quitAndInstall()
-      });
+    dialog.showMessageBox(win, dialogOpts, null);
 
-    } catch (error) {
+    setTimeout(() => {
       autoUpdater.quitAndInstall();
-    }
+    }, 10000);
   });
 
-  autoUpdater.on('error', message => {
+  autoUpdater.on('error', (ev, message) => {
     const dialogOpts = {
       type: 'info',
       buttons: ['OK'],
       title: 'Erro na atualização',
-      message: "",
+      message: message,
       detail: 'Ocorreu um erro ao tentar atualizar.'
     };
 
@@ -631,4 +630,8 @@ function checkAutoUpdater() {
       dialog.showMessageBox(win, dialogOpts, null);
     }
   });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    wpp.setProgressBar(progressObj.percent / 100);
+  })
 }
