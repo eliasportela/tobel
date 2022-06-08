@@ -1,5 +1,6 @@
 {
   "BASE_SERVER": "",
+  "BASE_CDN": "",
   "BASE_SERVER_HHH": "",
   "BASE_LOGIN": "",
   "BASE_LOGIN_HHH": "",

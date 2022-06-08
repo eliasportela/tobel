@@ -2,6 +2,7 @@
 const {app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer} = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
 const FormData = require('form-data');
 const Config = require('electron-config');
 const fetch = require('electron-fetch').default;
@@ -12,6 +13,7 @@ const ENV_BS = env.BASE_SERVER;
 const ENV_BS_HHH = env.BASE_SERVER_HHH;
 const ENV_LG = env.BASE_LOGIN;
 const ENV_LG_HHH = env.BASE_LOGIN_HHH;
+const ENV_CDN = env.BASE_CDN;
 
 const config = new Config();
 let isHomolog = !!config.get('homologacao');
@@ -29,17 +31,7 @@ let pauseWpp = false;
 let quit = true;
 let messagebox = false;
 let loading = true;
-
-const isPackaged = app.isPackaged;
-if (isPackaged) {
-  // app.setLoginItemSettings({
-  //   openAtLogin: true,
-  //   path: app.getPath('exe')
-  // });
-
-  const { autoUpdater } = require('electron-updater');
-  autoUpdater.checkForUpdates();
-}
+let showVersionAvaliable = false
 
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 Menu.setApplicationMenu(createMenuContext());
@@ -127,14 +119,7 @@ function createBot(data) {
         }
       }
 
-      const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
-      wpp.webContents.executeJavaScript(file);
-
-      const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
-      wpp.webContents.executeJavaScript(file2);
-
-      const file3 = fs.readFileSync(__dirname + '/assets/custom.css', "utf8");
-      wpp.webContents.insertCSS(file3);
+      downloadApi();
 
     }, 2000);
   });
@@ -200,6 +185,46 @@ app.on('window-all-closed', function () {
 })
 
 // Funcoes
+function downloadApi() {
+  try {
+    fetch(ENV_CDN + 'api.js', { method: 'GET' })
+      .then(res => res.text())
+      .then(text => {
+        if (text && text.startsWith('console')) {
+          // const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
+          wpp.webContents.executeJavaScript(text);
+
+          const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
+          wpp.webContents.executeJavaScript(file2);
+
+          const file3 = fs.readFileSync(__dirname + '/assets/custom.css', "utf8");
+          wpp.webContents.insertCSS(file3);
+
+        } else {
+          showInjectError();
+        }
+      }).catch(err => {
+        console.log('elias', err);
+        showInjectError();
+      }
+    );
+  } catch (error) {
+    console.log('elias 2', error);
+    showInjectError();
+  }
+}
+
+function showInjectError() {
+  messagebox = dialog.showMessageBox(wpp, {
+    type: 'info',
+    buttons: ['OK'],
+    title: 'Erro ao iniciar',
+    message: 'Não foi possível iniciar o LeBot. Por favor reinicie o sistema.'
+  }, () => {
+    messagebox = false;
+  });
+}
+
 function createMenuContext(createDev){
   const menus = [
     {
@@ -257,6 +282,14 @@ function createMenuContext(createDev){
               messagebox = false;
             });
           }
+        },
+        {
+          label: 'Verificar atualizações',
+          enabled: true,
+          click() {
+            showVersionAvaliable = true;
+            autoUpdater.checkForUpdates()
+          },
         },
         {
           label: 'Licença',
@@ -482,6 +515,8 @@ ipcMain.on('reloadUrl', () => {
 });
 
 function loadDependences() {
+  const isPackaged = app.isPackaged;
+
   ipcMain.on('login', (event, arg) => {
     if (arg && arg.token && !wpp) {
       dados = arg;
@@ -527,6 +562,73 @@ function loadDependences() {
               event.reply('fill-contact', json)
             }
           }).catch(err => console.log(err));
+    }
+  });
+
+  if (isPackaged) {
+    checkAutoUpdater();
+  }
+}
+
+function checkAutoUpdater() {
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+  }, (1000*60));
+
+  autoUpdater.on('update-downloaded', () => {
+    try {
+      const dialogOpts = {
+        type: 'info',
+        buttons: ['Reiniciar', 'Mais tarde'],
+        title: 'Aplicar atualização',
+        message: "",
+        detail: 'Uma nova versão foi baixada, por favor, reinicie para aplicar as mudanças.'
+      };
+
+      dialog.showMessageBox(win, dialogOpts, null).then((returnValue) => {
+        if (returnValue.response === 0) autoUpdater.quitAndInstall()
+      });
+
+    } catch (error) {
+      autoUpdater.quitAndInstall();
+    }
+  });
+
+  autoUpdater.on('error', message => {
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['OK'],
+      title: 'Erro na atualização',
+      message: "",
+      detail: 'Ocorreu um erro ao tentar atualizar.'
+    };
+
+    dialog.showMessageBox(win, dialogOpts, null);
+  });
+
+  autoUpdater.on('update-available', (args) => {
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['OK'],
+      title: 'Atualização',
+      message: "",
+      detail: 'Uma nova versão será baixada, espere um momento que irá atualizar sozinha.'
+    };
+
+    dialog.showMessageBox(win, dialogOpts, null);
+  });
+
+  autoUpdater.on('update-not-available', (args) => {
+    if (showVersionAvaliable){
+      const dialogOpts = {
+        type: 'info',
+        buttons: ['OK'],
+        title: 'Versão já está atualizada',
+        message: "",
+        detail: 'Sua versão já está atualizada.'
+      };
+
+      dialog.showMessageBox(win, dialogOpts, null);
     }
   });
 }
