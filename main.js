@@ -187,10 +187,10 @@ app.on('window-all-closed', function () {
 // Funcoes
 function downloadApi() {
   try {
-    fetch(ENV_CDN + 'api.js', { method: 'GET' })
+    fetch(ENV_CDN + 'api-2.js', { method: 'GET' })
       .then(res => res.text())
       .then(text => {
-        if (text && text.startsWith('console')) {
+        if (text) {
           // const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
           wpp.webContents.executeJavaScript(text);
 
@@ -431,17 +431,18 @@ function sendToServer(event, arg) {
         if (json.success && json.msgs) {
           if (event) {
             let i = 0;
+            let type = json.type || 'text';
             json.msgs.forEach(msg => {
-              sendMessage(event, arg.from, msg, i++);
+              sendMessage(event, arg.from, msg, type, i++);
             })
           }
         }
       }).catch(err => console.log(err));
 }
 
-function sendMessage(event, from, msg, i) {
+function sendMessage(event, from, msg, type, i) {
   setTimeout(() => {
-    event.reply('asynchronous-reply', { from, msg })
+    event.reply('asynchronous-reply', { from, msg, type })
   }, 2000 * (i + 1));
 }
 

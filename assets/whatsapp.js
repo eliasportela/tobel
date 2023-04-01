@@ -33,41 +33,68 @@ const intervalTry = setInterval(() => {
 
     window.API.listener.ExternalHandlers.MESSAGE_RECEIVED.push(function (sender, chat, msg) {
 
-      if (!msg.isGroupMsg && !msg.isStatusV3 && !localStorage.getItem('pauseWpp')) {
-        // const event_send_seen = new CustomEvent('seen_received', { 'detail': { sender: sender._serialized } });
-        // document.dispatchEvent(event_send_seen);
+      if (!msg.__x_isGroupMsg && !msg.__x_isStatusV3) {
+        if (msg.__x_type == "location") {
+          // if (users[sender._serialized] == undefined){
+          //   users[sender._serialized] = {lastTimestamp: 0};
+          // }
+          // if (msg.__x_lat && msg.__x_lng) {
+          //   objSendToServer.location = {
+          //     lat: msg.__x_lat,
+          //     lng: msg.__x_lng
+          //   };
+          //   users[sender._serialized].lastTimestamp = msg.__x_t;
+          //   var clonedDetail = cloneInto(objSendToServer, document.defaultView);
+          //   var event = new CustomEvent('message_received', { 'detail': objSendToServer });
+          //   Dispara o evento.
+          //   document.dispatchEvent(event);
+          // }
 
-        const isMe = msg.__x_isSentByMe;
-        const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
-        const body = msg.__x_body;
-
-        if (msg.__x_type !== "chat" && msg.__x_type !== "ptt" && msg.__x_type !== "location") {
-          return;
-        }
-
-        const clearmessage = body ? body.trim().toLowerCase() : "";
-        if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
-
-          const detail = {
-            from: chatId,
-            text: body ? body : "#",
-            isMe,
-            isAudio: msg.__x_type === "ptt"
-          };
-
-          if (!isMe && msg.__x_senderObj) {
-            detail.contact = msg.__x_senderObj.pushname;
-            detail.number = sender.user;
+        } else if (msg.__x_type == "chat" || msg.__x_type == "ptt") {
+          if (localStorage.getItem('pauseWpp')) {
+            return;
           }
 
-          if (msg.__x_type === "location" && (!msg.__x_isLive || ((msg.__x_isLive && msg.__x_chat.__x_liveLocation !== undefined)))) {
-            detail.location = { lat: msg.__x_lat, lng: msg.__x_lng };
+          const isMe = msg.__x_id && msg.__x_id.fromMe;
+          const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
+          const body = msg.__x_body;
+          const clearmessage = body ? body.trim().toLowerCase() : "";
+
+          if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+            const detail = {
+              isMe,
+              from: chatId,
+              text: body ? body : "#",
+              isAudio: msg.__x_type == "ptt"
+            };
+
+            if (!isMe && msg.__x_senderObj) {
+              detail.contact = msg.__x_senderObj.pushname;
+              detail.number = sender.user;
+            }
+
+            const event = new CustomEvent('message_received', { detail });
+            document.dispatchEvent(event);
           }
 
-          // console.log(detail);
-          const event = new CustomEvent('message_received', { detail });
-          document.dispatchEvent(event);
+        } else if (msg.__x_type == "payment") {
+          // debugger;
+          // objSendToServer.message = msg.__x_body;
+          // objSendToServer.payment_info = {
+          //   value: msg.__x_paymentAmount1000,
+          //   currency: msg.__x_paymentCurrency,
+          //   status: msg.__x_paymentStatus,
+          //   timestamp: msg.__x_paymentTransactionTimestamp,
+          //   note: msg.__x_paymentNoteMsg,
+          // }
+          // var clonedDetail = cloneInto(objSendToServer, document.defaultView);
+          // var event = new CustomEvent('message_received', { 'detail': objSendToServer });
+          // document.dispatchEvent(event);
+          // console.log('objSendToServer', objSendToServer)
         }
+
+      } else {
+        console.log("não é CHAT");
       }
 
     });
@@ -79,11 +106,12 @@ const intervalTry = setInterval(() => {
 
 function sendMessage(senderId, message, callback){
   if (message.type === "image") {
-    API.sendImageMessage(senderId, message.content, message.caption, () => {
+    API.sendImageMessage(senderId, message.content, message.caption || '', () => {
       if (callback) {
         callback();
       }
     })
+
   } else {
     API.sendTextMessage(senderId, message.content, function () {
       if (callback) {

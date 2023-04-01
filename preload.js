@@ -25,7 +25,7 @@ ipcRenderer.on('asynchronous-reply', (event, arg) => {
     document.dispatchEvent(new CustomEvent('send-message', {
         detail: {
             from: arg.from,
-            msg: { content: arg.msg },
+            msg: { content: arg.msg, type: arg.type },
         }
     }));
 });
