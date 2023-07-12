@@ -397,8 +397,10 @@ function createMenuContext(createDev){
 }
 
 function desativarWpp() {
-  let script = pauseWpp ? 'localStorage.removeItem("pauseWpp", 1);' : 'localStorage.setItem("pauseWpp", 1);';
-  wpp.webContents.executeJavaScript(script)
+  if (wpp) {
+    let script = pauseWpp ? 'localStorage.removeItem("pauseWpp", 1);' : 'localStorage.setItem("pauseWpp", 1);';
+    wpp.webContents.executeJavaScript(script)
+  }
 }
 
 function logoutApp() {
@@ -482,7 +484,7 @@ function sendSocketMessage(arg) {
     let i = 0;
     arg.msg.forEach(msg => {
       setTimeout(() => {
-        wpp.webContents.send('asynchronous-reply', { from: arg.to, msg })
+        wpp.webContents.send('asynchronous-reply', { msg, from: arg.to, origin: arg.origin })
       }, 1000 * i);
     });
   }
@@ -584,14 +586,10 @@ function checkAutoUpdater() {
       buttons: ['OK'],
       title: 'Nova versão disponível!',
       message: "",
-      detail: 'Uma nova versão foi baixada, por favor aguarde enquanto atualizamos o sistema'
+      detail: 'Uma nova versão foi baixada, por favor feche o sistema para instalar a nova versão!'
     };
 
     dialog.showMessageBox(win, dialogOpts, null);
-
-    setTimeout(() => {
-      autoUpdater.quitAndInstall();
-    }, 10000);
   });
 
   autoUpdater.on('error', (ev, message) => {
@@ -612,7 +610,7 @@ function checkAutoUpdater() {
       buttons: ['OK'],
       title: 'Atualização',
       message: "",
-      detail: 'Uma nova versão será baixada, espere um momento que irá atualizar sozinha.'
+      detail: 'Uma nova versão será baixada.'
     };
 
     dialog.showMessageBox(win, dialogOpts, null);

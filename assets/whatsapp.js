@@ -8,6 +8,14 @@ document.addEventListener('send-message', function (e) {
   sendMessage(e.detail.from, e.detail.msg)
 }, false);
 
+document.addEventListener('force-send-message', function (e) {
+  API.findJidFromNumber(e.detail.from).then(value => {
+    if (value && value.status === 200) {
+      sendMessage(e.detail.from, e.detail.msg);
+    }
+  });
+}, false);
+
 document.addEventListener('fill-contact', function (e) {
   fillContact(e.detail);
 }, false);

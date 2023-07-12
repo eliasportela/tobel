@@ -22,12 +22,14 @@ document.addEventListener("go-page", (e) => {
 }, false);
 
 ipcRenderer.on('asynchronous-reply', (event, arg) => {
-    document.dispatchEvent(new CustomEvent('send-message', {
-        detail: {
-            from: arg.from,
-            msg: { content: arg.msg, type: arg.type },
-        }
-    }));
+    const data = {detail: { from: arg.from, msg: { content: arg.msg, type: arg.type }}}
+
+    if (arg.origin === '3') {
+        document.dispatchEvent(new CustomEvent('force-send-message', data));
+
+    } else {
+        document.dispatchEvent(new CustomEvent('send-message', data));
+    }
 });
 
 // dados do cliente
