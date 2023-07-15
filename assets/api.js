@@ -214,7 +214,7 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 			Message received
 			*/
 			{
-				predicate: msg => !msg.__x_isNotification && !msg.__x_isSentByMe && msg.__x_self !== "out",
+				predicate: msg => !msg.__x_isNotification && !msg.__x_isSentByMe && msg.__x_self !== "out" && !msg.__x_author,
 				handler: function (msg) {
 					var sender = msg.__x_sender || msg.__x_from;
 					var chat = msg.__x_from;
@@ -250,7 +250,6 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 				predicate: msg => msg.__x_isUserCreatedType && !msg.__x_isNotification && msg.__x_isSentByMe,
 				handler: function (msg) {
 					var to = msg.__x_to;
-					console.log('MESSAGE_SENT');
 					API.listener.ExternalHandlers.MESSAGE_SENT.forEach(x => x(to, msg, msg));
 				}
 			},
@@ -361,6 +360,15 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 			return result;
 		},
 
+		getChats: function () {
+			var result = [];
+			(Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+				if (x.__x_isGroup === false)
+					result.push({ ...x.__x_id, timestamp: x.__x_t, archive: x.archive });
+			});
+			return result;
+		},
+
 		listener: new Listener(),
 
 		/*
@@ -423,9 +431,11 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 				return;
 			}
 
-			chat.setArchive(!!archive_status).then(function () {
-				(callback || Core.nop)({ status: 200 });
-			});
+			Store.ChatUtilsSetArchive.setArchive(chat, !!archive_status);
+
+			// chat.setArchive(!!archive_status).then(function () {
+			// 	(callback || Core.nop)({ status: 200 });
+			// });
 		},
 
 		/*
@@ -621,6 +631,21 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 
 		},
 
+		openChat: (chat, msg) => {
+			let openChat = new Store.OpenChat()
+			openChat.props = { msgText: msg }
+			openChat.openChat(chat)
+		},
+
+		openChatByNumber: async  (number, msg) => {
+			let jid = await window.API.findJidFromNumber(number)
+			if(jid.status !== 200){
+				console.error("chat not found")
+				return
+			}
+			let chat = await window.API.findChatFromId(jid.jid)
+			API.openChat(chat, msg)
+		},
 
 		base64ImageToFile: function (b64Data, filename) {
 			var arr = b64Data.split(",");
@@ -870,6 +895,14 @@ window.makeStore = function () {
 					{
 						id: "FindChat",
 						conditions: (module) => (module && module.findChat) ? module : null
+					},
+					{
+						id: "OpenChat",
+						conditions: (module) => (module.OpenChatFlow) ? module.OpenChatFlow : null
+					},
+					{
+						id: "ChatUtilsSetArchive",
+						conditions: (module) => (module.setArchive) ? module : null
 					}
 				];
 				for (let idx in modules) {
@@ -952,7 +985,6 @@ window.API.findJidFromNumber = (number) => {
 	//     return Store.WapQuery.queryExist(number);
 	// }
 }
-
 
 window.API.waitStateLoad = function () {
 	return new Promise((resolve, reject) => {

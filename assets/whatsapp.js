@@ -29,6 +29,7 @@ let buttonPlay = null;
 let buttonPause = null;
 let buttonMenu = null;
 let senderId = null;
+let botNumber = null;
 
 const intervalTry = setInterval(() => {
   if (window.API.listener !== undefined) {
@@ -40,9 +41,8 @@ const intervalTry = setInterval(() => {
     makeSmartOptions();
 
     window.API.listener.ExternalHandlers.MESSAGE_RECEIVED.push(function (sender, chat, msg) {
-
       if (!msg.__x_isGroupMsg && !msg.__x_isStatusV3) {
-        if (msg.__x_type == "location") {
+        // if (msg.__x_type == "location") {
           // if (users[sender._serialized] == undefined){
           //   users[sender._serialized] = {lastTimestamp: 0};
           // }
@@ -57,12 +57,9 @@ const intervalTry = setInterval(() => {
           //   Dispara o evento.
           //   document.dispatchEvent(event);
           // }
+        // }
 
-        } else if (msg.__x_type == "chat" || msg.__x_type == "ptt") {
-          if (localStorage.getItem('pauseWpp')) {
-            return;
-          }
-
+        if (msg.__x_type == "chat" || msg.__x_type == "ptt" && !localStorage.getItem('pauseWpp')) {
           const isMe = msg.__x_id && msg.__x_id.fromMe;
           const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
           const body = msg.__x_body;
@@ -73,7 +70,8 @@ const intervalTry = setInterval(() => {
               isMe,
               from: chatId,
               text: body ? body : "#",
-              isAudio: msg.__x_type == "ptt"
+              isAudio: msg.__x_type == "ptt",
+              botNumber
             };
 
             if (!isMe && msg.__x_senderObj) {
@@ -84,8 +82,9 @@ const intervalTry = setInterval(() => {
             const event = new CustomEvent('message_received', { detail });
             document.dispatchEvent(event);
           }
+        }
 
-        } else if (msg.__x_type == "payment") {
+        // else if (msg.__x_type == "payment") {
           // debugger;
           // objSendToServer.message = msg.__x_body;
           // objSendToServer.payment_info = {
@@ -99,12 +98,11 @@ const intervalTry = setInterval(() => {
           // var event = new CustomEvent('message_received', { 'detail': objSendToServer });
           // document.dispatchEvent(event);
           // console.log('objSendToServer', objSendToServer)
-        }
+        // }
 
       } else {
         console.log("não é CHAT");
       }
-
     });
 
   } else {
@@ -134,6 +132,7 @@ function checkPhone() {
     const phone = window.localStorage['last-wid'].replace(/"/g, "").split('@')[0]
 
     if (phone) {
+      botNumber = phone;
       console.log("Phone: " + phone);
     }
 
@@ -191,7 +190,7 @@ function makeSmartOptions() {
       if (div != undefined && user != undefined) {
         senderId = user.__x_id._serialized;
 
-        if (user.__x_isGroup) {
+        if (user.__x_isGroup || localStorage.getItem('pauseWpp')) {
           return;
         }
 
@@ -230,12 +229,12 @@ function makeSmartOptions() {
           buttonStop.classList.remove("hide");
         });
 
-        buttonMenu = newDiv.querySelector("#menu");
-        buttonMenu.addEventListener("click", () => {
-          document.dispatchEvent(new CustomEvent('go-page', {
-            detail: 'cliente/' + senderId
-          }));
-        });
+        // buttonMenu = newDiv.querySelector("#menu");
+        // buttonMenu.addEventListener("click", () => {
+        //   document.dispatchEvent(new CustomEvent('go-page', {
+        //     detail: 'cliente/' + senderId
+        //   }));
+        // });
 
         div.insertBefore(newDiv, div.children[2]);
       }
@@ -264,7 +263,7 @@ function mountMyButton() {
     + '<button title="Pausar o LeBot p/ este cliente" id="pause" class="hide">'+ imgPause +'</button>'
     + '<button title="Ativar o LeBot p/ este cliente" id="play" class="hide">' + imgPlay + '</button>'
     + '<button title="Adicionar usuário à Blocklist" id="stop" class="hide">'+ imgStop +'</button>'
-    + '<button title="Dados do cliente" id="menu" class="hide"><img style="width: 100%;" src="' + imgUser + '"></img></button>'
+    // + '<button title="Dados do cliente" id="menu" class="hide"><img style="width: 100%;" src="' + imgUser + '"></img></button>'
     + '</div>'
     + '</div>';
 

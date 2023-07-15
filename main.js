@@ -1,11 +1,19 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer} = require('electron');
+const {app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const FormData = require('form-data');
 const Config = require('electron-config');
 const fetch = require('electron-fetch').default;
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  console.log('Ha duas instancias abertas');
+  app.quit();
+  return;
+}
 
 const env = JSON.parse(fs.readFileSync(path.join(__dirname, './config.json'), 'utf8'));
 
@@ -119,6 +127,13 @@ function createBot(data) {
         }
       }
 
+      wpp.webContents.executeJavaScript('localStorage.getItem("pauseWpp");').then((res) => {
+        if (res === '1') {
+          pauseWpp = true;
+          Menu.setApplicationMenu(createMenuContext());
+        }
+      });
+
       downloadApi();
 
     }, 2000);
@@ -231,7 +246,7 @@ function createMenuContext(createDev){
       label: 'Opcões',
       submenu: [
         {
-          label: pauseWpp ? 'Ativar o Bot' : 'Pausar o LeBot',
+          label: pauseWpp ? 'Ativar o LeBot' : 'Pausar o LeBot',
           click: () => {
             desativarWpp();
             pauseWpp = !pauseWpp;
@@ -290,6 +305,24 @@ function createMenuContext(createDev){
             showVersionAvaliable = true;
             autoUpdater.checkForUpdates()
           },
+        },
+        {
+          label: 'Resetar Sistema',
+          click: () => {
+            messagebox = dialog.showMessageBox(wpp, {
+              type: 'warning',
+              defaultId: 0,
+              buttons: ['Não', 'Sim'],
+              title: 'Resetar o sistema',
+              message: 'Você precisará logar novamente no sistema e no WhatsApp. Deseja realmente resetar?'
+            }).then(res => {
+              messagebox = false;
+
+              if (res.response) {
+                logoutApp();
+              }
+            });
+          }
         },
         {
           label: 'Licença',
@@ -404,9 +437,9 @@ function desativarWpp() {
 }
 
 function logoutApp() {
-  win.webContents.executeJavaScript('localStorage.clear();').then(() => {
+  session.defaultSession.clearStorageData().then(() => {
     app.quit();
-  })
+  });
 }
 
 function sendToServer(event, arg) {
@@ -416,6 +449,7 @@ function sendToServer(event, arg) {
   form.append('isMe', arg.isMe.toString());
   form.append('isAudio', arg.isAudio ? 'true' : 'false');
   form.append('location', arg.location ? JSON.stringify(arg.location) : '');
+  form.append('botNumber', arg.botNumber ? arg.botNumber : '');
 
   if (!arg.isMe) {
     if (arg.contact) {
@@ -556,7 +590,7 @@ function loadDependences() {
   });
 
   ipcMain.on('contact', (event, arg) => {
-    if (arg && arg.from) {
+    if (!pauseWpp && arg && arg.from) {
       const url = base_server + "api/chatbot/contato/"+ dados.token +"?id=" + arg.from;
       fetch(url, { method: 'GET' })
           .then(res => res.json())

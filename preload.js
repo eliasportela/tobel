@@ -1,5 +1,4 @@
 const { ipcRenderer } = require('electron');
-localStorage.removeItem('pauseWpp');
 
 document.addEventListener("btnLoad", (e) => {
     ipcRenderer.send('reloadUrl');
