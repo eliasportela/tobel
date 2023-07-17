@@ -15,6 +15,9 @@ document.addEventListener('fill-contact', function (e) {
 let injected = false;
 let injectedCount = 0;
 
+let injectedPhone = false;
+let injectedPhoneCount = 0;
+
 let interval = null;
 let buttonStop = null;
 let buttonPlay = null;
@@ -25,9 +28,7 @@ let senderId = null;
 const intervalTry = setInterval(() => {
   if (window.API.listener !== undefined) {
     clearInterval(intervalTry);
-
     console.log("LEBOT INICIADO");
-
     checkPhone();
     makeSmartOptions();
 
@@ -122,19 +123,28 @@ function sendMessage(senderId, message, callback){
 }
 
 function checkPhone() {
-  setTimeout(() => {
-    let phone = window.localStorage['last-wid'] || window.localStorage['last-wid-md'];
+  injectedPhone = setInterval(() => {
+    injectedPhoneCount++;
 
-    if (phone) {
-      phone = phone.replace(/"/g, "").split('@')[0];
-      phone = phone.split(":")[0];
+    if (injectedPhoneCount < 60) {
+      let phone = window.localStorage['last-wid'] || window.localStorage['last-wid-md'];
+      console.log("checking phone");
 
-      document.dispatchEvent(new CustomEvent('bot_number', {
-        detail: phone
-      }))
+      if (phone) {
+        phone = phone.replace(/"/g, "").split('@')[0];
+        phone = phone.split(":")[0];
+
+        document.dispatchEvent(new CustomEvent('bot_number', {
+          detail: phone
+        }));
+
+        clearInterval(injectedPhone);
+      }
+
+    } else {
+      clearInterval(injectedPhone);
     }
-
-  }, (2000));
+  }, 1000);
 
   injected = setInterval(() => {
     injectedCount++;

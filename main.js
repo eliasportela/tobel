@@ -107,6 +107,7 @@ function createBot(data) {
     minWidth: 1000,
     minHeight: 600,
     show: false,
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,
@@ -302,6 +303,7 @@ function createMenuContext(createDev){
         },
         {
           label: 'Resetar Sistema',
+          enabled: false,
           click: () => {
             messagebox = dialog.showMessageBox(wpp, {
               type: 'warning',
