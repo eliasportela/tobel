@@ -22,17 +22,14 @@ document.addEventListener("go-page", (e) => {
 
 ipcRenderer.on('asynchronous-reply', (event, arg) => {
     const data = {detail: { from: arg.from, msg: { content: arg.msg, type: arg.type }}}
-
-    if (arg.origin === '3') {
-        document.dispatchEvent(new CustomEvent('force-send-message', data));
-
-    } else {
-        document.dispatchEvent(new CustomEvent('send-message', data));
-    }
+    document.dispatchEvent(new CustomEvent('send-message', data));
 });
 
-// dados do cliente
+document.addEventListener("bot_number", (e) => {
+    ipcRenderer.send('bot-number', e.detail);
+}, false);
 
+// dados do cliente
 document.addEventListener("contact", (e) => {
     ipcRenderer.send('contact', e.detail);
 }, false);

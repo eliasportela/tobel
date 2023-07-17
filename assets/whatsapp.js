@@ -8,14 +8,6 @@ document.addEventListener('send-message', function (e) {
   sendMessage(e.detail.from, e.detail.msg)
 }, false);
 
-document.addEventListener('force-send-message', function (e) {
-  API.findJidFromNumber(e.detail.from).then(value => {
-    if (value && value.status === 200) {
-      sendMessage(e.detail.from, e.detail.msg);
-    }
-  });
-}, false);
-
 document.addEventListener('fill-contact', function (e) {
   fillContact(e.detail);
 }, false);
@@ -29,7 +21,6 @@ let buttonPlay = null;
 let buttonPause = null;
 let buttonMenu = null;
 let senderId = null;
-let botNumber = null;
 
 const intervalTry = setInterval(() => {
   if (window.API.listener !== undefined) {
@@ -59,9 +50,12 @@ const intervalTry = setInterval(() => {
           // }
         // }
 
-        if (msg.__x_type == "chat" || msg.__x_type == "ptt" && !localStorage.getItem('pauseWpp')) {
+        const isPaused = localStorage.getItem('pauseWpp') === '1';
+
+        if ((msg.__x_type == "chat" || msg.__x_type == "ptt") && !isPaused) {
           const isMe = msg.__x_id && msg.__x_id.fromMe;
           const chatId = isMe ? msg.__x_to._serialized : sender._serialized;
+          const botId = msg.__x_to && msg.__x_to._serialized ? msg.__x_to._serialized : '';
           const body = msg.__x_body;
           const clearmessage = body ? body.trim().toLowerCase() : "";
 
@@ -71,7 +65,7 @@ const intervalTry = setInterval(() => {
               from: chatId,
               text: body ? body : "#",
               isAudio: msg.__x_type == "ptt",
-              botNumber
+              botNumber: botId
             };
 
             if (!isMe && msg.__x_senderObj) {
@@ -129,11 +123,15 @@ function sendMessage(senderId, message, callback){
 
 function checkPhone() {
   setTimeout(() => {
-    const phone = window.localStorage['last-wid'].replace(/"/g, "").split('@')[0]
+    let phone = window.localStorage['last-wid'] || window.localStorage['last-wid-md'];
 
     if (phone) {
-      botNumber = phone;
-      console.log("Phone: " + phone);
+      phone = phone.replace(/"/g, "").split('@')[0];
+      phone = phone.split(":")[0];
+
+      document.dispatchEvent(new CustomEvent('bot_number', {
+        detail: phone
+      }))
     }
 
   }, (2000));
@@ -189,8 +187,9 @@ function makeSmartOptions() {
 
       if (div != undefined && user != undefined) {
         senderId = user.__x_id._serialized;
+        const isPaused = localStorage.getItem('pauseWpp') === '1';
 
-        if (user.__x_isGroup || localStorage.getItem('pauseWpp')) {
+        if (user.__x_isGroup || isPaused) {
           return;
         }
 
@@ -263,17 +262,17 @@ function mountMyButton() {
     + '<button title="Pausar o LeBot p/ este cliente" id="pause" class="hide">'+ imgPause +'</button>'
     + '<button title="Ativar o LeBot p/ este cliente" id="play" class="hide">' + imgPlay + '</button>'
     + '<button title="Adicionar usuário à Blocklist" id="stop" class="hide">'+ imgStop +'</button>'
-    // + '<button title="Dados do cliente" id="menu" class="hide"><img style="width: 100%;" src="' + imgUser + '"></img></button>'
     + '</div>'
     + '</div>';
 
+  // + '<button title="Dados do cliente" id="menu" class="hide"><img style="width: 100%;" src="' + imgUser + '"></img></button>'
   return html;
 }
 
 function fillContact(contact) {
-  if (contact) {
-    buttonMenu.classList.remove("hide");
-  }
+  // if (contact) {
+  //   buttonMenu.classList.remove("hide");
+  // }
 
   if (!contact || contact.status === '1') {
     buttonStop.classList.remove("hide");

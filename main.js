@@ -35,11 +35,12 @@ let wpp = null;
 let winLoad = null;
 
 let dados = null;
-let pauseWpp = false;
+let pauseWpp = !!config.get('pauseWpp');
 let quit = true;
 let messagebox = false;
 let loading = true;
 let showVersionAvaliable = false;
+let botNumber = null;
 
 app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
 Menu.setApplicationMenu(createMenuContext());
@@ -127,15 +128,8 @@ function createBot(data) {
         }
       }
 
-      wpp.webContents.executeJavaScript('localStorage.getItem("pauseWpp");').then((res) => {
-        if (res === '1') {
-          pauseWpp = true;
-          Menu.setApplicationMenu(createMenuContext());
-        }
-      });
-
+      toggleLebot();
       downloadApi();
-
     }, 2000);
   });
 
@@ -248,9 +242,9 @@ function createMenuContext(createDev){
         {
           label: pauseWpp ? 'Ativar o LeBot' : 'Pausar o LeBot',
           click: () => {
-            desativarWpp();
             pauseWpp = !pauseWpp;
             Menu.setApplicationMenu(createMenuContext());
+            toggleLebot();
           }
         },
         {
@@ -429,10 +423,16 @@ function createMenuContext(createDev){
   return Menu.buildFromTemplate(menus);
 }
 
-function desativarWpp() {
+function toggleLebot() {
   if (wpp) {
-    let script = pauseWpp ? 'localStorage.removeItem("pauseWpp", 1);' : 'localStorage.setItem("pauseWpp", 1);';
-    wpp.webContents.executeJavaScript(script)
+    wpp.webContents.executeJavaScript(pauseWpp ? 'localStorage.setItem("pauseWpp", 1);' : 'localStorage.removeItem("pauseWpp", 1);');
+
+    if (pauseWpp) {
+      config.set('pauseWpp', 'true');
+
+    } else {
+      config.delete('pauseWpp');
+    }
   }
 }
 
@@ -470,7 +470,7 @@ function sendToServer(event, arg) {
             let type = json.type || 'text';
             json.msgs.forEach(msg => {
               sendMessage(event, arg.from, msg, type, i++);
-            })
+            });
           }
         }
       }).catch(err => console.log(err));
@@ -505,7 +505,9 @@ function connectSocket() {
   });
 
   socket.on('delivery_whatsapp', (data) => {
-    sendSocketMessage(data);
+    if (!botNumber || !data.session || (data.session === botNumber)) {
+      sendSocketMessage(data);
+    }
   });
 
   socket.on('request_human', (data) => {
@@ -518,8 +520,8 @@ function sendSocketMessage(arg) {
     let i = 0;
     arg.msg.forEach(msg => {
       setTimeout(() => {
-        wpp.webContents.send('asynchronous-reply', { msg, from: arg.to, origin: arg.origin })
-      }, 1000 * i);
+        wpp.webContents.send('asynchronous-reply', { msg, from: arg.to })
+      }, 2000 * (i + 1));
     });
   }
 }
@@ -599,6 +601,13 @@ function loadDependences() {
               event.reply('fill-contact', json)
             }
           }).catch(err => console.log(err));
+    }
+  });
+
+  ipcMain.on('bot-number', (event, phone) => {
+    if (phone) {
+      botNumber = phone;
+      console.log("Session:" + botNumber);
     }
   });
 
