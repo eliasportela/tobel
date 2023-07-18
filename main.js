@@ -503,6 +503,14 @@ function connectSocket() {
     if (dados.empresa) {
       console.log('empresa_connected', dados.empresa);
       socket.emit('empresa_connected', dados.empresa);
+
+      if (dados.dados && dados.dados.bandeiras) {
+        let bandeiras = dados.dados.bandeiras.filter(b => b.token !== dados.empresa);
+        bandeiras.forEach(b => {
+          console.log('empresa_connected', b.token);
+          socket.emit('empresa_connected', b.token);
+        })
+      }
     }
   });
 
