@@ -289,10 +289,6 @@ function createMenuContext(createDev){
             if (wpp) {
               wpp.webContents.openDevTools();
             }
-
-            if (winLoad) {
-              winLoad.webContents.openDevTools();
-            }
           }
         }
       ]
