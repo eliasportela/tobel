@@ -30,7 +30,6 @@ let dados = null;
 let pauseWpp = !!config.get('pauseWpp');
 let quit = true;
 let messagebox = false;
-let loading = true;
 let showVersionAvaliable = false;
 let botNumber = null;
 
@@ -42,6 +41,36 @@ app.commandLine.appendSwitch('disable-site-isolation-trials')
 app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
 app.setAppUserModelId('delivery.lecard.whatsapp');
 
+app.whenReady().then(() => {
+  createWindow();
+
+  winLoad = new BrowserWindow({
+    width: 500,
+    height: 300,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    icon: path.join(__dirname, 'icon.png')
+  });
+
+  winLoad.loadFile("pages/loading.html");
+
+  app.on('activate', function () {
+    // if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  });
+
+  globalShortcut.register('CommandOrControl+B', () => {
+    Menu.setApplicationMenu(createMenuContext(true));
+  });
+
+  loadDependences();
+})
+
+app.on('window-all-closed', function () {
+  app.quit();
+})
+
+// Funcoes
 function createWindow () {
   win = new BrowserWindow({
     title: 'LeBot',
@@ -49,6 +78,7 @@ function createWindow () {
     height: 600,
     minWidth: 1000,
     minHeight: 600,
+    backgroundColor: '#1CC88A',
     show: false,
     icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
@@ -58,16 +88,16 @@ function createWindow () {
     }
   });
 
-  win.setMenu(null);
-
   win.loadURL(base_login).then(() => {}).catch(() => {
     win.loadFile('pages/error.html');
-    win.show();
   });
 
-  win.webContents.on('new-window', function(e, url) {
-    e.preventDefault();
-    require('electron').shell.openExternal(url);
+  win.once('ready-to-show', () => {
+    setTimeout(() => {
+      winLoad.close();
+      win.show();
+      win.focus();
+    }, 2000);
   });
 
   win.on('close', function(e){
@@ -85,11 +115,9 @@ function createWindow () {
     app.quit()
   });
 
-  win.once('ready-to-show', () => {
-    loading = false;
-    winLoad.hide();
-    win.show();
-    loadDependences();
+  win.webContents.on('new-window', function(e, url) {
+    e.preventDefault();
+    require('electron').shell.openExternal(url);
   });
 }
 
@@ -124,44 +152,6 @@ function createBot(data) {
   });
 }
 
-app.whenReady().then(() => {
-  winLoad = new BrowserWindow({
-    width: 450,
-    height: 480,
-    resizable: false,
-    title: 'LeBot',
-    backgroundColor: '#1CC88A',
-    show: true,
-    icon: path.join(__dirname, 'icon.png')
-  });
-
-  winLoad.setMenu(null);
-  winLoad.loadFile("pages/loading.html");
-
-  winLoad.once('ready-to-show', () => {
-    createWindow();
-  });
-
-  winLoad.on('closed', () => {
-    if (loading) {
-      app.quit();
-    }
-  });
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  });
-
-  globalShortcut.register('CommandOrControl+B', () => {
-    Menu.setApplicationMenu(createMenuContext(true));
-  });
-})
-
-app.on('window-all-closed', function () {
-  app.quit();
-})
-
-// Funcoes
 function downloadApi() {
   try {
     fetch(base_cdn + '/lebot/api-2.js', { method: 'GET' })
@@ -366,13 +356,6 @@ function sendMessage(event, from, msg, type, i) {
   setTimeout(() => {
     event.reply('asynchronous-reply', { from, msg, type })
   }, 2000 * (i + 1));
-}
-
-function goPage(page) {
-  win.loadURL(base_login + page).then(() => {
-    win.show();
-    quit = false;
-  });
 }
 
 // Eventos
