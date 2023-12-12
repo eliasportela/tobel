@@ -1,12 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer, session } = require('electron');
-const path = require('path');
-const fs = require('fs');
-const { autoUpdater } = require('electron-updater');
-const FormData = require('form-data');
-const Config = require('electron-config');
-const fetch = require('electron-fetch').default;
-
+const {app, BrowserWindow, BrowserView, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer, session } = require('electron');
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -15,20 +8,19 @@ if (!gotTheLock) {
   return;
 }
 
+const path = require('path');
+const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
+const FormData = require('form-data');
+const Config = require('electron-config');
+const fetch = require('electron-fetch').default;
+
 const env = JSON.parse(fs.readFileSync(path.join(__dirname, './config.json'), 'utf8'));
-
-const ENV_BS = env.BASE_SERVER;
-const ENV_BS_HHH = env.BASE_SERVER_HHH;
-const ENV_LG = env.BASE_LOGIN;
-const ENV_LG_HHH = env.BASE_LOGIN_HHH;
-const ENV_CDN = env.BASE_CDN;
-
+const base_login = env.BASE_LOGIN;
 const config = new Config();
-let isHomolog = !!config.get('homologacao');
 
-const base_login = isHomolog ? ENV_LG_HHH : ENV_LG;
-let base_server = isHomolog ? ENV_BS_HHH : ENV_BS;
-const loginPars = "?redirect=lebot";
+let base_server = "";
+let base_cdn = "";
 
 let win = null;
 let wpp = null;
@@ -52,22 +44,23 @@ app.setAppUserModelId('delivery.lecard.whatsapp');
 
 function createWindow () {
   win = new BrowserWindow({
-    width: 450,
-    height: 480,
-    resizable: false,
     title: 'LeBot',
+    width: 1000,
+    height: 600,
+    minWidth: 1000,
+    minHeight: 600,
     show: false,
+    icon: path.join(__dirname, 'icon.png'),
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,
       preload: path.join(__dirname, 'preload.js')
-    },
-    icon: path.join(__dirname, 'icon.png')
+    }
   });
 
   win.setMenu(null);
 
-  win.loadURL(base_login + loginPars).then(() => {}).catch(() => {
+  win.loadURL(base_login).then(() => {}).catch(() => {
     win.loadFile('pages/error.html');
     win.show();
   });
@@ -101,23 +94,18 @@ function createWindow () {
 }
 
 function createBot(data) {
-  wpp = new BrowserWindow({
-    width: 1000,
-    height: 600,
-    minWidth: 1000,
-    minHeight: 600,
-    show: false,
-    icon: path.join(__dirname, 'icon.png'),
+  wpp = new BrowserView({
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'wpp-preload.js')
     }
   });
 
-  // and load the index.html of the app.
-  wpp.loadURL("https://web.whatsapp.com/").then((res) => {
-  });
+  win.setBrowserView(wpp)
+  wpp.setBounds({ x: 74, y: 0, width: 926, height: 572 })
+  wpp.webContents.loadURL("https://web.whatsapp.com/");
+  wpp.setAutoResize({width: true, height: true});
 
   wpp.webContents.on('dom-ready', function(e) {
     setTimeout(() => {
@@ -129,32 +117,11 @@ function createBot(data) {
         }
       }
 
-      toggleLebot();
+      toggleStatus();
       downloadApi();
+      wpp.webContents.focus();
     }, 2000);
   });
-
-  wpp.on('close', () => {
-    quit = true;
-    win = null;
-    wpp = null;
-  });
-
-  wpp.on('closed', () => {
-    app.quit()
-  });
-
-  wpp.webContents.on("new-window", function(event, url) {
-    event.preventDefault();
-    shell.openExternal(url);
-  });
-
-  wpp.once('focus', () => {
-    wpp.flashFrame(false)
-  });
-
-  wpp.maximize();
-  wpp.show();
 }
 
 app.whenReady().then(() => {
@@ -163,7 +130,7 @@ app.whenReady().then(() => {
     height: 480,
     resizable: false,
     title: 'LeBot',
-    backgroundColor: '#28A745',
+    backgroundColor: '#1CC88A',
     show: true,
     icon: path.join(__dirname, 'icon.png')
   });
@@ -197,12 +164,13 @@ app.on('window-all-closed', function () {
 // Funcoes
 function downloadApi() {
   try {
-    fetch(ENV_CDN + 'api-2.js', { method: 'GET' })
+    fetch(base_cdn + '/lebot/api-2.js', { method: 'GET' })
       .then(res => res.text())
       .then(text => {
         if (text) {
-          // const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
-          wpp.webContents.executeJavaScript(text);
+          // wpp.webContents.executeJavaScript(text);
+          const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
+          wpp.webContents.executeJavaScript(file);
 
           const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
           wpp.webContents.executeJavaScript(file2);
@@ -238,43 +206,6 @@ function showInjectError() {
 function createMenuContext(createDev){
   const menus = [
     {
-      label: 'Opcões',
-      submenu: [
-        {
-          label: pauseWpp ? 'Ativar o LeBot' : 'Pausar o LeBot',
-          click: () => {
-            pauseWpp = !pauseWpp;
-            Menu.setApplicationMenu(createMenuContext());
-            toggleLebot();
-          }
-        },
-        {
-          label: 'Configurações',
-          click: () => {
-            goPage('lebot');
-          }
-        },
-        {
-          label: 'Logout',
-          click: () => {
-            messagebox = dialog.showMessageBox(wpp, {
-              type: 'warning',
-              defaultId: 0,
-              buttons: ['Não', 'Sim'],
-              title: 'Fazer Logout',
-              message: 'Deseja realmente sair?'
-            }).then(res => {
-              messagebox = false;
-
-              if (res.response) {
-                logoutApp();
-              }
-            });
-          }
-        }
-      ]
-    },
-    {
       label: 'Ajuda',
       submenu: [
         {
@@ -302,25 +233,6 @@ function createMenuContext(createDev){
           },
         },
         {
-          label: 'Resetar Sistema',
-          enabled: false,
-          click: () => {
-            messagebox = dialog.showMessageBox(wpp, {
-              type: 'warning',
-              defaultId: 0,
-              buttons: ['Não', 'Sim'],
-              title: 'Resetar o sistema',
-              message: 'Você precisará logar novamente no sistema e no WhatsApp. Deseja realmente resetar?'
-            }).then(res => {
-              messagebox = false;
-
-              if (res.response) {
-                logoutApp();
-              }
-            });
-          }
-        },
-        {
           label: 'Licença',
           click: () => {
             messagebox = dialog.showMessageBox(wpp, {
@@ -333,17 +245,6 @@ function createMenuContext(createDev){
             });
           }
         },
-      ]
-    },
-    {
-      label: 'Chat',
-      submenu: [
-        {
-          label: 'Visualizar Blocklist',
-          click: () => {
-            goPage('lebot');
-          }
-        }
       ]
     },
     {
@@ -403,20 +304,6 @@ function createMenuContext(createDev){
               winLoad.webContents.openDevTools();
             }
           }
-        },
-        {
-          label: (isHomolog ? 'Sair' : 'Modo') + ' Homologação',
-          click: () => {
-            config.clear();
-
-            if (!isHomolog) {
-              config.set('homologacao', 'true');
-            }
-
-            win.webContents.executeJavaScript('localStorage.clear();').then(() => {
-              app.quit();
-            })
-          }
         }
       ]
     })
@@ -425,9 +312,10 @@ function createMenuContext(createDev){
   return Menu.buildFromTemplate(menus);
 }
 
-function toggleLebot() {
+function toggleStatus() {
   if (wpp) {
-    wpp.webContents.executeJavaScript(pauseWpp ? 'localStorage.setItem("pauseWpp", 1);' : 'localStorage.removeItem("pauseWpp", 1);');
+    const code = pauseWpp ? 'localStorage.setItem("pauseWpp", 1);' : 'localStorage.removeItem("pauseWpp", 1);';
+    wpp.webContents.executeJavaScript(code);
 
     if (pauseWpp) {
       config.set('pauseWpp', 'true');
@@ -436,12 +324,8 @@ function toggleLebot() {
       config.delete('pauseWpp');
     }
   }
-}
 
-function logoutApp() {
-  session.defaultSession.clearStorageData().then(() => {
-    app.quit();
-  });
+  win.webContents.send('lebotStatus', { pauseWpp });
 }
 
 function sendToServer(event, arg) {
@@ -491,74 +375,9 @@ function goPage(page) {
   });
 }
 
-function connectSocket() {
-  if (!env.BASE_SOCKET) {
-    return;
-  }
-
-  const io = require('socket.io-client');
-  const socket = io(env.BASE_SOCKET);
-
-  socket.on('connect', () => {
-    if (dados.empresa) {
-      console.log('empresa_connected', dados.empresa);
-      socket.emit('empresa_connected', dados.empresa);
-
-      if (dados.dados && dados.dados.bandeiras) {
-        let bandeiras = dados.dados.bandeiras.filter(b => b.token !== dados.empresa);
-        bandeiras.forEach(b => {
-          console.log('empresa_connected', b.token);
-          socket.emit('empresa_connected', b.token);
-        })
-      }
-    }
-  });
-
-  socket.on('delivery_whatsapp', (data) => {
-    if (!botNumber || !data.session || (data.session === botNumber)) {
-      sendSocketMessage(data);
-    }
-  });
-
-  socket.on('request_human', (data) => {
-    showDialog(data);
-  });
-}
-
-function sendSocketMessage(arg) {
-  if (arg.to && arg.msg && Array.isArray(arg.msg) && wpp) {
-    let i = 0;
-    arg.msg.forEach(msg => {
-      setTimeout(() => {
-        wpp.webContents.send('asynchronous-reply', { msg, from: arg.to })
-      }, 2000 * (i + 1));
-    });
-  }
-}
-
-function showDialog(arg) {
-  if (!wpp) {
-    return;
-  }
-
-  wpp.flashFrame(true);
-
-  const options = {
-    type: 'warning',
-    buttons: ['OK'],
-    title: 'Solicitação de atendimento',
-    message: (arg.telefone ? 'O cliente: ' + arg.telefone : 'Um cliente') + ' solicitou atendimento!',
-  };
-
-  dialog.showMessageBox(wpp, options, () => {
-    wpp.flashFrame(false);
-    wpp.show();
-  });
-}
-
 // Eventos
 ipcMain.on('reloadUrl', () => {
-  win.loadURL(base_login + loginPars).then(() => {}).catch(() => {
+  win.loadURL(base_login).then(() => {}).catch(() => {
     win.loadFile('pages/error.html');
   });
 });
@@ -567,26 +386,40 @@ function loadDependences() {
   const isPackaged = app.isPackaged;
 
   ipcMain.on('login', (event, arg) => {
-    if (arg && arg.token && !wpp) {
+    if (arg && arg.token) {
+      base_server = arg.base_server;
+      base_cdn = arg.base_cdn;
       dados = arg;
-      win.hide();
-      createBot(arg);
-      connectSocket();
+
+      if (!wpp) {
+        createBot(arg);
+      }
+
+      console.log(base_server);
     }
   });
 
-  ipcMain.on('go-page', (event, arg) => {
-    goPage(arg);
+  ipcMain.on('toggleBot', (event, arg) => {
+    let bot = !!win.getBrowserView();
+
+    if (arg !== bot) {
+      if (arg) {
+        win.setBrowserView(wpp)
+
+      } else {
+        win.removeBrowserView(wpp);
+      }
+    }
+  });
+
+  ipcMain.on('toggleStatus', (event, arg) => {
+    pauseWpp = !pauseWpp;
+    Menu.setApplicationMenu(createMenuContext());
+    toggleStatus();
   });
 
   ipcMain.on('asynchronous-message', (event, arg) => {
     sendToServer(event, arg)
-  });
-
-  ipcMain.on('focus', () => {
-    if (wpp) {
-      wpp.show()
-    }
   });
 
   ipcMain.on('toggle-chat', (event, arg) => {
@@ -616,8 +449,42 @@ function loadDependences() {
 
   ipcMain.on('bot-number', (event, phone) => {
     if (phone) {
+      console.log('Wpp Session: ' + phone);
       botNumber = phone;
-      console.log("Session:" + botNumber);
+      win.webContents.send('wppSession', phone);
+    }
+  });
+
+  ipcMain.on('dispararMensagens', (event, arg) => {
+    if (arg && arg.mensagem && arg.to) {
+      wpp.webContents.send('asynchronous-reply', { msg: arg.mensagem, from: arg.to });
+    }
+  });
+
+  ipcMain.on('acessarChats', (event, arg) => {
+    if (arg && arg.to) {
+      wpp.webContents.send('open_chat', arg);
+    }
+  });
+
+  ipcMain.on('fechar', (event, arg) => {
+    if (!arg) { return; }
+
+    if (arg.resetar) {
+      session.defaultSession.clearStorageData().then(() => {
+        if (arg.reiniciar) {
+          app.relaunch();
+        }
+
+        app.quit();
+      });
+
+    } else {
+      if (arg.reiniciar) {
+        app.relaunch();
+      }
+
+      app.quit();
     }
   });
 
@@ -684,6 +551,6 @@ function checkAutoUpdater() {
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
-    wpp.setProgressBar(progressObj.percent / 100);
+    win.setProgressBar(progressObj.percent / 100);
   })
 }

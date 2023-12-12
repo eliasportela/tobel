@@ -1,39 +1,44 @@
 const { ipcRenderer } = require('electron');
+const os = require("node:os");
 
-document.addEventListener("btnLoad", (e) => {
-    ipcRenderer.send('reloadUrl');
-}, false);
+sessionStorage.setItem('Electron', '1');
+window.Electron = true;
+window.gPConfigs = { host: os.hostname() };
 
+// lebot web
 document.addEventListener("login", (e) => {
     ipcRenderer.send('login', e.detail);
 }, false);
 
-document.addEventListener("message_received", (e) => {
-    ipcRenderer.send('asynchronous-message', e.detail);
+document.addEventListener("toggleBot", (e) => {
+    ipcRenderer.send('toggleBot', e.detail);
 }, false);
 
-document.addEventListener("toggle-reply", (e) => {
-    ipcRenderer.send('toggle-chat', e.detail);
+document.addEventListener("toggleStatus", (e) => {
+    ipcRenderer.send('toggleStatus', e.detail);
 }, false);
 
-document.addEventListener("go-page", (e) => {
-    ipcRenderer.send('go-page', e.detail);
+document.addEventListener("dispararMensagens", (e) => {
+    ipcRenderer.send('dispararMensagens', e.detail);
 }, false);
 
-ipcRenderer.on('asynchronous-reply', (event, arg) => {
-    const data = {detail: { from: arg.from, msg: { content: arg.msg, type: arg.type }}}
-    document.dispatchEvent(new CustomEvent('send-message', data));
+document.addEventListener("acessarChat", (e) => {
+    ipcRenderer.send('acessarChats', e.detail);
+}, false);
+
+document.addEventListener("fechar", (e) => {
+    ipcRenderer.send('fechar', e.detail);
+}, false);
+
+// send
+ipcRenderer.on('wppSession', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('wpp_session', { detail: arg }));
 });
 
-document.addEventListener("bot_number", (e) => {
-    ipcRenderer.send('bot-number', e.detail);
-}, false);
+ipcRenderer.on('lebotStatus', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('lebot_config', { detail: arg }));
+});
 
-// dados do cliente
-document.addEventListener("contact", (e) => {
-    ipcRenderer.send('contact', e.detail);
-}, false);
-
-ipcRenderer.on('fill-contact', (event, arg) => {
-    document.dispatchEvent(new CustomEvent('fill-contact', { detail: arg }));
+ipcRenderer.on('errorReply', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('error_reply', { detail: arg }));
 });
