@@ -154,13 +154,14 @@ function createBot(data) {
 
 function downloadApi() {
   try {
-    fetch(base_cdn + '/lebot/api-2.js', { method: 'GET' })
+    fetch(base_cdn + '/lebot/api-3.js', { method: 'GET' })
       .then(res => res.text())
       .then(text => {
         if (text) {
-          // wpp.webContents.executeJavaScript(text);
-          const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
-          wpp.webContents.executeJavaScript(file);
+          wpp.webContents.executeJavaScript(text);
+
+          // const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
+          // wpp.webContents.executeJavaScript(file);
 
           const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
           wpp.webContents.executeJavaScript(file2);
