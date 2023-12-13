@@ -17,6 +17,13 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 	});
 });
 
+let lastReceivedMsg
+let settings;
+
+document.addEventListener('settings', function (e) {
+	settings = e.detail;
+}, false);
+
 (function () {
 
 	/*
@@ -214,32 +221,33 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 			Message received
 			*/
 			{
-				predicate: msg => !msg.__x_isNotification && !msg.__x_isSentByMe && msg.__x_self !== "out" && !msg.__x_author,
+				predicate: msg => !msg.__x_isNotification && msg.__x_type !== "gp2",
 				handler: function (msg) {
 					var sender = msg.__x_sender || msg.__x_from;
 					var chat = msg.__x_from;
 					var message = msg.__x_id._serialized;
-
-					if (msg.__x_from.server == "broadcast"){
+					const isFromMe = msg.__x_id.fromMe
+					const sameMessage = lastReceivedMsg == msg
+					if (msg.__x_from.server == "broadcast" || isFromMe) {
 						msg.__x_isStatusV3 = true;
-					}
-					else{
+					} else{
 						msg.__x_isStatusV3 = false;
 					}
 
-					if (msg.__x_from.server == "g.us"){
+					if (msg.__x_from.server == "g.us") {
 						msg.__x_isGroupMsg = true;
-					}
-					else{
+					} else{
 						msg.__x_isGroupMsg = false;
 					}
-					// if (msg.__x_isGroupMsg.sentinel == "DEFAULT VALUE PLACEHOLDER"){
-					// 	msg.__x_isGroupMsg = false;
-					// 	if (msg.__x_from.server == "g.us"){
-					// 		msg.__x_isGroupMsg = true;
-					// 	}
-					// }
 
+					if (isFromMe) {
+						msg.isMyself = true
+					}
+					if (sameMessage) {
+						return
+					}
+
+					lastReceivedMsg = msg
 					API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
 				}
 			},
@@ -556,11 +564,21 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 
 		sendTextMessage: function (chat_id, message_text, callback) {
 			var chat = Core.chat(chat_id);
+
+
 			if (chat == null) {
-				// Core.error(API.Error.CHAT_NOT_FOUND, callback)
-				if (Debug.VERSION >= "2.2224.7"){
+				let isHotnumber = settings?.phone?.hot_number ? true : false;
+
+				if(!isHotnumber) {
+					const totalChats = Store.Chat.models || Store.Chat.getModelsArray()
+					const chatsWithoutGroups = totalChats.filter(chat => chat.__x_isGroup === false)
+					isHotnumber = chatsWithoutGroups.length >= 50
+				}
+
+				if (Debug.VERSION >= "2.2224.7" && isHotnumber){
 					this.forceSendMessageToID(chat_id, message_text, callback)
 				}
+
 				return;
 			}
 
@@ -603,25 +621,24 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 				const chat = Core.chat(chat_id);
 				let image = await convertToBase64(imageUrl)
 				// create new chat
-				var mediaBlob = API.base64ImageToFile(image, "kkkkk");
+				const mediaBlob = API.base64ImageToFile(image, "kkkkk");
 				if (chat) {
 					var mc = new Store.MediaCollection(chat);
 					mc.processAttachments(
-						[
-							{
-								file: mediaBlob,
-							},
-							1,
-						],
-						chat,
-						1
-					).then(() => {
-						var media = (mc.models || mc.getModelsArray())[0];
-						media.sendToChat(chat, {
-							caption: caption,
-						});
-						callback();
-					});
+						[{
+							file: mediaBlob
+						}],
+						1,
+						chat
+					)
+						.then(() => {
+							var media = (mc.models || mc.getModelsArray())[0];
+							media.sendToChat(chat, {
+								caption: caption,
+							});
+							callback();
+						})
+						.catch(e => console.log("Aqui o erro fi", e))
 				} else {
 					console.log('nao existe chat')
 				}
@@ -670,14 +687,13 @@ const convertToBase64 = (imgUrl) => new Promise(resolve => {
 				return;
 			}
 
-
-			window.Store.SendSeen(chat).then(function (e) {
+			window.Store.PresenceUtils.sendPresenceAvailable()
+			window.Store.SendSeen(chat, false).then(function (e) {
 				(callback || Core.nop)({ status: e });
 			});
 
-			// chat.sendSeen().then(function (e) {
-			// 	(callback || Core.nop)({ status: e });
-			// });
+			const newId = window.Store.WidFactory.createWid(chat_id)
+			window.Store.ChatState.sendChatStateComposing(newId)
 		},
 
 		/*
@@ -903,6 +919,22 @@ window.makeStore = function () {
 					{
 						id: "ChatUtilsSetArchive",
 						conditions: (module) => (module.setArchive) ? module : null
+					},
+					{
+						id: "ChatState",
+						conditions: (module) => (module.sendChatStateComposing) ? module : null
+					},
+					{
+						id: "WidFactory",
+						conditions: (module) => (module.createWid) ? module : null
+					},
+					{
+						id: "isMDBackend",
+						conditions: (module) => (module.isMDBackend) ? module : null
+					},
+					{
+						id: "PresenceUtils",
+						conditions: (module) => (module.sendPresenceAvailable) ? module : null
 					}
 				];
 				for (let idx in modules) {
@@ -985,6 +1017,7 @@ window.API.findJidFromNumber = (number) => {
 	//     return Store.WapQuery.queryExist(number);
 	// }
 }
+
 
 window.API.waitStateLoad = function () {
 	return new Promise((resolve, reject) => {

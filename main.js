@@ -140,34 +140,39 @@ function createBot(data) {
 }
 
 function downloadApi() {
-  try {
-    fetch(base_cdn + '/lebot/api-3.js', { method: 'GET' })
-      .then(res => res.text())
-      .then(text => {
-        if (text) {
-          wpp.webContents.executeJavaScript(text);
+  injectScript();
+  // try {
+  //   fetch(base_cdn + '/lebot/api-3.js', { method: 'GET' })
+  //     .then(res => res.text())
+  //     .then(text => {
+  //       if (text) {
+  //         //wpp.webContents.executeJavaScript(text);
+  //         injectScript();
+  //
+  //       } else {
+  //         showInjectError();
+  //       }
+  //
+  //     }).catch(err => {
+  //       console.log('elias', err);
+  //       showInjectError();
+  //     }
+  //   );
+  // } catch (error) {
+  //   console.log('elias 2', error);
+  //   showInjectError();
+  // }
+}
 
-          // const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
-          // wpp.webContents.executeJavaScript(file);
+function injectScript() {
+  const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
+  wpp.webContents.executeJavaScript(file);
 
-          const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
-          wpp.webContents.executeJavaScript(file2);
+  const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
+  wpp.webContents.executeJavaScript(file2);
 
-          const file3 = fs.readFileSync(__dirname + '/assets/custom.css', "utf8");
-          wpp.webContents.insertCSS(file3);
-
-        } else {
-          showInjectError();
-        }
-      }).catch(err => {
-        console.log('elias', err);
-        showInjectError();
-      }
-    );
-  } catch (error) {
-    console.log('elias 2', error);
-    showInjectError();
-  }
+  const file3 = fs.readFileSync(__dirname + '/assets/custom.css', "utf8");
+  wpp.webContents.insertCSS(file3);
 }
 
 function showInjectError() {
