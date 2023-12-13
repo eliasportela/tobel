@@ -1,20 +1,20 @@
 {
-  "name": "lecard-whatsapp",
+  "name": "lebot",
   "author": "storkdigital.com.br",
-  "description": "WhatsApp Bot",
+  "description": "Atendimento virtual para WhatsApp",
   "version": "1.3.6",
   "private": true,
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "electron-trace": "electron --trace-warnings .",
-    "build": "electron-builder --x64 --ia32",
-    "realese": "electron-builder --x64 --ia32 --publish always"
+    "build": "electron-builder --ia32",
+    "realese": "electron-builder --ia32 --publish always"
   },
   "build": {
     "asar": "true",
-    "productName": "LeBot - LeCard ChatBot",
-    "appId": "delivery.lecard.whatsapp",
+    "productName": "LeBot",
+    "appId": "delivery.lecard.lebot",
     "artifactName": "lebot-${version}.${ext}"
   },
   "devDependencies": {

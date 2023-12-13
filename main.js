@@ -124,6 +124,7 @@ function createBot(data) {
   wpp.setBounds({ x: 74, y: 0, width: 926, height: 572 })
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
+  win.title = `Lebot - ${data.dados.nome_fantasia}`;
 
   if (showWin) {
     win.maximize();
@@ -131,14 +132,6 @@ function createBot(data) {
 
   wpp.webContents.on('dom-ready', function(e) {
     setTimeout(() => {
-      if (data.dados) {
-        wpp.webContents.executeJavaScript('sessionStorage.setItem("nome_fantasia", "'+ data.dados.nome_fantasia +'");');
-
-        if (data.dados.url_imagem) {
-          wpp.webContents.executeJavaScript('sessionStorage.setItem("url_imagem", "'+ data.dados.url_imagem +'");');
-        }
-      }
-
       toggleStatus();
       downloadApi();
       wpp.webContents.focus();
@@ -431,6 +424,7 @@ function loadDependences() {
 
   ipcMain.on('dispararMensagens', (event, arg) => {
     if (arg && arg.mensagem && arg.to) {
+      console.log(arg);
       wpp.webContents.send('asynchronous-reply', { msg: arg.mensagem, from: arg.to });
     }
   });
