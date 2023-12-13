@@ -107,7 +107,7 @@ const intervalTry = setInterval(() => {
 }, 3000);
 
 injectedPhone = setInterval(() => {
-  if (phone || injectedPhoneCount < 1000) {
+  if (phone || injectedPhoneCount > 1000) {
     clearInterval(injectedPhone);
   }
 
@@ -157,7 +157,7 @@ function injectEmpresa() {
       console.log('Checking Company');
       injectedCount++;
       injectEmpresa();
-    }, 2000);
+    }, 3000);
   }
 }
 
