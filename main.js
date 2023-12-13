@@ -25,10 +25,10 @@ let base_cdn = "";
 let win = null;
 let wpp = null;
 let winLoad = null;
+let showWin = false;
 
 let dados = null;
 let pauseWpp = !!config.get('pauseWpp');
-let quit = true;
 let messagebox = false;
 let showVersionAvaliable = false;
 let botNumber = null;
@@ -97,18 +97,8 @@ function createWindow () {
       winLoad.close();
       win.show();
       win.focus();
+      showWin = true;
     }, 2000);
-  });
-
-  win.on('close', function(e){
-    if(!quit){
-      e.preventDefault();
-      quit = true;
-
-      if (win) {
-        win.hide();
-      }
-    }
   });
 
   win.on('closed', () => {
@@ -134,6 +124,10 @@ function createBot(data) {
   wpp.setBounds({ x: 74, y: 0, width: 926, height: 572 })
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
+
+  if (showWin) {
+    win.maximize();
+  }
 
   wpp.webContents.on('dom-ready', function(e) {
     setTimeout(() => {

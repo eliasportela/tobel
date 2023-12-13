@@ -16,9 +16,7 @@ document.addEventListener('open-chat', async function (e) {
   await window.API.openChatByNumber(e.detail.to, e.detail.msg || '');
 }, false);
 
-let injected = false;
 let injectedCount = 0;
-
 let injectedPhone = false;
 let injectedPhoneCount = 0;
 
@@ -26,14 +24,13 @@ let interval = null;
 let buttonStop = null;
 let buttonPlay = null;
 let buttonPause = null;
-let buttonMenu = null;
 let senderId = null;
+let phone = null;
 
 const intervalTry = setInterval(() => {
   if (window.API.listener !== undefined) {
     clearInterval(intervalTry);
     console.log("LEBOT INICIADO");
-    checkPhone();
     makeSmartOptions();
 
     window.API.listener.ExternalHandlers.MESSAGE_RECEIVED.push(function (sender, chat, msg) {
@@ -109,6 +106,23 @@ const intervalTry = setInterval(() => {
   }
 }, 3000);
 
+injectedPhone = setInterval(() => {
+  if (phone || injectedPhoneCount < 1000) {
+    clearInterval(injectedPhone);
+  }
+
+  injectedPhoneCount++;
+  console.log("checking phone");
+  phone = window.localStorage['last-wid'] || window.localStorage['last-wid-md'];
+
+  if (phone) {
+    phone = phone.replace(/"/g, "").split('@')[0];
+    phone = phone.split(":")[0];
+    injectEmpresa();
+    clearInterval(injectedPhone);
+  }
+}, 3000);
+
 function sendMessage(senderId, message, callback){
   if (message.type === "image") {
     API.sendImageMessage(senderId, message.content, message.caption || '', () => {
@@ -126,63 +140,24 @@ function sendMessage(senderId, message, callback){
   }
 }
 
-function checkPhone() {
-  injectedPhone = setInterval(() => {
-    injectedPhoneCount++;
-
-    if (injectedPhoneCount < 60) {
-      let phone = window.localStorage['last-wid'] || window.localStorage['last-wid-md'];
-      console.log("checking phone");
-
-      if (phone) {
-        phone = phone.replace(/"/g, "").split('@')[0];
-        phone = phone.split(":")[0];
-
-        document.dispatchEvent(new CustomEvent('bot_number', {
-          detail: phone
-        }));
-
-        clearInterval(injectedPhone);
-      }
-
-    } else {
-      clearInterval(injectedPhone);
-    }
-  }, 1000);
-
-  injected = setInterval(() => {
-    injectedCount++;
-
-    if (injectedCount < 60) {
-      injectEmpresa();
-
-    } else {
-      clearInterval(injected);
-    }
-  }, 1000);
-}
-
 function injectEmpresa() {
   const base = document.getElementsByTagName("header");
-  const nome = sessionStorage.getItem('nome_fantasia');
-  const url_imagem = sessionStorage.getItem('url_imagem');
 
-  if (base && base.length && nome) {
-    const img = document.querySelectorAll('[data-asset-intro-image-light]');
+  if (base && base.length) {
+    // const nome = sessionStorage.getItem('nome_fantasia');
+    // if (nome) {
+    //   base[0].firstElementChild.innerHTML = nome;
+    //   console.log('Injected Company');
+    // }
 
-    if (url_imagem && img && img.length) {
-      img[0].style.cssText = "background-image: url('"+url_imagem+"'); opacity: 1;";
-    }
+    document.dispatchEvent(new CustomEvent('bot_number', { detail: phone }));
 
-    // const el = document.createElement("h1");
-    // el.innerHTML = nome;
-    // el.style.cssText = "width: 185px;";
-    // const elImg = base[0].firstElementChild;
-    // elImg.parentNode.insertBefore(el, elImg.nextSibling);
-
-    base[0].firstElementChild.innerHTML = nome;
-    console.log('Injected Company');
-    clearInterval(injected);
+  } else if (injectedCount < 1000) {
+    setTimeout(() => {
+      console.log('Checking Company');
+      injectedCount++;
+      injectEmpresa();
+    }, 2000);
   }
 }
 
@@ -193,7 +168,6 @@ function makeSmartOptions() {
     const footer = document.getElementsByTagName("footer")[0];
 
     if (footer != undefined && footer.dataset.appliend == undefined) {
-
       footer.dataset.appliend = true;
       senderId = null;
       const div = (footer.getElementsByTagName('div')[0]);
