@@ -27,6 +27,7 @@ let wpp = null;
 let winLoad = null;
 
 let dados = null;
+let version = app.getVersion();
 let pauseWpp = !!config.get('pauseWpp');
 let messagebox = false;
 let showVersionAvaliable = false;
@@ -124,7 +125,7 @@ function createBot(data) {
   });
 
   win.setBrowserView(wpp);
-  wpp.setBounds({ x: 74, y: 0, width: 926, height: 572 });
+  wpp.setBounds({ x: 74, y: 0, width: 910, height: 518 });
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
   win.title = `Lebot - ${data.dados.nome_fantasia}`;
@@ -185,13 +186,11 @@ function injectScript(text) {
 }
 
 function showInjectError() {
-  messagebox = dialog.showMessageBox(wpp, {
+  dialog.showMessageBox(win, {
+    title: 'Erro ao iniciar',
     type: 'info',
     buttons: ['OK'],
-    title: 'Erro ao iniciar',
     message: 'Não foi possível iniciar o LeBot. Por favor reinicie o sistema.'
-  }, () => {
-    messagebox = false;
   });
 }
 
@@ -203,7 +202,7 @@ function createMenuContext(createDev){
         {
           label: 'Comandos Bot',
           click: () => {
-            messagebox = dialog.showMessageBox(wpp, {
+            dialog.showMessageBox(win, {
               type: 'info',
               buttons: ['OK'],
               title: 'Comandos LeBot',
@@ -211,8 +210,6 @@ function createMenuContext(createDev){
                   '\n\n1 - "Lebot Ok": Pausa o bot para o cliente.' +
                   '\n\n2 - "Lebot Add": Adiciona o número do cliente a lista de bloqueados para o que o sistema nunca envie mensagem para ela de forma automática.' +
                   '\n\n3 - "Lebot Remover": Remove o número do cliente da lista de bloqueados para o que o sistema volte a enviar mensagens automáticas.'
-            }, () => {
-              messagebox = false;
             });
           }
         },
@@ -227,13 +224,11 @@ function createMenuContext(createDev){
         {
           label: 'Licença',
           click: () => {
-            messagebox = dialog.showMessageBox(wpp, {
+            dialog.showMessageBox(win, {
               type: 'info',
               buttons: ['OK'],
               title: 'Lincença',
-              message: 'Empresa: ' + (dados.dados ? dados.dados.nome_fantasia : "") + '\nStatus: Ativo\nVersão: ' + app.getVersion()
-            }, () => {
-              messagebox = false;
+              message: 'Empresa: ' + (dados.dados ? dados.dados.nome_fantasia : "") + '\nStatus: Ativo\nVersão: ' + version
             });
           }
         },
@@ -313,7 +308,7 @@ function toggleStatus() {
     }
   }
 
-  win.webContents.send('lebotStatus', { pauseWpp });
+  win.webContents.send('lebotStatus', { pauseWpp, version });
 }
 
 function sendToServer(event, arg) {
@@ -385,9 +380,11 @@ function loadDependences() {
     if (arg !== bot) {
       if (arg) {
         win.setBrowserView(wpp)
+        win.setResizable(true);
         win.maximize();
 
       } else {
+        win.setResizable(false);
         win.removeBrowserView(wpp);
       }
     }
@@ -486,7 +483,7 @@ function checkAutoUpdater() {
       detail: 'Uma nova versão foi baixada, por favor feche o sistema para instalar a nova versão!'
     };
 
-    dialog.showMessageBox(win, dialogOpts, null);
+    dialog.showMessageBox(win, dialogOpts);
   });
 
   autoUpdater.on('error', (ev, message) => {
@@ -498,7 +495,7 @@ function checkAutoUpdater() {
       detail: 'Ocorreu um erro ao tentar atualizar.'
     };
 
-    dialog.showMessageBox(win, dialogOpts, null);
+    dialog.showMessageBox(win, dialogOpts);
   });
 
   autoUpdater.on('update-available', (args) => {
@@ -523,7 +520,7 @@ function checkAutoUpdater() {
         detail: 'Sua versão já está atualizada.'
       };
 
-      dialog.showMessageBox(win, dialogOpts, null);
+      dialog.showMessageBox(win, dialogOpts);
     }
   });
 

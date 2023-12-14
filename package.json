@@ -8,8 +8,8 @@
   "scripts": {
     "start": "electron .",
     "electron-trace": "electron --trace-warnings .",
-    "build": "electron-builder --ia32",
-    "realese": "electron-builder --ia32 --publish always"
+    "build": "electron-builder --x64 --ia32",
+    "realese": "electron-builder --x64 --ia32 --publish always"
   },
   "build": {
     "asar": "true",
@@ -18,7 +18,7 @@
     "artifactName": "lebot-${version}.${ext}"
   },
   "devDependencies": {
-    "electron": "^17.1.0",
+    "electron": "^26.6.2",
     "electron-builder": "~22.10.5"
   },
   "dependencies": {
