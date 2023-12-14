@@ -132,7 +132,6 @@ function sendMessage(senderId, message, callback){
     })
 
   } else {
-    console.log(senderId, message.content);
     API.sendTextMessage(senderId, message.content, function () {
       if (callback) {
         callback();

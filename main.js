@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, BrowserView, ipcMain, Menu, dialog, globalShortcut, shell, ipcRenderer, session } = require('electron');
+const {app, BrowserWindow, BrowserView, ipcMain, Menu, dialog, globalShortcut, session } = require('electron');
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -19,8 +19,8 @@ const env = JSON.parse(fs.readFileSync(path.join(__dirname, './config.json'), 'u
 const base_login = env.BASE_LOGIN;
 const config = new Config();
 
-let base_server = "";
-let base_cdn = "";
+let base_server = null;
+let api_lebot = null;
 
 let win = null;
 let wpp = null;
@@ -87,7 +87,12 @@ function createWindow () {
     }
   });
 
-  win.loadURL(base_login).then(() => {}).catch(() => {
+  win.loadURL(base_login).then(() => {
+    if (app.isPackaged) {
+      checkAutoUpdater();
+    }
+
+  }).catch(() => {
     win.loadFile('pages/error.html');
   });
 
@@ -135,33 +140,42 @@ function createBot(data) {
 }
 
 function downloadApi() {
-  injectScript();
-  // try {
-  //   fetch(base_cdn + '/lebot/api-3.js', { method: 'GET' })
-  //     .then(res => res.text())
-  //     .then(text => {
-  //       if (text) {
-  //         //wpp.webContents.executeJavaScript(text);
-  //         injectScript();
-  //
-  //       } else {
-  //         showInjectError();
-  //       }
-  //
-  //     }).catch(err => {
-  //       console.log('elias', err);
-  //       showInjectError();
-  //     }
-  //   );
-  // } catch (error) {
-  //   console.log('elias 2', error);
-  //   showInjectError();
-  // }
+  if (!api_lebot) {
+    try {
+      const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
+      injectScript(file);
+
+    } catch (error) {
+      console.log('api lebot file error', error);
+      showInjectError();
+    }
+
+  } else {
+    try {
+      fetch(api_lebot, { method: 'GET' })
+          .then(res => res.text())
+          .then(text => {
+            if (text) {
+              injectScript(text);
+
+            } else {
+              showInjectError();
+            }
+
+          }).catch(err => {
+            console.log('api lebot error', err);
+            showInjectError();
+          }
+      );
+    } catch (error) {
+      console.log('api lebot error 2', error);
+      showInjectError();
+    }
+  }
 }
 
-function injectScript() {
-  const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
-  wpp.webContents.executeJavaScript(file);
+function injectScript(text) {
+  wpp.webContents.executeJavaScript(text);
 
   const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
   wpp.webContents.executeJavaScript(file2);
@@ -350,19 +364,18 @@ ipcMain.on('reloadUrl', () => {
 });
 
 function loadDependences() {
-  const isPackaged = app.isPackaged;
-
   ipcMain.on('login', (event, arg) => {
     if (arg && arg.token) {
-      base_server = arg.base_server;
-      base_cdn = arg.base_cdn;
       dados = arg;
+      api_lebot = dados.api_lebot || null;
 
-      if (!wpp) {
-        createBot(arg);
+      if (dados.base_server) {
+        base_server = dados.base_server;
       }
 
-      console.log(base_server);
+      if (!wpp && base_server) {
+        createBot(dados);
+      }
     }
   });
 
@@ -425,7 +438,6 @@ function loadDependences() {
 
   ipcMain.on('dispararMensagens', (event, arg) => {
     if (arg && arg.mensagem && arg.to) {
-      console.log(arg);
       wpp.webContents.send('asynchronous-reply', { msg: arg.mensagem, from: arg.to });
     }
   });
@@ -456,10 +468,6 @@ function loadDependences() {
       app.quit();
     }
   });
-
-  if (isPackaged) {
-    checkAutoUpdater();
-  }
 }
 
 function checkAutoUpdater() {
@@ -467,7 +475,7 @@ function checkAutoUpdater() {
     if (!showVersionAvaliable) {
       autoUpdater.checkForUpdates();
     }
-  }, (30000));
+  }, (10000));
 
   autoUpdater.on('update-downloaded', () => {
     const dialogOpts = {
