@@ -25,7 +25,6 @@ let base_cdn = "";
 let win = null;
 let wpp = null;
 let winLoad = null;
-let showWin = false;
 
 let dados = null;
 let pauseWpp = !!config.get('pauseWpp');
@@ -97,7 +96,6 @@ function createWindow () {
       winLoad.close();
       win.show();
       win.focus();
-      showWin = true;
     }, 2000);
   });
 
@@ -120,18 +118,15 @@ function createBot(data) {
     }
   });
 
-  win.setBrowserView(wpp)
-  wpp.setBounds({ x: 74, y: 0, width: 926, height: 572 })
+  win.setBrowserView(wpp);
+  wpp.setBounds({ x: 74, y: 0, width: 926, height: 572 });
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
   win.title = `Lebot - ${data.dados.nome_fantasia}`;
 
-  if (showWin) {
-    win.maximize();
-  }
-
   wpp.webContents.on('dom-ready', function(e) {
     setTimeout(() => {
+      win.maximize();
       toggleStatus();
       downloadApi();
       wpp.webContents.focus();
@@ -377,6 +372,7 @@ function loadDependences() {
     if (arg !== bot) {
       if (arg) {
         win.setBrowserView(wpp)
+        win.maximize();
 
       } else {
         win.removeBrowserView(wpp);
