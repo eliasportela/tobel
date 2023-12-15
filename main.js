@@ -27,9 +27,8 @@ let wpp = null;
 let winLoad = null;
 
 let dados = null;
-let version = app.getVersion();
+let version = null;
 let pauseWpp = !!config.get('pauseWpp');
-let messagebox = false;
 let showVersionAvaliable = false;
 let botNumber = null;
 
@@ -125,7 +124,7 @@ function createBot(data) {
   });
 
   win.setBrowserView(wpp);
-  wpp.setBounds({ x: 74, y: 0, width: 910, height: 518 });
+  wpp.setBounds({ x: 74, y: 0, width: 910, height: 519 });
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
   win.title = `Lebot - ${data.dados.nome_fantasia}`;
@@ -308,7 +307,7 @@ function toggleStatus() {
     }
   }
 
-  win.webContents.send('lebotStatus', { pauseWpp, version });
+  win.webContents.send('lebotStatus', { pauseWpp: pauseWpp, version: version });
 }
 
 function sendToServer(event, arg) {
@@ -359,6 +358,8 @@ ipcMain.on('reloadUrl', () => {
 });
 
 function loadDependences() {
+  version = app.getVersion();
+
   ipcMain.on('login', (event, arg) => {
     if (arg && arg.token) {
       dados = arg;
