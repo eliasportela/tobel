@@ -332,22 +332,24 @@ function sendToServer(event, arg) {
   fetch(base_server + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
       .then(res => res.json())
       .then(json => {
-        if (json.success && json.msgs) {
-          if (event) {
-            let i = 0;
-            let type = json.type || 'text';
-            json.msgs.forEach(msg => {
-              sendMessage(event, arg.from, msg, type, i++);
-            });
+        if (json.success && json.msgs && event) {
+          let delay = 0;
+          let type = json.type || 'text';
+          let read = json.read === '1';
+
+          json.msgs.forEach(msg => {
+            event.reply('asynchronous-reply', { from: arg.from, msg, type, read, delay, create: false });
+            delay += 2000;
+          });
+
+          if (json.request_human) {
+            // win.webContents.send('requestHuman');
+            setTimeout(() => {
+              event.reply('mark_unread', arg.from);
+            }, (json.msgs.length * 3000));
           }
         }
       }).catch(err => console.log(err));
-}
-
-function sendMessage(event, from, msg, type, i) {
-  setTimeout(() => {
-    event.reply('asynchronous-reply', { from, msg, type })
-  }, 2000 * (i + 1));
 }
 
 // Eventos
@@ -403,13 +405,7 @@ function loadDependences() {
 
   ipcMain.on('toggle-chat', (event, arg) => {
     if (arg && arg.from && arg.text) {
-      const dados = {
-        from: arg.from,
-        text: arg.text,
-        blocklist: true,
-        isMe: true
-      };
-      sendToServer(event, dados);
+      sendToServer(event, { from: arg.from, text: arg.text, isMe: true });
     }
   });
 
@@ -436,13 +432,13 @@ function loadDependences() {
 
   ipcMain.on('dispararMensagens', (event, arg) => {
     if (arg && arg.mensagem && arg.to) {
-      wpp.webContents.send('asynchronous-reply', { msg: arg.mensagem, from: arg.to });
+      wpp.webContents.send('asynchronous-reply', { from: arg.to, msg: arg.mensagem, create: true });
     }
   });
 
   ipcMain.on('acessarChats', (event, arg) => {
     if (arg && arg.to) {
-      wpp.webContents.send('open_chat', arg);
+      wpp.webContents.send('open_chat', arg.to);
     }
   });
 

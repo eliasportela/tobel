@@ -42,3 +42,7 @@ ipcRenderer.on('lebotStatus', (event, arg) => {
 ipcRenderer.on('errorReply', (event, arg) => {
     document.dispatchEvent(new CustomEvent('error_reply', { detail: arg }));
 });
+
+ipcRenderer.on('requestHuman', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('request_human'));
+});

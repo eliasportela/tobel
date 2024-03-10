@@ -5,12 +5,12 @@ let buttonStop = null;
 let buttonPlay = null;
 let buttonPause = null;
 let senderId = null;
-let phone = null;
+let botNumber = null;
 let main_ready = false;
 
 document.addEventListener('send-message', function (e) {
   if (WPP) {
-    sendMessage(e.detail.from, e.detail.msg)
+    sendMessage(e.detail.from, e.detail.msg, e.detail)
   }
 }, false);
 
@@ -22,7 +22,13 @@ document.addEventListener('fill-contact', function (e) {
 
 document.addEventListener('open-chat', async function (e) {
   if (WPP) {
-    await WPP.chat.openChatBottom(e.detail.to);
+    await WPP.chat.openChatBottom(e.detail);
+  }
+}, false);
+
+document.addEventListener('mark-unread', async function (e) {
+  if (WPP) {
+    await WPP.chat.markIsUnread(e.detail);
   }
 }, false);
 
@@ -39,41 +45,41 @@ const intervalTry = setInterval(() => {
         const id = WPP.conn.getMyUserId();
 
         if (id) {
-          phone = id.user || null;
-          console.log("phone: " + phone);
-          document.dispatchEvent(new CustomEvent('bot_number', { detail: phone }));
+          botNumber = id.user || null;
+          console.log("phone: " + botNumber);
+          document.dispatchEvent(new CustomEvent('bot_number', { detail: botNumber }));
         }
       }
     });
 
     WPP.on('chat.new_message', (msg) => {
-      if (!msg.isGroupMsg && !msg.__x_isStatusV3) {
-        const isPaused = localStorage.getItem('pauseWpp') === '1';
-        const type = msg.__x_type;
+      console.log(msg);
 
-        if (["ptt", "chat"].includes(type) && !isPaused) {
-          const isMe = msg.__x_id && msg.__x_id.fromMe;
-          const botNumber = msg.__x_to && msg.__x_to._serialized ? msg.__x_to._serialized : '';
-          const from = isMe ? botNumber : msg.__x_senderObj.__x_id._serialized;
-          const text = msg.__x_body || '#';
-          const clearmessage = text ? text.trim().toLowerCase() : "";
+      if (localStorage.getItem('pauseWpp') === '1') {
+        return;
+      }
 
-          if (type === 'ptt') {
-            setTimeout(() => {
-              sendMessage(from, { content: "Desculpe, ainda não consigo entender áudios 😥. Posso te ajudar se me enviar frases ou perguntas curtas." });
-            }, 1500);
+      const isMe = msg.id && msg.id.fromMe;
+      const chat = msg.chat && msg.chat.id ? msg.chat.id : {};
+      const isAudio = (msg.type === 'ptt');
+      const text = isAudio ? '-' : (msg.body || null);
 
-          } else if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
-            const detail = { isMe, from, botNumber, text, isAudio: false };
+      if (chat.server !== 'c.us' || msg.isGroupMsg || !["ptt", "chat"].includes(msg.type) || !text || (isMe && isAudio) || msg.ack !== 1) {
+        return;
+      }
 
-            if (!isMe && msg.__x_senderObj) {
-              detail.contact = msg.__x_senderObj.pushname;
-              detail.number = msg.__x_senderObj.userid;
-            }
+      const clearmessage = text.trim().toLowerCase();
 
-            document.dispatchEvent(new CustomEvent('message_received', { detail }));
-          }
+      if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+        const from = chat._serialized;
+        const detail = { isMe, from, botNumber, isAudio, text };
+
+        if (!isMe && msg.senderObj) {
+          detail.contact = msg.senderObj.pushname || '';
+          detail.number = msg.senderObj.userid || '';
         }
+
+        validarFilaMensagem(chat.user, detail);
       }
     });
 
@@ -86,9 +92,29 @@ const intervalTry = setInterval(() => {
   }
 }, 3000);
 
-function sendMessage(senderId, message, callback) {
-  if (message.type === "image") {
-    WPP.chat.sendFileMessage(senderId, `data:image/jpeg;base64,${message.content}`, { type: 'image', caption: message.caption })
+const messageBufferPerChatId = new Map();
+const messageTimeouts = new Map();
+
+function validarFilaMensagem(chatId, mensagem) {
+  messageBufferPerChatId.set(chatId, mensagem);
+
+  if (messageTimeouts.has(chatId)) {
+    clearTimeout(messageTimeouts.get(chatId));
+  }
+
+  messageTimeouts.set(chatId, setTimeout(() => {
+    const detail = messageBufferPerChatId.get(chatId);
+    document.dispatchEvent(new CustomEvent('message_received', { detail }));
+    messageBufferPerChatId.delete(chatId);
+    messageTimeouts.delete(chatId);
+  }, 4500));
+}
+
+function sendMessage(senderId, message, opt, callback) {
+  opt = opt || {};
+
+  if (opt.type === "image") {
+    WPP.chat.sendFileMessage(senderId, `data:image/jpeg;base64,${message}`, { type: 'image', caption: (opt.caption || '')})
       .then(() => {
         if (callback) {
           callback();
@@ -96,7 +122,8 @@ function sendMessage(senderId, message, callback) {
       );
 
   } else {
-    WPP.chat.sendTextMessage(senderId, message.content, { createChat: true }).then(() => {
+    const options = { createChat: !!opt.create, markIsRead: !!opt.read, delay: (opt.delay || 0) }
+    WPP.chat.sendTextMessage(senderId, message, options).then(() => {
       if (callback) {
         callback();
       }

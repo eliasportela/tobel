@@ -12,18 +12,21 @@ document.addEventListener("toggle-reply", (e) => {
     ipcRenderer.send('toggle-chat', e.detail);
 }, false);
 
+document.addEventListener("bot_number", (e) => {
+    ipcRenderer.send('bot-number', e.detail);
+}, false);
+
 ipcRenderer.on('open_chat', (event, arg) => {
     document.dispatchEvent(new CustomEvent('open-chat', { detail: arg }));
 });
 
 ipcRenderer.on('asynchronous-reply', (event, arg) => {
-    const data = {detail: { from: arg.from, msg: { content: arg.msg, type: arg.type }}}
-    document.dispatchEvent(new CustomEvent('send-message', data));
+    document.dispatchEvent(new CustomEvent('send-message', { detail: arg }));
 });
 
-document.addEventListener("bot_number", (e) => {
-    ipcRenderer.send('bot-number', e.detail);
-}, false);
+ipcRenderer.on('mark_unread', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('mark-unread', { detail: arg }));
+});
 
 // dados do cliente
 document.addEventListener("contact", (e) => {
