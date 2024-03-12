@@ -27,6 +27,7 @@ let wpp = null;
 let winLoad = null;
 
 let dados = null;
+let id_empresa = null;
 let version = null;
 let pauseWpp = !!config.get('pauseWpp');
 let showVersionAvaliable = false;
@@ -208,7 +209,9 @@ function createMenuContext(createDev){
               message: 'Para usar basta digitar um dos comandas abaixo na conversa do cliente' +
                   '\n\n1 - "Lebot Ok": Pausa o bot para o cliente.' +
                   '\n\n2 - "Lebot Add": Adiciona o número do cliente a lista de bloqueados para o que o sistema nunca envie mensagem para ela de forma automática.' +
-                  '\n\n3 - "Lebot Remover": Remove o número do cliente da lista de bloqueados para o que o sistema volte a enviar mensagens automáticas.'
+                  '\n\n3 - "Lebot Remover": Remove o número do cliente da lista de bloqueados para o que o sistema volte a enviar mensagens automáticas.' +
+                  '\n\n4 - "Lebot Iniciar": Mandar mensagem de boas-vindas para o cliente.' +
+                  '\n\n5 - "Lebot Menu": Envia o link de pedidos ou uma imagem com o cardápio/promoção.'
             });
           }
         },
@@ -366,6 +369,7 @@ function loadDependences() {
     if (arg && arg.token) {
       dados = arg;
       api_lebot = dados.api_lebot || null;
+      id_empresa = dados && dados.dados ? dados.dados.id_empresa : null;
 
       if (dados.base_server) {
         base_server = dados.base_server;
@@ -410,8 +414,8 @@ function loadDependences() {
   });
 
   ipcMain.on('contact', (event, arg) => {
-    if (!pauseWpp && arg && arg.from) {
-      const url = base_server + "api/chatbot/contato/"+ dados.token +"?id=" + arg.from;
+    if (id_empresa && arg && arg.from) {
+      const url = base_server + "api/chatbot/contato/"+ dados.token +"?id=" + arg.from + "&id_empresa=" + id_empresa;
       fetch(url, { method: 'GET' })
           .then(res => res.json())
           .then(json => {

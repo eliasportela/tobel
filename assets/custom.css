@@ -1,90 +1,92 @@
 .adminActions {
-	position: fixed;
+	position: relative;
+	/*position: fixed;*/
+	/*bottom: 12px;*/
+	/*right: 12px;*/
 }
 
-.adminButton {
+.adminActions button {
+	display: inline-block;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: none;
+}
+
+.adminActions .adminButton {
 	height: 45px;
 	width: 45px;
-	background-color: #1CC88A;
 	border-radius: 50%;
-	display: block;
-	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	text-align: center;
-	position: relative;
 	z-index: 1;
+	box-shadow: 0 .125rem .25rem 0 rgba(58,59,69,.2)!important;
+	background-color: #1CC88A;
 }
 
-.paused {
+.adminActions .paused {
 	box-shadow: 1px 1px 14px red;
 	background-color: red;
 	border-radius: 50%;
 }
 
-.adminButton img {
-	padding-top: 1px;
-	width: 40px;
-	height: 40px;
-}
-
-.adminButtons button.hide {
+.adminActions .adminButtons button.hide {
 	display: none;
 }
 
-.adminButton i {
+.adminActions .adminButton svg {
+	padding-top: 0;
+	width: 28px;
+	height: 28px;
+}
+
+.adminActions .adminButton i {
 	font-size: 24px;
 }
 
 .adminButtons {
 	position: absolute;
-	width: 100%;
-	bottom: 135%;
-	text-align: center;
-}
-
-.adminButtons button {
-	display: block;
-	width: 45px;
-	height: 45px;
-	border-radius: 50%;
-	text-decoration: none;
-	margin: 16px auto 0;
-	line-height: 1.15;
-	color: #fff;
+	background-color: white;
+	width: 175px;
+	bottom: 125%;
+	right: 0;
+	border-radius: 14px;
+	padding: 12px 9px;
 	opacity: 0;
 	visibility: hidden;
-	position: relative;
-	box-shadow: 0 0 5px 1px rgba(51, 51, 51, .3);
-	background-color: white;
-}
-
-.adminButtons button > img {
-	display: block;
-	margin: 0 auto;
-}
-
-.adminButtons button:hover {
-	transform: scale(1.05);
-}
-
-.adminButtons button:nth-child(1) {
-	transition: opacity .2s ease-in-out .3s, transform .15s ease-in-out;
-}
-
-.adminButtons button:nth-child(2) {
-	transition: opacity .2s ease-in-out .25s, transform .15s ease-in-out;
-}
-
-.adminButtons button:nth-child(3) {
 	transition: opacity .2s ease-in-out .2s, transform .15s ease-in-out;
+	box-shadow: 0 .125rem .25rem 0 rgba(58,59,69,.2)!important;
+	z-index: 10000;
+	max-width: 340px;
+	overflow: visible;
+	text-align: left;
 }
 
-.adminButtons button:nth-child(3) > img {
-	display: block;
-	margin: auto;
+.adminActions .adminButtons button {
+	text-align: left;
+	padding: 9px 6px;
+	border-radius: 9px;
+	display: flex;
+	align-items: center;
+	justify-content: left;
+	width: 100%;
+	border: none;
+	text-decoration: none;
+	line-height: 1.15;
+	background-color: transparent;
+	font-size: 16px;
+	color: #3B4A54;
 }
 
-.adminButtons button:nth-child(4) {
-	transition: opacity .2s ease-in-out .15s, transform .15s ease-in-out;
+.adminActions .adminButtons button svg {
+	width: 24px;
+	margin-right: 12px;
+}
+
+.adminActions .adminButtons button:hover {
+	background-color: #F0F2F5;
 }
 
 .adminActions button i {
@@ -94,7 +96,7 @@
 	transform: translate(-50%, -50%);
 }
 
-.adminToggle {
+.adminActions .adminToggle {
 	-webkit-appearance: none;
 	position: absolute;
 	border-radius: 50%;
@@ -108,43 +110,36 @@
 	border: none;
 	outline: none;
 	z-index: 2;
-	transition: box-shadow .2s ease-in-out;
-	box-shadow: 0 3px 5px 1px rgba(51, 51, 51, .3);
 }
 
-.adminToggle:hover {
-	box-shadow: 0 3px 6px 2px rgba(51, 51, 51, .3);
-}
-
-.adminToggle:checked~.adminButtons button {
+.adminActions .adminToggle:checked~.adminButtons {
 	opacity: 1;
 	visibility: visible;
 }
 
-.adminToggle:disabled~#buttonOptions {
+.adminActions .adminToggle:disabled~#buttonOptions {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
 
-.load {
-	background-color: #ff6347;
+.adminActions .load {
 	font-family: 'Raleway', serif;
-	color: #fffeee;
 	display: inline-block;
 	width: 30px;
 	height: 30px;
-	border: 5px solid #fff;
+	border: 5px solid #1CC88A;
+	margin: 3px 0 0 2px;
 	border-radius: 100%;
 	border-top: 5px solid transparent;
 	-webkit-animation: load-animate infinite linear 1s;
 	animation: load-animate infinite linear 1s;
 }
 
-.hide {
+.adminActions .hide {
 	display: none;
 }
 
-#loading:not(.hide)+#buttonOptions{
+.adminActions #loading:not(.hide)+#buttonOptions{
 	display: none;
 }
 
