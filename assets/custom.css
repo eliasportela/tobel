@@ -26,10 +26,9 @@
 	background-color: #1CC88A;
 }
 
-.adminActions .paused {
-	box-shadow: 1px 1px 14px red;
-	background-color: red;
-	border-radius: 50%;
+.adminActions .adminButton.paused {
+	box-shadow: 1px 1px 14px #fc2961;
+	background-color: #fc2961;
 }
 
 .adminActions .adminButtons button.hide {

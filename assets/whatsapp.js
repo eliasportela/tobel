@@ -1,18 +1,17 @@
 let WPP = null;
-let injectedCount = 0;
-let interval = null;
 let senderId = null;
 let botNumber = null;
 let main_ready = false;
 const messageTimeouts = new Map();
 
+let checkAdmin = null;
+let buttonOptions = null;
+let btnLoading = null;
 let buttonStop = null;
 let buttonPlay = null;
 let buttonPause = null;
 let buttonRestart = null;
 let buttonMenu = null;
-let btnLoading = null;
-let checkAdmin = null;
 
 document.addEventListener('send-message', function (e) {
   if (WPP) {
@@ -161,6 +160,7 @@ function makeSmartOptions(user) {
 
       btnLoading = newDiv.querySelector("#loading");
       checkAdmin = newDiv.querySelector("#checkAdmin");
+      buttonOptions = newDiv.querySelector("#buttonOptions");
 
       buttonPause = newDiv.querySelector("#pause");
       buttonPause.addEventListener("click", () => {
@@ -169,6 +169,7 @@ function makeSmartOptions(user) {
         buttonPlay.classList.remove("hide");
         buttonStop.classList.remove("hide");
         buttonRestart.classList.remove("hide");
+        buttonOptions.classList.add('paused');
       });
 
       buttonStop = newDiv.querySelector("#stop");
@@ -178,6 +179,7 @@ function makeSmartOptions(user) {
         buttonPause.classList.add("hide");
         buttonStop.classList.add("hide");
         buttonRestart.classList.add("hide");
+        buttonOptions.classList.add('paused');
       });
 
       buttonPlay = newDiv.querySelector("#play");
@@ -187,6 +189,7 @@ function makeSmartOptions(user) {
         buttonPause.classList.remove("hide");
         buttonStop.classList.remove("hide");
         buttonRestart.classList.remove("hide");
+        buttonOptions.classList.remove('paused');
       });
 
       buttonRestart = newDiv.querySelector("#restart");
@@ -196,6 +199,7 @@ function makeSmartOptions(user) {
         buttonPause.classList.remove("hide");
         buttonStop.classList.remove("hide");
         buttonRestart.classList.remove("hide");
+        buttonOptions.classList.remove('paused');
       });
 
       buttonMenu = newDiv.querySelector("#menu");
@@ -225,8 +229,8 @@ function mountMyButton() {
     + '<div class="adminButtons">'
     + '<button title="Ativar este cliente" id="play" class="hide">' + imgPlay + ' Ativar</button>'
     + '<button title="Pausar este cliente" id="pause" class="hide">'+ imgPause +' Pausar</button>'
-    + '<button title="Reiniciar bate papo" id="restart" class="hide">' + imgRestart + ' Reiniciar</button>'
-    + '<button title="Enviar catálogo" id="menu">' + imgMenu + ' Cardápio</button>'
+    + '<button title="Mandar mensagem de boas-vindas" id="restart" class="hide">' + imgRestart + ' Iniciar</button>'
+    + '<button title="Enviar link ou cardápio/" id="menu">' + imgMenu + ' Cardápio</button>'
     + '<button title="Adicionar cliente à Blocklist" id="stop" class="hide">'+ imgStop +' Bloquear</button>'
     + '</div>'
     + '</div>';
@@ -245,7 +249,9 @@ function fillContact(contact) {
     buttonRestart.classList.remove("hide");
 
   } else {
+    buttonOptions.classList.add('paused');
     buttonPlay.classList.remove("hide");
+    buttonRestart.classList.remove("hide");
   }
 }
 
