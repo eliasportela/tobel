@@ -1,8 +1,5 @@
 .adminActions {
 	position: relative;
-	/*position: fixed;*/
-	/*bottom: 12px;*/
-	/*right: 12px;*/
 }
 
 .adminActions button {
@@ -29,6 +26,11 @@
 .adminActions .adminButton.paused {
 	box-shadow: 1px 1px 14px #fc2961;
 	background-color: #fc2961;
+}
+
+.adminActions .adminButton.disabled {
+	box-shadow: 1px 1px 14px #3B4A54;
+	background-color: #3B4A54;
 }
 
 .adminActions .adminButtons button.hide {

@@ -4,15 +4,6 @@ let botNumber = null;
 let main_ready = false;
 const messageTimeouts = new Map();
 
-let checkAdmin = null;
-let buttonOptions = null;
-let btnLoading = null;
-let buttonStop = null;
-let buttonPlay = null;
-let buttonPause = null;
-let buttonRestart = null;
-let buttonMenu = null;
-
 document.addEventListener('send-message', function (e) {
   if (WPP) {
     sendMessage(e.detail.from, e.detail.msg, e.detail)
@@ -87,7 +78,28 @@ const intervalTry = setInterval(() => {
     });
 
     WPP.on('chat.active_chat', (chat) => {
-      makeSmartOptions(chat);
+      if (!chat) {
+        return;
+      }
+
+      const footer = document.getElementsByTagName("footer")[0];
+
+      if (footer !== undefined && footer.dataset.appliend === undefined) {
+        footer.dataset.appliend = true;
+        const div = (footer.getElementsByTagName('div')[0]);
+        senderId = null;
+
+        if (div !== undefined) {
+          senderId = chat.id._serialized;
+
+          if (chat.isGroup) {
+            return;
+          }
+
+          document.dispatchEvent(new CustomEvent('contact', { detail: {from: senderId} }))
+          div.insertBefore(makeSmartOptions(senderId), div.children[2]);
+        }
+      }
     });
 
   } else {
@@ -133,84 +145,102 @@ function sendMessage(senderId, message, opt, callback) {
   }
 }
 
-function makeSmartOptions(user) {
-  const footer = document.getElementsByTagName("footer")[0];
+function hasExpired(time) {
+  return !time || (time + (60 * 60 * 6)) < (new Date().getTime() / 1000);
+}
 
-  if (footer != undefined && footer.dataset.appliend == undefined) {
-    footer.dataset.appliend = true;
-    const div = (footer.getElementsByTagName('div')[0]);
-    senderId = null;
+// @implementing
+const messageBufferPerChatId = new Map();
 
-    if (div != undefined) {
-      senderId = user.__x_id._serialized;
+function validarFilaMensagem(chatId, mensagem) {
+  messageBufferPerChatId.set(chatId, mensagem);
 
-      if (user.__x_isGroup) {
-        return;
-      }
-
-      document.dispatchEvent(new CustomEvent('contact', { detail: {from: senderId} }))
-
-      const myButton = mountMyButton();
-      const newDiv = document.createElement('div');
-      newDiv.innerHTML = myButton;
-
-      // inserir html
-      newDiv.style.width = "45px";
-      newDiv.style.height = "50px";
-
-      btnLoading = newDiv.querySelector("#loading");
-      checkAdmin = newDiv.querySelector("#checkAdmin");
-      buttonOptions = newDiv.querySelector("#buttonOptions");
-
-      buttonPause = newDiv.querySelector("#pause");
-      buttonPause.addEventListener("click", () => {
-        enviarComando(senderId, "lebot ok");
-        buttonPause.classList.add("hide");
-        buttonPlay.classList.remove("hide");
-        buttonStop.classList.remove("hide");
-        buttonRestart.classList.remove("hide");
-        buttonOptions.classList.add('paused');
-      });
-
-      buttonStop = newDiv.querySelector("#stop");
-      buttonStop.addEventListener("click", () => {
-        enviarComando(senderId, "lebot add");
-        buttonPlay.classList.remove("hide");
-        buttonPause.classList.add("hide");
-        buttonStop.classList.add("hide");
-        buttonRestart.classList.add("hide");
-        buttonOptions.classList.add('paused');
-      });
-
-      buttonPlay = newDiv.querySelector("#play");
-      buttonPlay.addEventListener("click", () => {
-        enviarComando(senderId, "lebot remover");
-        buttonPlay.classList.add("hide");
-        buttonPause.classList.remove("hide");
-        buttonStop.classList.remove("hide");
-        buttonRestart.classList.remove("hide");
-        buttonOptions.classList.remove('paused');
-      });
-
-      buttonRestart = newDiv.querySelector("#restart");
-      buttonRestart.addEventListener("click", () => {
-        enviarComando(senderId, "lebot iniciar");
-        buttonPlay.classList.add("hide");
-        buttonPause.classList.remove("hide");
-        buttonStop.classList.remove("hide");
-        buttonRestart.classList.remove("hide");
-        buttonOptions.classList.remove('paused');
-      });
-
-      buttonMenu = newDiv.querySelector("#menu");
-      buttonMenu.addEventListener("click", () => {
-        enviarComando(senderId, "lebot menu");
-      });
-
-      // fim html
-      div.insertBefore(newDiv, div.children[2]);
-    }
+  if (messageTimeouts.has(chatId)) {
+    clearTimeout(messageTimeouts.get(chatId));
   }
+
+  messageTimeouts.set(chatId, setTimeout(() => {
+    const detail = messageBufferPerChatId.get(chatId);
+    document.dispatchEvent(new CustomEvent('message_received', { detail }));
+    messageBufferPerChatId.delete(chatId);
+    messageTimeouts.delete(chatId);
+  }, 4000));
+}
+
+// @imports
+let checkAdmin = null;
+let buttonOptions = null;
+let btnLoading = null;
+let buttonStop = null;
+let buttonPlay = null;
+let buttonPause = null;
+let buttonRestart = null;
+let buttonMenu = null;
+
+function makeSmartOptions(senderId, dev) {
+  const newDiv = document.createElement('div');
+
+  newDiv.innerHTML = mountMyButton();
+  newDiv.style.width = "45px";
+  newDiv.style.height = "50px";
+
+  btnLoading = newDiv.querySelector("#loading");
+  checkAdmin = newDiv.querySelector("#checkAdmin");
+  buttonOptions = newDiv.querySelector("#buttonOptions");
+
+  buttonPause = newDiv.querySelector("#pause");
+  buttonPause.addEventListener("click", () => {
+    enviarComando(senderId, "lebot ok");
+    buttonPause.classList.add("hide");
+    buttonPlay.classList.remove("hide");
+    buttonStop.classList.remove("hide");
+    buttonRestart.classList.remove("hide");
+    buttonOptions.classList.add('paused');
+  });
+
+  buttonStop = newDiv.querySelector("#stop");
+  buttonStop.addEventListener("click", () => {
+    enviarComando(senderId, "lebot add");
+    buttonPlay.classList.remove("hide");
+    buttonPause.classList.add("hide");
+    buttonStop.classList.add("hide");
+    buttonRestart.classList.add("hide");
+    buttonOptions.classList.add('paused');
+  });
+
+  buttonPlay = newDiv.querySelector("#play");
+  buttonPlay.addEventListener("click", () => {
+    enviarComando(senderId, "lebot remover");
+    buttonPlay.classList.add("hide");
+    buttonPause.classList.remove("hide");
+    buttonStop.classList.remove("hide");
+    buttonRestart.classList.remove("hide");
+    buttonOptions.classList.remove('paused');
+  });
+
+  buttonRestart = newDiv.querySelector("#restart");
+  buttonRestart.addEventListener("click", () => {
+    enviarComando(senderId, "lebot iniciar");
+    buttonPlay.classList.add("hide");
+    buttonPause.classList.remove("hide");
+    buttonStop.classList.remove("hide");
+    buttonRestart.classList.remove("hide");
+    buttonOptions.classList.remove('paused');
+  });
+
+  buttonMenu = newDiv.querySelector("#menu");
+  buttonMenu.addEventListener("click", () => {
+    enviarComando(senderId, "lebot menu");
+  });
+
+  if (dev) {
+    buttonStop.classList.remove("hide");
+    buttonPause.classList.remove("hide");
+    buttonRestart.classList.remove("hide");
+    btnLoading.classList.add("hide");
+  }
+
+  return newDiv;
 }
 
 function mountMyButton() {
@@ -240,6 +270,7 @@ function fillContact(contact) {
   btnLoading.classList.add("hide");
 
   if (localStorage.getItem('pauseWpp') === '1') {
+    buttonOptions.classList.add('disabled');
     return;
   }
 
@@ -266,26 +297,4 @@ function enviarComando(senderId, msg) {
   setTimeout(() => {
     btnLoading.classList.add("hide");
   }, 2000);
-}
-
-function hasExpired(time) {
-  return !time || (time + (60 * 60 * 6)) < (new Date().getTime() / 1000);
-}
-
-// @implementing
-const messageBufferPerChatId = new Map();
-
-function validarFilaMensagem(chatId, mensagem) {
-  messageBufferPerChatId.set(chatId, mensagem);
-
-  if (messageTimeouts.has(chatId)) {
-    clearTimeout(messageTimeouts.get(chatId));
-  }
-
-  messageTimeouts.set(chatId, setTimeout(() => {
-    const detail = messageBufferPerChatId.get(chatId);
-    document.dispatchEvent(new CustomEvent('message_received', { detail }));
-    messageBufferPerChatId.delete(chatId);
-    messageTimeouts.delete(chatId);
-  }, 4000));
 }
