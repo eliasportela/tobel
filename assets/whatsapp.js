@@ -1,113 +1,185 @@
-let WPP = null;
+const lebot = (typeof LEBOT !== undefined) ? LEBOT : 1;
+
+let API_LEBOT = null;
 let senderId = null;
 let botNumber = null;
 let main_ready = false;
 const messageTimeouts = new Map();
+let intervalButton = null;
 
 document.addEventListener('send-message', function (e) {
-  if (WPP) {
+  if (API_LEBOT) {
     sendMessage(e.detail.from, e.detail.msg, e.detail)
   }
 }, false);
 
 document.addEventListener('fill-contact', function (e) {
-  if (WPP) {
+  if (API_LEBOT) {
     fillContact(e.detail);
   }
 }, false);
 
 document.addEventListener('open-chat', async function (e) {
-  if (WPP) {
-    await WPP.chat.openChatBottom(e.detail);
+  if (API_LEBOT) {
+    openChat(e.detail);
   }
 }, false);
 
 document.addEventListener('mark-unread', async function (e) {
-  if (WPP) {
-    await WPP.chat.markIsUnread(e.detail);
+  if (API_LEBOT) {
+    markUnread()
   }
 }, false);
 
 const intervalTry = setInterval(() => {
+  if (lebot === 2) {
+    startWppConnect();
+
+  } else {
+    startLeBot();
+  }
+}, 3000);
+
+function startLeBot() {
+  if (window.API.listener !== undefined) {
+    clearInterval(intervalTry);
+    clearInterval(intervalButton);
+
+    if (!main_ready) {
+      console.log("LEBOT INICIADO");
+      API_LEBOT = window.API;
+      main_ready = true;
+
+      configurarEmpresa(1);
+
+      intervalButton = setInterval(() => {
+        novoChat();
+      },1000);
+
+      API_LEBOT.listener.ExternalHandlers.MESSAGE_RECEIVED.push(function (sender, chat, msg) {
+        novaMensagem(msg, chat);
+      });
+    }
+  }
+}
+
+function startWppConnect() {
   if (typeof window.WPP !== "undefined") {
     clearInterval(intervalTry);
-    console.log("LEBOT INICIADO");
-    WPP = window.WPP;
+    console.log("WPP INICIADO");
+    API_LEBOT = window.WPP;
 
-    WPP.on('conn.main_ready', () => {
+    API_LEBOT.on('conn.main_ready', () => {
       if (!main_ready) {
         main_ready = true;
-        console.log("checking phone");
-        const id = WPP.conn.getMyUserId();
-
-        if (id) {
-          botNumber = id.user || null;
-          console.log("phone: " + botNumber);
-          document.dispatchEvent(new CustomEvent('bot_number', { detail: botNumber }));
-        }
+        configurarEmpresa(2);
       }
     });
 
-    WPP.on('chat.new_message', (msg) => {
-      if (localStorage.getItem('pauseWpp') === '1') {
-        return;
-      }
-
-      const isMe = msg.id && msg.id.fromMe;
-      const chat = msg.chat && msg.chat.id ? msg.chat.id : {};
-      const isAudio = (msg.type === 'ptt');
-      const text = isAudio ? '-' : (msg.body || null);
-
-      if (chat.server !== 'c.us' || msg.isGroupMsg || !["ptt", "chat"].includes(msg.type) || !text || (isMe && isAudio) || msg.ack !== 1) {
-        return;
-      }
-
-      const clearmessage = text.trim().toLowerCase();
-
-      if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
-        const from = chat._serialized;
-        const detail = { isMe, from, botNumber, isAudio, text };
-
-        if (!isMe && msg.senderObj) {
-          detail.contact = msg.senderObj.pushname || '';
-          detail.number = msg.senderObj.userid || '';
-        }
-
-        esperarFilaMensagem(from, detail, msg.t);
-      }
+    API_LEBOT.on('chat.new_message', (msg) => {
+      novaMensagem(msg, null);
     });
 
-    WPP.on('chat.active_chat', (chat) => {
+    API_LEBOT.on('chat.active_chat', (chat) => {
       if (!chat) {
         return;
       }
 
-      const footer = document.getElementsByTagName("footer")[0];
-
-      if (footer !== undefined && footer.dataset.appliend === undefined) {
-        footer.dataset.appliend = true;
-        const div = (footer.getElementsByTagName('div')[0]);
-        senderId = null;
-
-        if (div !== undefined) {
-          senderId = chat.id._serialized;
-
-          if (chat.isGroup) {
-            return;
-          }
-
-          document.dispatchEvent(new CustomEvent('contact', { detail: {from: senderId} }))
-          div.insertBefore(makeSmartOptions(senderId), div.children[2]);
-        }
-      }
+      novoChat(chat);
     });
 
   } else {
     console.log("not listener yet")
   }
-}, 3000);
+}
 
-function esperarFilaMensagem(chatId, mensagem, time) {
+function configurarEmpresa(api) {
+  console.log("checking phone");
+
+  if (api === 1) {
+    const intervalCheckReady = setInterval(() => {
+      if (window.localStorage['last-wid'] || window.localStorage['last-wid-md']) {
+
+        let phone = (window.localStorage['last-wid'] || window.localStorage['last-wid-md'] ).replace(/"/g, "").split('@')[0]
+        botNumber = phone.split(':')[0]
+
+        if (botNumber) {
+          clearInterval(intervalCheckReady);
+          console.log("phone: " + botNumber);
+          document.dispatchEvent(new CustomEvent('bot_number', { detail: botNumber }));
+        }
+      }
+    }, 5000);
+
+  } else if (api === 2) {
+    const id = API_LEBOT.conn.getMyUserId();
+
+    if (id) {
+      botNumber = id && id.user ? id.user : null;
+
+      if (botNumber) {
+        console.log("phone: " + botNumber);
+        document.dispatchEvent(new CustomEvent('bot_number', { detail: botNumber }));
+      }
+    }
+  }
+}
+
+function novaMensagem(msg, chat) {
+  if (localStorage.getItem('pauseWpp') === '1') {
+    return;
+  }
+
+  chat = chat ? chat : (msg.chat && msg.chat.id ? msg.chat.id : {});
+  const isMe = msg.id && msg.id.fromMe;
+  const isAudio = (msg.type === 'ptt');
+  const text = isAudio ? '-' : (msg.body || null);
+  const isGroupMsg = (msg.isGroupMsg || msg.__x_isGroupMsg);
+
+  if (chat.server !== 'c.us' || isGroupMsg || !["ptt", "chat"].includes(msg.type) || !text || (isMe && isAudio) || msg.ack !== 1) {
+    return;
+  }
+
+  const clearmessage = text.trim().toLowerCase();
+
+  if ((!isMe || clearmessage.startsWith("lebot")) && !clearmessage.startsWith("#")) {
+    const from = chat._serialized;
+    const detail = { isMe, from, botNumber, isAudio, text };
+
+    if (!isMe && msg.senderObj) {
+      detail.contact = msg.senderObj.pushname || '';
+      detail.number = msg.senderObj.userid || '';
+    }
+
+    setFilaMensagem(from, detail, msg.t);
+  }
+}
+
+function novoChat(chat) {
+  const footer = document.getElementsByTagName("footer")[0];
+
+  if (footer !== undefined && footer.dataset.appliend === undefined) {
+    footer.dataset.appliend = 'true';
+
+    if (!chat) {
+      chat = API_LEBOT.getActiveTab();
+    }
+
+    senderId = null;
+    const div = (footer.getElementsByTagName('div')[0]);
+
+    if (div !== undefined && chat) {
+      senderId = chat.id._serialized;
+
+      if (!chat.isGroup && senderId) {
+        document.dispatchEvent(new CustomEvent('contact', { detail: {from: senderId} }))
+        div.insertBefore(makeSmartOptions(senderId), div.children[2]);
+      }
+    }
+  }
+}
+
+function setFilaMensagem(chatId, mensagem, time) {
   if (messageTimeouts.has(chatId)) {
     clearTimeout(messageTimeouts.get(chatId));
   }
@@ -128,25 +200,38 @@ function sendMessage(senderId, message, opt, callback) {
   opt = opt || {};
 
   if (opt.type === "image") {
-    WPP.chat.sendFileMessage(senderId, `data:image/jpeg;base64,${message}`, { type: 'image', caption: (opt.caption || '')})
-      .then(() => {
-        if (callback) {
-          callback();
-        }}
-      );
+    if (lebot === 2) {
+      API_LEBOT.chat.sendFileMessage(senderId, `data:image/jpeg;base64,${message}`, { type: 'image', caption: (opt.caption || '')})
+          .then(() => {
+            if (callback) {
+              callback();
+            }}
+          );
+
+    } else {
+      API_LEBOT.sendImageMessage(senderId, message, (opt.caption || ''), () => {});
+    }
 
   } else {
     const options = { createChat: !!opt.create, markIsRead: !!opt.read, delay: (opt.delay || 0) }
-    WPP.chat.sendTextMessage(senderId, message, options).then(() => {
-      if (callback) {
-        callback();
-      }
-    });
+
+    if (lebot === 2) {
+      API_LEBOT.chat.sendTextMessage(senderId, message, options).then(() => {
+        if (callback) {
+          callback();
+        }
+      });
+
+    } else {
+      setTimeout(() => {
+        API_LEBOT.sendTextMessage(senderId, message, () => {});
+      }, options.delay);
+    }
   }
 }
 
 function hasExpired(time) {
-  return !time || (time + (60 * 60 * 6)) < (new Date().getTime() / 1000);
+  return !time || (time + (60 * 15)) < (new Date().getTime() / 1000);
 }
 
 // @implementing
@@ -297,4 +382,22 @@ function enviarComando(senderId, msg) {
   setTimeout(() => {
     btnLoading.classList.add("hide");
   }, 2000);
+}
+
+function openChat(detail) {
+  if (lebot === 2) {
+    API_LEBOT.chat.openChatBottom(detail);
+
+  } else {
+    API_LEBOT.openChatByNumber(detail)
+  }
+}
+
+function markUnread(detail) {
+  if (lebot === 2) {
+    API_LEBOT.chat.markIsUnread(detail);
+
+  } else {
+    API_LEBOT.markIsRead()
+  }
 }

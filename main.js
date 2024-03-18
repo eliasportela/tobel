@@ -20,6 +20,7 @@ const base_login = env.BASE_LOGIN;
 const config = new Config();
 
 let base_server = null;
+let api_url = null;
 let api_lebot = null;
 
 let win = null;
@@ -100,6 +101,7 @@ function createWindow () {
   win.once('ready-to-show', () => {
     setTimeout(() => {
       winLoad.close();
+      win.maximize();
       win.show();
       win.focus();
     }, 2000);
@@ -115,7 +117,7 @@ function createWindow () {
   });
 }
 
-function createBot(data) {
+async function createBot(data) {
   wpp = new BrowserView({
     webPreferences: {
       nodeIntegration: true,
@@ -125,14 +127,16 @@ function createBot(data) {
   });
 
   win.setBrowserView(wpp);
-  wpp.setBounds({ x: 74, y: 0, width: 910, height: 519 });
+  const bounds = win.getContentBounds();
+  wpp.setBounds({ x: 74, y: 0, width: (bounds.width - 70), height: bounds.height });
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
   win.title = `Lebot - ${data.dados.nome_fantasia}`;
 
-  wpp.webContents.on('dom-ready', function(e) {
+  wpp.webContents.on('dom-ready', function (e) {
+    wpp.webContents.executeJavaScript(`const LEBOT=${api_lebot};`);
+
     setTimeout(() => {
-      win.maximize();
       toggleStatus();
       downloadApi();
       wpp.webContents.focus();
@@ -141,7 +145,7 @@ function createBot(data) {
 }
 
 function downloadApi() {
-  if (!api_lebot) {
+  if (!api_url) {
     try {
       const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
       injectScript(file);
@@ -153,7 +157,7 @@ function downloadApi() {
 
   } else {
     try {
-      fetch(api_lebot, { method: 'GET' })
+      fetch(api_url, { method: 'GET' })
           .then(res => res.text())
           .then(text => {
             if (text) {
@@ -368,15 +372,18 @@ function loadDependences() {
   ipcMain.on('login', (event, arg) => {
     if (arg && arg.token) {
       dados = arg;
-      api_lebot = dados.api_lebot || null;
       id_empresa = dados && dados.dados ? dados.dados.id_empresa : null;
+      api_url = dados.api_url || null;
+      api_lebot = api_url ? (dados.api_lebot || 1) : 1;
 
       if (dados.base_server) {
         base_server = dados.base_server;
       }
 
       if (!wpp && base_server) {
-        createBot(dados);
+        setTimeout(() => {
+          createBot(dados);
+        }, 2500);
       }
     }
   });
@@ -386,12 +393,11 @@ function loadDependences() {
 
     if (arg !== bot) {
       if (arg) {
-        win.setBrowserView(wpp)
-        win.setResizable(true);
-        win.maximize();
+        win.setBrowserView(wpp);
+        const bounds = win.getContentBounds();
+        wpp.setBounds({ x: 74, y: 0, width: (bounds.width - 70), height: bounds.height });
 
       } else {
-        win.setResizable(false);
         win.removeBrowserView(wpp);
       }
     }
