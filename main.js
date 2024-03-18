@@ -29,12 +29,12 @@ let winLoad = null;
 
 let dados = null;
 let id_empresa = null;
-let version = null;
+let version = app.getVersion();
 let pauseWpp = !!config.get('pauseWpp');
 let showVersionAvaliable = false;
 let botNumber = null;
 
-app.userAgentFallback = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
+global.app.userAgentFallback = `Lebot/${version} (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36`;
 Menu.setApplicationMenu(createMenuContext());
 
 app.disableHardwareAcceleration();
@@ -367,8 +367,6 @@ ipcMain.on('reloadUrl', () => {
 });
 
 function loadDependences() {
-  version = app.getVersion();
-
   ipcMain.on('login', (event, arg) => {
     if (arg && arg.token) {
       dados = arg;
