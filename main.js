@@ -34,7 +34,7 @@ let pauseWpp = !!config.get('pauseWpp');
 let showVersionAvaliable = false;
 let botNumber = null;
 
-global.app.userAgentFallback = `Lebot/${version} (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36`;
+app.userAgentFallback = `Lebot/${version} (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36`;
 Menu.setApplicationMenu(createMenuContext());
 
 app.disableHardwareAcceleration();
