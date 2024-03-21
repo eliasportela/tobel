@@ -2,7 +2,7 @@
   "name": "lebot",
   "author": "storkdigital.com.br",
   "description": "Atendimento virtual para WhatsApp",
-  "version": "1.4.1",
+  "version": "1.4.1-old",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -18,7 +18,7 @@
     "artifactName": "lebot-${version}.${ext}"
   },
   "devDependencies": {
-    "electron": "^26.6.2",
+    "electron": "^22.3",
     "electron-builder": "~22.10.5"
   },
   "dependencies": {
