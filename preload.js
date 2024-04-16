@@ -30,6 +30,10 @@ document.addEventListener("fechar", (e) => {
     ipcRenderer.send('fechar', e.detail);
 }, false);
 
+document.addEventListener("update", (e) => {
+    ipcRenderer.send('update', e.detail || {});
+}, false);
+
 // send
 ipcRenderer.on('wppSession', (event, arg) => {
     document.dispatchEvent(new CustomEvent('wpp_session', { detail: arg }));
@@ -46,3 +50,11 @@ ipcRenderer.on('errorReply', (event, arg) => {
 ipcRenderer.on('requestHuman', (event, arg) => {
     document.dispatchEvent(new CustomEvent('request_human'));
 });
+
+ipcRenderer.on('updateReply', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('updateReply', { detail: arg }));
+});
+
+ipcRenderer.on('updateProgress', (event, arg) => {
+    document.dispatchEvent(new CustomEvent('updateProgress', { detail: arg }));
+})

@@ -31,7 +31,7 @@ let dados = null;
 let id_empresa = null;
 let version = app.getVersion();
 let pauseWpp = !!config.get('pauseWpp');
-let showVersionAvaliable = false;
+let showVersionMenu = false;
 let botNumber = null;
 
 app.userAgentFallback = `Lebot/${version} (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36`;
@@ -99,6 +99,8 @@ function createWindow () {
   });
 
   win.once('ready-to-show', () => {
+    win.webContents.executeJavaScript(`window.ElectronV='${version}'; localStorage.setItem('ElectronV', '${version}');`);
+
     setTimeout(() => {
       winLoad.close();
       win.maximize();
@@ -223,7 +225,7 @@ function createMenuContext(createDev){
           label: 'Verificar atualizações',
           enabled: true,
           click() {
-            showVersionAvaliable = true;
+            showVersionMenu = true;
             autoUpdater.checkForUpdates()
           },
         },
@@ -314,7 +316,7 @@ function toggleStatus() {
     }
   }
 
-  win.webContents.send('lebotStatus', { pauseWpp: pauseWpp, version: version });
+  win.webContents.send('lebotStatus', { pauseWpp: pauseWpp });
 }
 
 function sendToServer(event, arg) {
@@ -470,66 +472,107 @@ function loadDependences() {
       app.quit();
     }
   });
+
+  ipcMain.on('update', (event, option) => {
+    if (app.isPackaged) {
+      showVersionMenu = false;
+      autoUpdater.checkForUpdates();
+
+    } else {
+      dialog.showMessageBox(win, {
+        type: 'info',
+        buttons: ['OK'],
+        title: 'Atualização',
+        message: "Nova versão disponível",
+        detail: 'Por favor não feche o sistema, aguarde estamos baixando a nova versão.'
+      }, null);
+    }
+  });
 }
 
 function checkAutoUpdater() {
-  setTimeout(() => {
-    if (!showVersionAvaliable) {
-      autoUpdater.checkForUpdates();
+  autoUpdater.on('checking-for-update', () => {
+    win.webContents.send('updateReply', {
+      title: 'Atualização',
+      message: 'Verificando atualização',
+      detail: 'Só um momento, estamos aguardando a nova versão.',
+      step: 1
+    });
+  });
+
+  autoUpdater.on('update-available', () => {
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['OK'],
+      title: 'Atualização',
+      message: 'Baixando atualização',
+      detail: 'Por favor não feche o sistema, estamos baixando a nova versão.'
+    };
+
+    if (showVersionMenu) {
+      dialog.showMessageBox(win, dialogOpts, null);
+
+    } else {
+      dialogOpts.step = 2;
+      win.webContents.send('updateReply', dialogOpts);
     }
-  }, (10000));
+  });
 
   autoUpdater.on('update-downloaded', () => {
     const dialogOpts = {
       type: 'info',
-      buttons: ['OK'],
-      title: 'Nova versão disponível!',
-      message: "",
-      detail: 'Uma nova versão foi baixada, por favor feche o sistema para instalar a nova versão!'
+      buttons: ['Reiniciar'],
+      title: 'Atualização',
+      message: "Versão baixada com sucesso!",
+      detail: 'Clique em "Reiniciar" ou feche e abra novamente o sistema.'
     };
 
-    dialog.showMessageBox(win, dialogOpts);
+    dialog.showMessageBox(win, dialogOpts, null).then(() => {
+      autoUpdater.quitAndInstall();
+    });
+
+    dialogOpts.step = 3;
+    win.webContents.send('updateReply', dialogOpts);
   });
 
   autoUpdater.on('error', (ev, message) => {
     const dialogOpts = {
       type: 'info',
       buttons: ['OK'],
-      title: 'Erro na atualização',
-      message: message,
-      detail: 'Ocorreu um erro ao tentar atualizar.'
+      title: 'Atualização',
+      message: 'Erro ao tentar atualizar',
+      detail: message
     };
 
-    dialog.showMessageBox(win, dialogOpts);
+    if (showVersionMenu) {
+      dialog.showMessageBox(win, dialogOpts, null);
+
+    } else {
+      dialogOpts.step = 4;
+      win.webContents.send('updateReply', dialogOpts);
+    }
   });
 
-  autoUpdater.on('update-available', (args) => {
+  autoUpdater.on('update-not-available', (args) => {
     const dialogOpts = {
       type: 'info',
       buttons: ['OK'],
       title: 'Atualização',
-      message: "",
-      detail: 'Uma nova versão será baixada.'
+      message: 'Tudo certo por aqui!',
+      detail: 'Você já está usando a versão atual do sistema.'
     };
 
-    dialog.showMessageBox(win, dialogOpts, null);
-  });
+    if (showVersionMenu) {
+      dialog.showMessageBox(win, dialogOpts, null);
 
-  autoUpdater.on('update-not-available', (args) => {
-    if (showVersionAvaliable){
-      const dialogOpts = {
-        type: 'info',
-        buttons: ['OK'],
-        title: 'Versão já está atualizada',
-        message: "",
-        detail: 'Sua versão já está atualizada.'
-      };
-
-      dialog.showMessageBox(win, dialogOpts);
+    } else {
+      dialogOpts.step = 5;
+      win.webContents.send('updateReply', dialogOpts);
     }
   });
 
   autoUpdater.on('download-progress', (progressObj) => {
     win.setProgressBar(progressObj.percent / 100);
-  })
+    win.webContents.send('updateProgress', progressObj.percent);
+  });
 }
