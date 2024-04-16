@@ -316,7 +316,7 @@ function toggleStatus() {
     }
   }
 
-  win.webContents.send('lebotStatus', { pauseWpp: pauseWpp });
+  win.webContents.send('lebotStatus', { pauseWpp, version });
 }
 
 function sendToServer(event, arg) {
