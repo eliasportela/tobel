@@ -119,7 +119,7 @@ function createWindow () {
   });
 }
 
-async function createBot(data) {
+async function createBot() {
   wpp = new BrowserView({
     webPreferences: {
       nodeIntegration: true,
@@ -133,7 +133,6 @@ async function createBot(data) {
   wpp.setBounds({ x: 74, y: 0, width: (bounds.width - 70), height: bounds.height });
   wpp.webContents.loadURL("https://web.whatsapp.com/");
   wpp.setAutoResize({width: true, height: true});
-  win.title = `Lebot - ${data.dados.nome_fantasia}`;
 
   wpp.webContents.on('dom-ready', function (e) {
     wpp.webContents.executeJavaScript(`const LEBOT=${api_lebot};`);
@@ -382,7 +381,7 @@ function loadDependences() {
 
       if (!wpp && base_server) {
         setTimeout(() => {
-          createBot(dados);
+          createBot();
         }, 2500);
       }
     }
