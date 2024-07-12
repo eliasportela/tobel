@@ -9,7 +9,7 @@ let intervalButton = null;
 
 document.addEventListener('send-message', function (e) {
   if (API_LEBOT) {
-    sendMessage(e.detail.from, e.detail.msg, e.detail)
+    sendMessage(e.detail.from, e.detail.msgs)
   }
 }, false);
 
@@ -48,7 +48,6 @@ function startLeBot() {
     if (!main_ready) {
       console.log("LEBOT INICIADO");
       API_LEBOT = window.API;
-      main_ready = true;
 
       configurarEmpresa(1);
 
@@ -196,38 +195,8 @@ function setFilaMensagem(chatId, mensagem, time) {
   }, 2000));
 }
 
-function sendMessage(senderId, message, opt, callback) {
-  opt = opt || {};
-
-  if (opt.type === "image") {
-    if (lebot === 2) {
-      API_LEBOT.chat.sendFileMessage(senderId, `data:image/jpeg;base64,${message}`, { type: 'image', caption: (opt.caption || '')})
-          .then(() => {
-            if (callback) {
-              callback();
-            }}
-          );
-
-    } else {
-      API_LEBOT.sendImageMessage(senderId, message, (opt.caption || ''), () => {});
-    }
-
-  } else {
-    const options = { createChat: !!opt.create, markIsRead: !!opt.read, delay: (opt.delay || 0) }
-
-    if (lebot === 2) {
-      API_LEBOT.chat.sendTextMessage(senderId, message, options).then(() => {
-        if (callback) {
-          callback();
-        }
-      });
-
-    } else {
-      setTimeout(() => {
-        API_LEBOT.sendTextMessage(senderId, message, () => {});
-      }, options.delay);
-    }
-  }
+function sendMessage(senderId, arrayMessage) {
+  API_LEBOT.mainSendMessage({ senderId, arrayMessage });
 }
 
 function hasExpired(time) {

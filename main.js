@@ -340,22 +340,10 @@ function sendToServer(event, arg) {
       .then(res => res.json())
       .then(json => {
         if (json.success && json.msgs && event) {
-          let delay = 0;
-          let type = json.type || 'text';
-          let read = json.read === '1';
-
-          json.msgs.forEach(msg => {
-            event.reply('asynchronous-reply', { from: arg.from, msg, type, read, delay, create: false });
-            delay += 2000;
-          });
-
-          if (json.request_human) {
-            // win.webContents.send('requestHuman');
-            setTimeout(() => {
-              event.reply('mark_unread', arg.from);
-            }, (json.msgs.length * 3000));
-          }
+          const msgs = json.msgs.map(msg => { return { content: msg } });
+          event.reply('asynchronous-reply', { from: arg.from, msgs });
         }
+
       }).catch(err => console.log(err));
 }
 
@@ -439,8 +427,8 @@ function loadDependences() {
   });
 
   ipcMain.on('dispararMensagens', (event, arg) => {
-    if (arg && arg.mensagem && arg.to) {
-      wpp.webContents.send('asynchronous-reply', { from: arg.to, msg: arg.mensagem, create: true });
+    if (arg && arg.mensagens && arg.to) {
+      wpp.webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens });
     }
   });
 
