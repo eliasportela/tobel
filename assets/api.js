@@ -1098,7 +1098,7 @@ window.API.parseMsgObject = (msg_object) => {
  */
 window.API.findChatFromId = (id) => {
     try {
-        console.log('findChatFromId: ', id);
+        //console.log('findChatFromId: ', id);
         const wid = window.Store.WidFactory.createWid(id);
         return window.Store.Chat.find(wid);
     } catch (error) {
@@ -1606,7 +1606,8 @@ window.API.mainSendMessage = async (infos) => {
             await new Promise(resolve => setTimeout(resolve, 900));
 
             if (message?.type === 'image') {
-                await API.sendImageMessageNew(chat, message.content, message?.caption, message?.stickerData);
+                await API.sendImageMessage(senderId, message.content, message.caption, () => {});
+                //await API.sendImageMessageNew(chat, message.content, message?.caption, message?.stickerData);
 
             } else {
                 if (message?.content && typeof message.content === 'string') await chat.sendMessage(message.content);
