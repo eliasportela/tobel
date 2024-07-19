@@ -1,4 +1,5 @@
-console.log('API loaded: 1.2.0');
+const versionAPI = '1.2.0';
+console.log(`API loaded: ${versionAPI}`);
 
 /**
  * API WHATSAPP
@@ -18,6 +19,31 @@ let platform = "anota-ai-desktop";
 let lastReceivedMsg;
 let settings;
 
+/**
+ * Sends an log report with the provided message, function name, and error data.
+ *
+ * @param {string} message - The log message to send.
+ * @param {Object} type - The log type to send.
+ * @param {Object} data - The log data to send.
+ * @param {boolean} send - Whether to send the log report.
+ */
+const sendLogReport = (message, type, data = {}, send = true) => {
+    try {
+        const log = {
+            source: 'api',
+            versionAPI,
+            message,
+            type,
+            whatsAppVersion: (Debug || {})?.VERSION,
+            ...data
+        }
+        if (type === 'error') console.log(message, log);
+        // if(send) document.dispatchEvent(new CustomEvent('log-report-api', { detail: log }));
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
@@ -32,7 +58,7 @@ const searchBlockedUser = () => {
         const bodyText = document.body.innerText || document.body.textContent;
         if (countCheckTextBan > 20) clearInterval(checkText);
         if (messageBlockWhats.some(item => bodyText.includes(item))) {
-            console.log('Event: whats-block-ban');
+            sendLogReport('Event dispatch: whats-block-ban', 'info');
             clearInterval(checkText);
             document.dispatchEvent(new CustomEvent('whats-block-ban'))
         }
@@ -44,21 +70,21 @@ const searchBlockedUser = () => {
 //-------------------------------------------------------------------------------------------------
 
 if (isConnected()) {
-    console.log("Conectado!");
+    sendLogReport('Event dispatch: has-conected', 'info');
     document.dispatchEvent(new CustomEvent('has-conected'));
 } else {
-    console.log("Desconectado!");
+    sendLogReport('Event dispatch: has-disconected', 'info');
     document.dispatchEvent(new CustomEvent('has-disconected'));
     searchBlockedUser();
 }
 
 document.addEventListener('settings', function (e) {
-    console.log('set settings: ', e.detail);
+    sendLogReport('Settings received', 'info', { settings: e.detail });
     settings = e.detail;
 }, false);
 
 document.addEventListener('platform', function (e) {
-    console.log('set platform: ', e.detail);
+    sendLogReport('Platform received', 'info', { platform: e.detail }, false);
     platform = e.detail;
 }, false);
 
@@ -185,7 +211,30 @@ const neededObjects = [
 
 ];
 
+const fixObjectsStore = () => {
+    try {
+        sendLogReport('fixObjectsStore start', 'info');
+
+        if (!window.Store.Chat._find || !window.Store.Chat.findImpl) {
+            window.Store.Chat._find = e => {
+                const target = window.Store.Chat.get(e);
+                return target ? Promise.resolve(target) : Promise.resolve({
+                    id: e
+                });
+            };
+            window.Store.Chat.findImpl = window.Store.Chat._find;
+        }
+    } catch (error) {
+        sendLogReport('Error in function fixObjectsStore', 'error', { error });
+    }
+}
+
 const addObjectsStore = () => {
+
+    sendLogReport('addObjectsStore start', 'info');
+
+    fixObjectsStore();
+
     window.Store.GroupUtils =  {
         ...window.require('WAWebGroupCreateJob'),
         ...window.require('WAWebGroupModifyInfoJob'),
@@ -447,7 +496,7 @@ const Listener = function () {
                     return
                 }
 
-                //console.log('message received', msg)
+                sendLogReport('Message received', 'info', { message: msg }, false);
 
                 lastReceivedMsg = msg
                 API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
@@ -462,7 +511,7 @@ const Listener = function () {
             handler: function (msg) {
                 var to = msg.__x_to;
 
-                console.log('message sent', msg)
+                sendLogReport('Message sent', 'info', { message: msg }, false);
 
                 API.listener.ExternalHandlers.MESSAGE_SENT.forEach(x => x(to, msg, msg));
             }
@@ -489,7 +538,6 @@ const Listener = function () {
     Handles a new incoming message
     */
     this.handle_msg = function (msg) {
-        //console.log('handling message: ', msg);
         for (let i = 0; i < handlers.length; i++) {
             if (handlers[i].predicate(msg)) {
                 handlers[i].handler(msg);
@@ -715,16 +763,16 @@ window.API.forceSendMessageToID = (id, message, callback) => {
                     chat.sendMessage(message);
                     callback({ success: true })
                 }).catch(reject => {
-                    console.log(reject)
+                    sendLogReport('Error in function forceSendMessageToID, chat not found', 'error', { error: reject });
                     callback({ success: false, message: "Chat nÃ£o encontrado." })
                 });
             }
         }).catch((err) => {
-            console.log(err)
+            sendLogReport('Error in function forceSendMessageToID, chat not found', 'error', { error: err });
             callback({ success: false, message: "Chat nÃ£o encontrado." })
         })
     } catch (e) {
-        console.log(e)
+        sendLogReport('Error in function forceSendMessageToID, chat not found', 'error', { error: e });
         callback({ success: false, message: "Chat nÃ£o encontrado.", err: e })
     }
 }
@@ -751,13 +799,20 @@ window.API.sendTextMessage = (chat_id, message_text, callback, from) => {
 
         if (Debug.VERSION >= "2.2224.7" && (isHotnumber || possibleForceFroms.includes(from))){
             window.API.forceSendMessageToID(chat_id, message_text, callback)
+            return;
         }
+
+        // logs
+        let messageLog = "sendTextMessage chat not found";
+        if(!isHotnumber) messageLog = "sendTextMessage chat not found and not hotnumber";
+        if (possibleForceFroms.includes(from)) messageLog = "sendTextMessage chat not found and not from";
+        sendLogReport(messageLog, 'info', { chatId: chat_id, isHotnumber, from, settings });
 
         return;
     }
 
     window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
-        //console.log(e);
+        console.log(e);
         (callback || Core.nop)({ status: e });
     });
 }
@@ -828,7 +883,7 @@ window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
         let chat = Store.Chat.get(chat_id);
         if (!chat) chat = await API.firstContact(chat_id);
         if (!chat) {
-            console.log('nao existe chat');
+            sendLogReport('Error in function sendImageMessage, chat not found', 'info', { chat_id, imageUrl, caption });
         };
 
         let image = imageUrl.base64Img;
@@ -852,11 +907,9 @@ window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
                     callback();
                 })
                 .catch(e => console.log("Aqui o erro fi", e))
-        } else {
-            console.log('nao existe chat')
         }
     } catch (error) {
-        console.log(error);
+        sendLogReport('Error in function sendImageMessage', 'error', { error, chat_id, imageUrl, caption });
     }
 }
 
@@ -871,7 +924,7 @@ window.API.openChat = (chat, msg) => {
 
     if(msg) {
         window.API.sendTextMessage(chat.id._serialized, msg, function () {
-            console.log("Mensagem enviada: ", msg);
+            sendLogReport('Opened chat and sent message', 'info', { chatId: chat.id._serialized, messageSent: msg });
         }, 'anota-ai-desktop');
     }
 }
@@ -1098,11 +1151,11 @@ window.API.parseMsgObject = (msg_object) => {
  */
 window.API.findChatFromId = (id) => {
     try {
-        //console.log('findChatFromId: ', id);
+        sendLogReport('findChatFromId start', 'info', { chatId: id });
         const wid = window.Store.WidFactory.createWid(id);
         return window.Store.Chat.find(wid);
     } catch (error) {
-        console.error('error findChatFromId: ', error);
+        sendLogReport('Error in function findChatFromId', 'error', { chatId: id, error });
         return null;
     }
 }
@@ -2074,7 +2127,8 @@ window.API.linkUnlinkSubgroups = async (action, parentGroupId, subGroupIds, opti
 //-------------------------------------------------------------------------------------------------
 
 const oldMakeStore = () => {
-    console.log("EPAA NOVO, 08/03/24 ", (Debug || {}).VERSION)
+    sendLogReport("Store loaded - 08/03/24", "info", { newStore: false });
+
     if (webpackChunkwhatsapp_web_client && webpackChunkwhatsapp_web_client.length > 12 &&
         (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat)) {
         (function () {
@@ -2137,7 +2191,8 @@ const oldMakeStore = () => {
 }
 
 const newMakeStore = () => {
-    console.log("New make Store carregado!", "EPAA NOVO, 08/03/24 ")
+    sendLogReport("Store loaded - 08/03/24", "info", { newStore: true });
+
     let modules = self.require('__debug').modulesMap;
     let keys = Object.keys(modules).filter(e => e.includes("WA"));
     let modulesFactory = {};
@@ -2205,7 +2260,7 @@ const chooseFunction = () => {
     try {
         addObjectsStore();
     } catch (error) {
-        console.log('Error addObjectsStore', error);
+        sendLogReport('Error addObjectsStore', 'error', { error });
     }
 
     return store;
@@ -2448,9 +2503,9 @@ window.WAPI.getChatStatistic = () => {
  * @param {object} stickerData - The sticker data for the image.
  * @return {Promise} A promise that resolves with the sent message.
  */
-// window.WAPI.sendImageMessage = async (chat, url, caption, stickerData) => {
-//     return window.API.sendImageMessage(chat, url, caption, stickerData);
-// }
+window.WAPI.sendImageMessage = async (chat, url, caption, stickerData) => {
+    return window.API.sendImageMessage(chat, url, caption, stickerData);
+}
 
 /**
  * Sends a batch of messages to a specific sender.
@@ -2677,8 +2732,8 @@ window.API.fixStores = function () {
     Store.Msg.on('add', (message) => {
         if (message.__x_isNewMsg) {
 
-            //console.log('new message: ', message);
-            //console.log('platform: ', platform);
+            // console.log('new message: ', message);
+            // console.log('platform: ', platform);
 
             if (window.switch) {
                 message.__x_isNewMsg = false;
@@ -2693,7 +2748,7 @@ window.API.fixStores = function () {
 
     // new send message
     Store.Chat.modelClass.prototype.sendMessage = function(e, obj) {
-        //console.log('new send message');
+        console.log('new send message');
 
         if (!this.sendMessageQueue) {
             this.sendMessageQueue = [];
@@ -2814,6 +2869,6 @@ window.API.waitStateLoad = function () {
 };
 
 setTimeout(() => {
-    console.log("INICIANDO...")
+    sendLogReport("Start api", "info");
     API.waitStateLoad();
 }, 10000);
