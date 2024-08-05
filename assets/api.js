@@ -1,4 +1,4 @@
-const versionAPI = '1.2.0';
+const versionAPI = '1.2.1';
 console.log(`API loaded: ${versionAPI}`);
 
 /**

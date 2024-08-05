@@ -2,7 +2,7 @@
   "name": "lebot",
   "author": "storkdigital.com.br",
   "description": "Atendimento virtual para WhatsApp",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "private": true,
   "main": "main.js",
   "scripts": {

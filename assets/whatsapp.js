@@ -5,6 +5,7 @@ let senderId = null;
 let botNumber = null;
 let main_ready = false;
 const messageTimeouts = new Map();
+const analytics = [];
 let intervalButton = null;
 
 document.addEventListener('send-message', function (e) {
@@ -125,10 +126,6 @@ function configurarEmpresa(api) {
 }
 
 function novaMensagem(msg, chat) {
-  if (localStorage.getItem('pauseWpp') === '1') {
-    return;
-  }
-
   chat = chat ? chat : (msg.chat && msg.chat.id ? msg.chat.id : {});
   const isMe = msg.id && msg.id.fromMe;
   const isAudio = (msg.type === 'ptt');
@@ -148,6 +145,16 @@ function novaMensagem(msg, chat) {
     if (!isMe && msg.senderObj) {
       detail.contact = msg.senderObj.pushname || '';
       detail.number = msg.senderObj.userid || '';
+    }
+
+    if (localStorage.getItem('pauseWpp') === '1') {
+      if (analytics.includes(from)) {
+        return;
+      }
+
+      console.log('readOnly', from);
+      analytics.push(from);
+      detail.readOnly = true;
     }
 
     setFilaMensagem(from, detail, msg.t);

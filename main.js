@@ -15,9 +15,10 @@ const FormData = require('form-data');
 const Config = require('electron-config');
 const fetch = require('electron-fetch').default;
 
-const env = JSON.parse(fs.readFileSync(path.join(__dirname, './config.json'), 'utf8'));
-const base_login = env.BASE_LOGIN;
 const config = new Config();
+const isHomolog = config.get('IS_HOMOLOG');
+const base_login = isHomolog ? 'https://hhh.lebot-web.lecard.delivery/' : 'https://lebot-web.lecard.delivery/';
+//const base_login = 'http://localhost:8080/';
 
 let base_server = null;
 let api_url = null;
@@ -202,6 +203,48 @@ function showInjectError() {
 function createMenuContext(createDev){
   const menus = [
     {
+      label: 'Configs',
+      submenu: [
+        {
+          label: (isHomolog ? 'Modo produção' : 'Modo de teste'),
+          enabled: true,
+          click() {
+            const dialogOpts = {
+              type: 'info',
+              buttons: ['Cancelar', 'Sim'],
+              title: 'Alternar sistema',
+              message: "",
+              detail: 'Deseja alterar este sistema para ' + (isHomolog ? 'produção?' : 'o modo de teste?')
+            };
+
+            dialog.showMessageBox(win, dialogOpts, null).then((returnValue) => {
+              if (returnValue.response !== 0) {
+                if (isHomolog) {
+                  config.delete('IS_HOMOLOG');
+
+                } else {
+                  config.set('IS_HOMOLOG', 'true');
+                }
+
+                app.relaunch();
+                app.quit();
+              }
+            });
+          },
+        },
+        {
+          label: (win && win.isFullScreen() ? "Sair" : "Modo") + " FullScrean",
+          enabled: true,
+          click() {
+            if (win) {
+              win.setFullScreen(!win.isFullScreen());
+              Menu.setApplicationMenu(createMenuContext());
+            }
+          }
+        }
+      ]
+    },
+    {
       label: 'Ajuda',
       submenu: [
         {
@@ -326,6 +369,7 @@ function sendToServer(event, arg) {
   form.append('isAudio', arg.isAudio ? 'true' : 'false');
   form.append('location', arg.location ? JSON.stringify(arg.location) : '');
   form.append('botNumber', arg.botNumber ? arg.botNumber : '');
+  form.append('readOnly', arg.readOnly ? 'true' : 'false');
 
   if (!arg.isMe) {
     if (arg.contact) {
