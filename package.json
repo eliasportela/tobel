@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "electron-trace": "electron --trace-warnings .",
-    "build": "electron-builder --x64 --ia32",
+    "build": "electron-builder --ia32",
     "realese": "electron-builder --x64 --ia32 --publish always"
   },
   "build": {

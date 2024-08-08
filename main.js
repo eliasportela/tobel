@@ -52,7 +52,7 @@ app.whenReady().then(() => {
     transparent: true,
     frame: false,
     alwaysOnTop: true,
-    icon: path.join(__dirname, 'icon.png')
+    icon: path.join(__dirname, './build/icon.ico')
   });
 
   winLoad.loadFile("pages/loading.html");
@@ -82,7 +82,7 @@ function createWindow () {
     minHeight: 600,
     backgroundColor: '#1CC88A',
     show: false,
-    icon: path.join(__dirname, 'icon.png'),
+    icon: path.join(__dirname, './build/icon.ico'),
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,
