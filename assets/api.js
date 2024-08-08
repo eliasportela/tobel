@@ -105,6 +105,7 @@ const neededObjects = [
     { id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null },
     { id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null },
     { id: "SendTextMsgToChat", conditions: (module) => (module.sendTextMsgToChat) ? module.sendTextMsgToChat : null },
+    { id: "MarkUnread", conditions: (module) => (module.markUnread) ? module.markUnread : null },
     { id: "SendSeen", conditions: (module) => (module.sendSeen) ? module.sendSeen : null },
     { id: "sendDelete", conditions: (module) => (module.sendDelete) ? module.sendDelete : null },
     { id: "FeatureChecker", conditions: (module) => (module && module.getProtobufFeatureName) ? module : null },

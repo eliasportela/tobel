@@ -114,9 +114,9 @@ function createWindow () {
     app.quit()
   });
 
-  win.webContents.on('new-window', function(e, url) {
-    e.preventDefault();
+  win.webContents.setWindowOpenHandler(({ url }) => {
     require('electron').shell.openExternal(url);
+    return { action: 'deny' };
   });
 }
 
@@ -143,6 +143,11 @@ async function createBot() {
       downloadApi();
       wpp.webContents.focus();
     }, 2000);
+  });
+
+  wpp.webContents.setWindowOpenHandler(({ url }) => {
+    require('electron').shell.openExternal(url);
+    return { action: 'deny' };
   });
 }
 
@@ -480,6 +485,12 @@ function loadDependences() {
   ipcMain.on('acessarChats', (event, arg) => {
     if (arg && arg.to) {
       wpp.webContents.send('open_chat', arg.to);
+    }
+  });
+
+  ipcMain.on('markUnread', (event, arg) => {
+    if (arg) {
+      wpp.webContents.send('mark_unread', arg);
     }
   });
 

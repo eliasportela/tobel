@@ -34,6 +34,10 @@ document.addEventListener("update", (e) => {
     ipcRenderer.send('update', e.detail || {});
 }, false);
 
+document.addEventListener("markUnread", (e) => {
+    ipcRenderer.send('markUnread', e.detail);
+}, false);
+
 // send
 ipcRenderer.on('wppSession', (event, arg) => {
     document.dispatchEvent(new CustomEvent('wpp_session', { detail: arg }));

@@ -28,7 +28,7 @@ document.addEventListener('open-chat', async function (e) {
 
 document.addEventListener('mark-unread', async function (e) {
   if (API_LEBOT) {
-    markUnread()
+    markUnread(e.detail)
   }
 }, false);
 
@@ -142,7 +142,14 @@ function novaMensagem(msg, chat) {
     const from = chat._serialized;
     const detail = { isMe, from, botNumber, isAudio, text };
 
-    if (!isMe && msg.senderObj) {
+    if (isMe) {
+      detail.from = (msg.to || {})._serialized;
+
+      if (!detail.from) {
+        return;
+      }
+
+    } else if (msg.senderObj) {
       detail.contact = msg.senderObj.pushname || '';
       detail.number = msg.senderObj.userid || '';
     }
@@ -374,6 +381,10 @@ function markUnread(detail) {
     API_LEBOT.chat.markIsUnread(detail);
 
   } else {
-    API_LEBOT.markIsRead()
+    const chat = Core.chat(detail);
+
+    if (chat) {
+      window.Store.MarkUnread(chat, true);
+    }
   }
 }
