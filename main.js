@@ -22,7 +22,7 @@ const base_login = isHomolog ? 'https://hhh.lebot-web.lecard.delivery/' : 'https
 
 let base_server = null;
 let api_url = null;
-let api_lebot = null;
+let api_lebot = 1;
 
 let win = null;
 let wpp = null;
@@ -41,6 +41,7 @@ Menu.setApplicationMenu(createMenuContext());
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-site-isolation-trials')
 app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
+app.commandLine.appendSwitch('disable-features', 'LeakyPeeker')
 app.setAppUserModelId('delivery.lecard.whatsapp');
 
 app.whenReady().then(() => {
@@ -123,6 +124,7 @@ function createWindow () {
 async function createBot() {
   wpp = new BrowserView({
     webPreferences: {
+      backgroundThrottling: false,
       nodeIntegration: true,
       webSecurity: false,
       preload: path.join(__dirname, 'wpp-preload.js')
@@ -155,6 +157,7 @@ function downloadApi() {
   if (!api_url) {
     try {
       const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
+      //const file = fs.readFileSync(__dirname + '/assets/wppconnect-wa.js', "utf8");
       injectScript(file);
 
     } catch (error) {
@@ -478,7 +481,7 @@ function loadDependences() {
 
   ipcMain.on('dispararMensagens', (event, arg) => {
     if (arg && arg.mensagens && arg.to) {
-      wpp.webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens });
+      wpp.webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens, trigger: true });
     }
   });
 

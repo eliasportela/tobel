@@ -1,11 +1,11 @@
-const versionAPI = '1.2.1';
+const versionAPI = '1.6.0';
 console.log(`API loaded: ${versionAPI}`);
 
 /**
  * API WHATSAPP
  *
  * @link https://github.com/githubanotaai/api-whatsapp
- * @version 1.2.0
+ * @version 1.6.0
  */
 
 //-------------------------------------------------------------------------------------------------
@@ -18,27 +18,67 @@ let pausedReceivers = [];
 let platform = "anota-ai-desktop";
 let lastReceivedMsg;
 let settings;
+let newStore = false;
+let messageLogs = {};
+let config = {};
+
+const maxLogsMessage = {
+    'load_store_success': 1,
+    'error_in_load_store': 1,
+    'error_addobjectsstore': 1,
+    'addobjectsstore_start': 1,
+    'fixobjectsstore_start': 1,
+    'error_in_function_fixobjectsstore': 1
+}
+
+const countLogsMessage = (message) => {
+    try {
+        const key = logMessageTreatKey(message);
+        if(messageLogs[key] == undefined) {
+            messageLogs[key] = 0;
+        }else{
+            messageLogs[key] = messageLogs[key] + 1
+        }
+
+        if((!maxLogsMessage[key]) || (messageLogs[key] < maxLogsMessage[key])) {
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.log("Error in countLogsMessage", error);
+        return false;
+    }
+}
+
+const logMessageTreatKey = (message) => {
+    return message.toLowerCase().replace(/\s+/g, '_');
+}
 
 /**
  * Sends an log report with the provided message, function name, and error data.
  *
  * @param {string} message - The log message to send.
- * @param {Object} type - The log type to send.
- * @param {Object} data - The log data to send.
+ * @param {Object} level - The log type to send.
+ * @param {Object} context - The log data to send.
  * @param {boolean} send - Whether to send the log report.
  */
-const sendLogReport = (message, type, data = {}, send = true) => {
+const sendLogReport = (message, level, context = {}, send = true) => {
     try {
+        if(!countLogsMessage(message)) return;
+
         const log = {
             source: 'api',
+            whatsAppVersion: (Debug || {})?.VERSION || null,
             versionAPI,
             message,
-            type,
-            whatsAppVersion: (Debug || {})?.VERSION,
-            ...data
+            level,
+            context
         }
-        if (type === 'error') console.log(message, log);
+
+        if (level === 'error') console.log(message, log);
         // if(send) document.dispatchEvent(new CustomEvent('log-report-api', { detail: log }));
+
     } catch (error) {
         console.log(error);
     }
@@ -69,6 +109,44 @@ const searchBlockedUser = () => {
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
+window.compareWwebVersions = (lOperand, operator, rOperand) => {
+    if (!['>', '>=', '<', '<=', '='].includes(operator)) {
+        throw new class _ extends Error {
+            constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
+        }('Invalid comparison operator is provided');
+
+    }
+    if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
+        throw new class _ extends Error {
+            constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
+        }('A non-string WWeb version type is provided');
+    }
+
+    lOperand = lOperand.replace(/-beta$/, '');
+    rOperand = rOperand.replace(/-beta$/, '');
+
+    while (lOperand.length !== rOperand.length) {
+        lOperand.length > rOperand.length
+            ? rOperand = rOperand.concat('0')
+            : lOperand = lOperand.concat('0');
+    }
+
+    lOperand = Number(lOperand.replace(/\./g, ''));
+    rOperand = Number(rOperand.replace(/\./g, ''));
+
+    return (
+        operator === '>' ? lOperand > rOperand :
+            operator === '>=' ? lOperand >= rOperand :
+                operator === '<' ? lOperand < rOperand :
+                    operator === '<=' ? lOperand <= rOperand :
+                        operator === '=' ? lOperand === rOperand :
+                            false
+    );
+};
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+
 if (isConnected()) {
     sendLogReport('Event dispatch: has-conected', 'info');
     document.dispatchEvent(new CustomEvent('has-conected'));
@@ -79,13 +157,34 @@ if (isConnected()) {
 }
 
 document.addEventListener('settings', function (e) {
-    sendLogReport('Settings received', 'info', { settings: e.detail });
+    sendLogReport('Settings received', 'info');
     settings = e.detail;
 }, false);
 
 document.addEventListener('platform', function (e) {
     sendLogReport('Platform received', 'info', { platform: e.detail }, false);
     platform = e.detail;
+}, false);
+
+document.addEventListener('configs', function (e) {
+    sendLogReport('Config received', 'info', { config: e.detail }, false);
+    config = e.detail;
+
+    document.dispatchEvent(new CustomEvent('start-heartbeat'));
+}, false);
+
+document.addEventListener('start-heartbeat', function () {
+    const FIVE_MINUTES_IN_SECONDS = 1000 * 60 * 5;
+    setInterval(() => {
+        const connectionStatus = isConnected();
+        if (!connectionStatus) return;
+
+        document.dispatchEvent(new CustomEvent("heartbeat", {
+            detail: { connection: connectionStatus }
+        }))
+    }, config?.timeoutHeartbeat || FIVE_MINUTES_IN_SECONDS);
+
+    sendLogReport('heartbeat started', 'info', {}, false);
 }, false);
 
 const neededObjects = [
@@ -214,7 +313,7 @@ const neededObjects = [
 
 const fixObjectsStore = () => {
     try {
-        sendLogReport('fixObjectsStore start', 'info');
+        sendLogReport('fixObjectsStore start', 'info', {}, false);
 
         if (!window.Store.Chat._find || !window.Store.Chat.findImpl) {
             window.Store.Chat._find = e => {
@@ -232,36 +331,45 @@ const fixObjectsStore = () => {
 
 const addObjectsStore = () => {
 
-    sendLogReport('addObjectsStore start', 'info');
+    sendLogReport('addObjectsStore start', 'info', {}, false);
 
     fixObjectsStore();
 
-    window.Store.GroupUtils =  {
-        ...window.require('WAWebGroupCreateJob'),
-        ...window.require('WAWebGroupModifyInfoJob'),
-        ...window.require('WAWebExitGroupAction'),
-        ...window.require('WAWebContactProfilePicThumbBridge')
+    // new inject modules
+    try {
+        window.Store.WidToJid = window.require('WAWebWidToJid');
+        window.Store.LidUtils = window.require('WAWebApiContact');
+        window.Store.GroupQueryAndUpdate = window.require('WAWebGroupQueryJob').queryAndUpdateGroupMetadataById;
+
+        window.Store.GroupUtils =  {
+            ...window.require('WAWebGroupCreateJob'),
+            ...window.require('WAWebGroupModifyInfoJob'),
+            ...window.require('WAWebExitGroupAction'),
+            ...window.require('WAWebContactProfilePicThumbBridge')
+        }
+        window.Store.GroupParticipants = {
+            ...window.require('WAWebModifyParticipantsGroupAction'),
+            ...window.require('WASmaxGroupsAddParticipantsRPC')
+        };
+        window.Store.GroupInvite = {
+            ...window.require('WAWebGroupInviteJob'),
+            ...window.require('WAWebGroupQueryJob')
+        };
+        window.Store.GroupInviteV4 = {
+            ...window.require('WAWebGroupInviteV4Job'),
+            ...window.require('WAWebChatSendMessages')
+        };
+        window.Store.MembershipRequestUtils = {
+            ...window.require('WAWebApiMembershipApprovalRequestStore'),
+            ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
+        };
+        window.Store.MembershipRequestUtils = {
+            ...window.require('WAWebApiMembershipApprovalRequestStore'),
+            ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
+        };
+    } catch (error) {
+        sendLogReport('Error in function addObjectsStore new store injection modules', 'error', { error });
     }
-    window.Store.GroupParticipants = {
-        ...window.require('WAWebModifyParticipantsGroupAction'),
-        ...window.require('WASmaxGroupsAddParticipantsRPC')
-    };
-    window.Store.GroupInvite = {
-        ...window.require('WAWebGroupInviteJob'),
-        ...window.require('WAWebGroupQueryJob')
-    };
-    window.Store.GroupInviteV4 = {
-        ...window.require('WAWebGroupInviteV4Job'),
-        ...window.require('WAWebChatSendMessages')
-    };
-    window.Store.MembershipRequestUtils = {
-        ...window.require('WAWebApiMembershipApprovalRequestStore'),
-        ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
-    };
-    window.Store.MembershipRequestUtils = {
-        ...window.require('WAWebApiMembershipApprovalRequestStore'),
-        ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
-    };
 
     window.Store.CommunityUtils = {
         ...Store.getDefaultSubgroup,
@@ -569,19 +677,72 @@ window.API.Error = {
 window.API.listener = new Listener();
 
 /**
+ * Pin the Chat
+ *
+ * @param {String} chatId
+ * @returns {Promise<boolean>}
+ */
+window.API.pinChat = async (chatId) => {
+    try {
+        let chat = window.Store.Chat.get(chatId);
+        if (chat.pin) {
+            return true;
+        }
+        const MAX_PIN_COUNT = 3;
+        const chatModels = window.Store.Chat.getModelsArray();
+        if (chatModels.length > MAX_PIN_COUNT) {
+            let maxPinned = chatModels[MAX_PIN_COUNT - 1].pin;
+            if (maxPinned) {
+                return false;
+            }
+        }
+        await window.Store.Cmd.pinChat(chat, true);
+        return true;
+    } catch (error) {
+        sendLogReport('Error pinChat', 'error', { error, chatId });
+        return null;
+    }
+}
+
+/**
+ * Unpin the Chat
+ *
+ * @param {String} chatId
+ * @returns {Promise<boolean>}
+ */
+window.API.unpinChat = async (chatId) => {
+    try {
+        let chat = window.Store.Chat.get(chatId);
+        if (!chat.pin) {
+            return false;
+        }
+        await window.Store.Cmd.pinChat(chat, false);
+        return false;
+    } catch (error) {
+        sendLogReport('Error unpinChat', 'error', { error, chatId });
+        return null;
+    }
+}
+
+/**
  * Returns the contact ID from a given phone number.
  * Only digits in the phone number. Example: "972557267388" and not "(+972) 055-726-7388"
  *
  * @param {*} phone_number
  */
 window.API.findContactId = (phone_number) => {
-    var result = null;
-    (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
-        if (x.hasOwnProperty("__x_id") && (x.__x_id.match(/\d+/g) || []).join("") == phone_number) {
-            result = x.__x_id;
-        }
-    });
-    return result || null;
+    try {
+        var result = null;
+        (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
+            if (x.hasOwnProperty("__x_id") && (x.__x_id.match(/\d+/g) || []).join("") == phone_number) {
+                result = x.__x_id;
+            }
+        });
+        return result || null;
+    } catch (error) {
+        sendLogReport('Error in findContactId', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -590,13 +751,18 @@ window.API.findContactId = (phone_number) => {
  * @param {*} title
  */
 window.API.findChatIds = (title) => {
-    var result = [];
-    (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
-        if (x.hasOwnProperty("__x_formattedTitle") && ~(x.__x_formattedTitle.indexOf(title))) {
-            result.push(x.__x_id);
-        }
-    });
-    return result;
+    try {
+        var result = [];
+        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+            if (x.hasOwnProperty("__x_formattedTitle") && ~(x.__x_formattedTitle.indexOf(title))) {
+                result.push(x.__x_id);
+            }
+        });
+        return result;
+    } catch (error) {
+        sendLogReport('Error in findChatIds', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -605,17 +771,23 @@ window.API.findChatIds = (title) => {
  * @return {Array} An array of objects containing the chat ID, timestamp, and archive status of each chat.
  */
 window.API.getChats = () => {
-    var result = [];
-    (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
-        if (x.__x_isGroup === false)
-            result.push({ ...x.__x_id, timestamp: x.__x_t, archive: x.archive });
-    });
-    return result;
+    try {
+        var result = [];
+        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+            if (x.__x_isGroup === false)
+                result.push({ ...x.__x_id, timestamp: x.__x_t, archive: x.archive });
+        });
+        return result;
+    } catch (error) {
+        sendLogReport('Error in getChats', 'error', { error });
+        return null;
+    }
 }
 
 /**
  * Adds a user to a group.
  *
+ * @deprecated
  * @param {*} user_id - the ID of the user (NOT the phone number)
  * @param {*} group_id - the ID of the group
  * @param {*} callback - to be invoked after the operation finishes
@@ -639,6 +811,7 @@ window.API.addUserToGroup = (user_id, group_id, callback) => {
 /**
  * Removes a user from a group.
  *
+ * @deprecated
  * @param {*} user_id - the ID of the user (NOT the phone number)
  * @param {*} group_id - the ID of the group
  * @param {*} callback - to be invoked after the operation finishes
@@ -667,13 +840,20 @@ window.API.removeUserFromGroup = (user_id, group_id, callback) => {
  * @param {*} callback - to be invoked after the operation finishes
  */
 window.API.setChatArchiveStatus = (chat_id, archive_status, callback) => {
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
-        Core.error(API.Error.CHAT_NOT_FOUND, callback);
-        return;
-    }
+    try {
+        var chat = Core.chat(chat_id);
+        if (chat == null) {
+            Core.error(API.Error.CHAT_NOT_FOUND, callback);
+            sendLogReport('Chat not found in setChatArchiveStatus', 'info');
+            return;
+        }
 
-    Store.ChatUtilsSetArchive.setArchive(chat, !!archive_status);
+        Store.ChatUtilsSetArchive.setArchive(chat, !!archive_status);
+        sendLogReport('Chat archive status changed in setChatArchiveStatus', 'info', { status: !!archive_status });
+
+    } catch (error) {
+        sendLogReport('Error in setChatArchiveStatus', 'error', { error });
+    }
 }
 
 /**
@@ -683,17 +863,23 @@ window.API.setChatArchiveStatus = (chat_id, archive_status, callback) => {
  * @returns
  */
 window.API.getChatArchiveStatus = (chat_id) => {
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
+    try {
+        var chat = Core.chat(chat_id);
+        if (chat == null) {
+            return null;
+        }
+
+        return chat.archive;
+    } catch (error) {
+        sendLogReport('Error in getChatArchiveStatus', 'error', { error });
         return null;
     }
-
-    return chat.archive;
 }
 
 /**
  * Revokes a group's invite link.
  *
+ * @deprecated
  * @param {*} group_id - the ID of the group
  * @param {*} callback - to be invoked after the operation completes
  */
@@ -717,15 +903,20 @@ window.API.revokeGroupInviteLink = (group_id, callback) => {
  * @param {*} callback - to be invoked after the operation completes
  */
 window.API.setBlockedStatus = (user_id, blocked_status, callback) => {
-    var user = Core.contact(user_id);
-    if (user == null) {
-        Core.error(API.Error.USER_NOT_FOUND, callback);
-        return;
-    }
+    try {
+        var user = Core.contact(user_id);
+        if (user == null) {
+            Core.error(API.Error.USER_NOT_FOUND, callback);
+            return;
+        }
 
-    user.setBlock(blocked_status).then(function (e) {
-        (callback || Core.nop)({ status: e });
-    });
+        user.setBlock(blocked_status).then(function (e) {
+            (callback || Core.nop)({ status: e });
+        });
+    } catch (error) {
+        sendLogReport('Error in setBlockedStatus', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -735,15 +926,20 @@ window.API.setBlockedStatus = (user_id, blocked_status, callback) => {
  * @param {function} callback - The callback function to be called after the profile picture is retrieved.
  */
 window.API.getProfilePicFromId = (id, callback) => {
-    window.Store.ProfilePicThumb.find(id).then(function (d) {
-        if (d.__x_img !== undefined) {
-            callback({ success: true, imagem: d.__x_img });
-        } else {
+    try {
+        window.Store.ProfilePicThumb.find(id).then(function (d) {
+            if (d.__x_img !== undefined) {
+                callback({ success: true, imagem: d.__x_img });
+            } else {
+                callback({ success: false });
+            }
+        }, function (e) {
             callback({ success: false });
-        }
-    }, function (e) {
-        callback({ success: false });
-    })
+        })
+    } catch (error) {
+        sendLogReport('Error in getProfilePicFromId', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -757,23 +953,23 @@ window.API.forceSendMessageToID = (id, message, callback) => {
     try {
         window.API.findJidFromNumber(id).then(contact => {
             if (contact.status === 404) {
-
+                sendLogReport('Contact not found in forceSendMessageToID', 'info');
                 callback({ success: false, message: "Contato nÃ£o encontrado." })
             } else {
                 window.API.findChatFromId(contact.jid).then(chat => {
                     chat.sendMessage(message);
                     callback({ success: true })
                 }).catch(reject => {
-                    sendLogReport('Error in function forceSendMessageToID, chat not found', 'error', { error: reject });
+                    sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: reject });
                     callback({ success: false, message: "Chat nÃ£o encontrado." })
                 });
             }
         }).catch((err) => {
-            sendLogReport('Error in function forceSendMessageToID, chat not found', 'error', { error: err });
+            sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: err });
             callback({ success: false, message: "Chat nÃ£o encontrado." })
         })
     } catch (e) {
-        sendLogReport('Error in function forceSendMessageToID, chat not found', 'error', { error: e });
+        sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: e });
         callback({ success: false, message: "Chat nÃ£o encontrado.", err: e })
     }
 }
@@ -784,52 +980,68 @@ window.API.forceSendMessageToID = (id, message, callback) => {
  * @param {*} chat_id
  * @param {*} message_text
  * @param {*} callback
+ * @param {boolean} forceSend
  */
-window.API.sendTextMessage = (chat_id, message_text, callback, from) => {
-    var chat = Core.chat(chat_id);
-    const possibleForceFroms = ["totem", "waiter-temporary-notification"]
+window.API.sendTextMessage = async (chat_id, message_text, callback, forceSend = false) => {
+    try {
+        let chat = Core.chat(chat_id);
+        sendLogReport('sendTextMessage init...', 'info', { chat }, false);
 
-    if (chat == null) {
-        let isHotnumber = settings?.phone?.hot_number ? true : false;
+        if (chat == null) {
+            let isHotnumber = settings?.phone?.hot_number ? true : false;
 
-        if (!isHotnumber) {
-            const totalChats = Store.Chat.models || Store.Chat.getModelsArray()
-            const chatsWithoutGroups = totalChats.filter(chat => chat.__x_isGroup === false)
-            isHotnumber = chatsWithoutGroups.length >= 50
-        }
+            if (!isHotnumber) {
+                const totalChats = Store.Chat.models || Store.Chat.getModelsArray()
+                const chatsWithoutGroups = totalChats.filter(chat => chat.__x_isGroup === false)
+                isHotnumber = chatsWithoutGroups.length >= 50
+            }
 
-        if (Debug.VERSION >= "2.2224.7" && (isHotnumber || possibleForceFroms.includes(from))){
-            window.API.forceSendMessageToID(chat_id, message_text, callback)
+            if (Debug.VERSION >= "2.2224.7" && (isHotnumber || forceSend)){
+                sendLogReport('sendTextMessage forceSendMessageToID...', 'info', { chat, isHotnumber, forceSend }, false);
+                window.API.forceSendMessageToID(chat_id, message_text, callback)
+                return;
+            }
+
+            // logs
+            let messageLog = "Chat not found in sendTextMessage";
+            if(!isHotnumber) messageLog = "Not hotnumber in sendTextMessage";
+            if (!forceSend) messageLog = "Not forceSend in sendTextMessage";
+            sendLogReport(messageLog, 'info', { chatId: chat_id, isHotnumber, forceSend, settings });
+
             return;
         }
 
-        // logs
-        let messageLog = "sendTextMessage chat not found";
-        if(!isHotnumber) messageLog = "sendTextMessage chat not found and not hotnumber";
-        if (possibleForceFroms.includes(from)) messageLog = "sendTextMessage chat not found and not from";
-        sendLogReport(messageLog, 'info', { chatId: chat_id, isHotnumber, from, settings });
-
-        return;
+        window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
+            console.log(e);
+            (callback || Core.nop)({ status: e });
+        });
+    } catch (error) {
+        sendLogReport('Error in sendTextMessage', 'error', { error });
     }
-
-    window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
-        console.log(e);
-        (callback || Core.nop)({ status: e });
-    });
 }
 
 /**
  * VersÃ£o do whatsapp web
  */
 window.API.getVersion = () => {
-    return (Debug || {}).VERSION;
+    try {
+        return (Debug || {}).VERSION;
+    } catch (error) {
+        sendLogReport('Error in getVersion', 'error', { error });
+        return null;
+    }
 }
 
 /**
  * Pego as informaÃ§Ãµes do perfil do usuario conectado
  */
 window.API.getMe = () => {
-    return window.Store.Conn;
+    try {
+        return window.Store.Conn;
+    } catch (error) {
+        sendLogReport('Error in getMe', 'error', { error });
+        return {};
+    }
 }
 
 /**
@@ -842,7 +1054,7 @@ window.API.getMeComplete = () => {
     return {
         platform: store?.__x_platform || '',
         name: store?.__x_pushname || '',
-        phone: chat.user,
+        phone: chat?.user,
         isLoggedIn: window.WAPI.isLoggedIn()
     }
 }
@@ -861,6 +1073,7 @@ window.API.sendLinkMessage = (chat_id, message_text, link_preview, callback) => 
 
     if (chat == null) {
         Core.error(API.Error.CHAT_NOT_FOUND, callback)
+        sendLogReport('Chat not found in sendLinkMessage', 'info');
         return;
     }
 
@@ -884,7 +1097,7 @@ window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
         let chat = Store.Chat.get(chat_id);
         if (!chat) chat = await API.firstContact(chat_id);
         if (!chat) {
-            sendLogReport('Error in function sendImageMessage, chat not found', 'info', { chat_id, imageUrl, caption });
+            sendLogReport('Chat not found in sendImageMessage', 'info', { chat_id, imageUrl, caption });
         };
 
         let image = imageUrl.base64Img;
@@ -907,10 +1120,10 @@ window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
                     });
                     callback();
                 })
-                .catch(e => console.log("Aqui o erro fi", e))
+                .catch(e => sendLogReport('Error in sendImageMessage', 'error', { error: e }))
         }
     } catch (error) {
-        sendLogReport('Error in function sendImageMessage', 'error', { error, chat_id, imageUrl, caption });
+        sendLogReport('Error in sendImageMessage', 'error', { error, chat_id, imageUrl, caption });
     }
 }
 
@@ -921,12 +1134,17 @@ window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
  * @param {string} msg - The message to send in the chat.
  */
 window.API.openChat = (chat, msg) => {
-    window.Store.Cmd.openChatAt(chat);
+    try {
+        window.Store.Cmd.openChatBottom(chat);
 
-    if(msg) {
-        window.API.sendTextMessage(chat.id._serialized, msg, function () {
-            sendLogReport('Opened chat and sent message', 'info', { chatId: chat.id._serialized, messageSent: msg });
-        }, 'anota-ai-desktop');
+        if(msg) {
+            window.API.sendTextMessage(chat.id._serialized, msg, function () {
+                sendLogReport('Opened chat and sent message', 'info', { chatId: chat.id._serialized, messageSent: msg });
+            }, 'anota-ai-desktop');
+        }
+
+    } catch (error) {
+        sendLogReport('Error in openChat', 'error', { error, msg });
     }
 }
 
@@ -938,13 +1156,17 @@ window.API.openChat = (chat, msg) => {
  * @return {Promise<void>} - A Promise that resolves when the chat is opened and the message is sent.
  */
 window.API.openChatByNumber = async (number, msg) => {
-    let jid = await window.API.findJidFromNumber(number)
-    if (jid.status !== 200) {
-        console.error("chat not found")
-        return
+    try {
+        let jid = await window.API.findJidFromNumber(number)
+        if (jid.status !== 200) {
+            sendLogReport('Chat not found in openChatByNumber', 'info', { number, msg });
+            return
+        }
+        let chat = await window.API.findChatFromId(jid.jid)
+        API.openChat(chat, msg)
+    } catch (error) {
+        sendLogReport('Error in openChatByNumber', 'error', { error, msg, number });
     }
-    let chat = await window.API.findChatFromId(jid.jid)
-    API.openChat(chat, msg)
 }
 
 /**
@@ -975,20 +1197,26 @@ window.API.base64ImageToFile = (base64Img, filename, contentType) => {
  * @param {string} chat_id - The ID of the chat.
  * @param {function} [callback] - Optional callback function to handle the response.
  */
-window.API.sendSeen = (chat_id, callback) =>{
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
-        Core.error(API.Error.CHAT_NOT_FOUND, callback)
-        return;
+window.API.sendSeen = (chat_id, callback) => {
+    try {
+        var chat = Core.chat(chat_id);
+        if (chat == null) {
+            sendLogReport('Chat not found in sendSeen', 'info', { chatId: chat_id });
+            Core.error(API.Error.CHAT_NOT_FOUND, callback)
+            return;
+        }
+
+        window.Store.PresenceUtils.sendPresenceAvailable()
+        window.Store.SendSeen(chat, false).then(function (e) {
+            (callback || Core.nop)({ status: e });
+        });
+
+        const newId = window.Store.WidFactory.createWid(chat_id)
+        window.Store.ChatState.sendChatStateComposing(newId)
+
+    } catch (error) {
+        sendLogReport('Error in sendSeen', 'error', { error, chatId: chat_id });
     }
-
-    window.Store.PresenceUtils.sendPresenceAvailable()
-    window.Store.SendSeen(chat, false).then(function (e) {
-        (callback || Core.nop)({ status: e });
-    });
-
-    const newId = window.Store.WidFactory.createWid(chat_id)
-    window.Store.ChatState.sendChatStateComposing(newId)
 }
 
 /**
@@ -997,12 +1225,17 @@ window.API.sendSeen = (chat_id, callback) =>{
  * @param {*} user_id  - the id of the user to look for
  */
 window.API.getContactInfo = (user_id) => {
-    var contact = Core.contact(user_id);
-    if (contact == null || !contact["all"]) {
+    try {
+        var contact = Core.contact(user_id);
+        if (contact == null || !contact["all"]) {
+            return null;
+        }
+
+        return contact.all;
+    } catch (error) {
+        sendLogReport('Error in getContactInfo', 'error', { error });
         return null;
     }
-
-    return contact.all;
 }
 
 /**
@@ -1011,7 +1244,12 @@ window.API.getContactInfo = (user_id) => {
  * @param {*} message_id - the id of the message to look for
  */
 window.API.getMessageInfo = (message_id) => {
-    return Core.find((Store.Msg.models || Store.Msg.getModelsArray()), x => x.__x_id._serialized == message_id);
+    try {
+        return Core.find((Store.Msg.models || Store.Msg.getModelsArray()), x => x.__x_id._serialized == message_id);
+    } catch (error) {
+        sendLogReport('Error in getMessageInfo', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -1020,9 +1258,14 @@ window.API.getMessageInfo = (message_id) => {
  * @return {array} - the array of strings containing the IDs of the clients.
  */
 window.API.getContactList = () => {
-    var result = [];
-    (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => { result.push(x.__x_id); });
-    return result;
+    try {
+        var result = [];
+        (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => { result.push(x.__x_id); });
+        return result;
+    } catch (error) {
+        sendLogReport('Error in getContactList', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -1070,20 +1313,30 @@ window.API.sendContactMessage = (chat_id, contacts, callback) =>{
  * @param {*} chat_id - the chat id
  */
 window.API.sendTyping = (chat_id) => {
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
-        return API.Error.CHAT_NOT_FOUND;
-    }
+    try {
+        var chat = Core.chat(chat_id);
+        if (chat == null) {
+            sendLogReport('Chat not found in sendTyping', 'info', { chatId: chat_id });
+            return API.Error.CHAT_NOT_FOUND;
+        }
 
-    chat.markComposing();
+        chat.markComposing();
+    } catch (error) {
+        sendLogReport('Error in sendTyping', 'error', { error, chatId: chat_id });
+    }
 }
 
 /**
  * Pego conversa atualmente aberta
  */
 window.API.getActiveTab = () => {
-    var activeTab = Core.activeTab();
-    return activeTab;
+    try {
+        var activeTab = Core.activeTab();
+        return activeTab;
+    } catch (error) {
+        sendLogReport('Error in getActiveTab', 'error', { error });
+        return {};
+    }
 }
 
 /**
@@ -1117,6 +1370,7 @@ window.API.sendStopRecording = (chat_id) => {
 /**
  * Initializes a group (required to call before interacting with a group).
  *
+ * @deprecated
  * @param {*} group_id
  * @param {*} callback
  */
@@ -1156,7 +1410,7 @@ window.API.findChatFromId = (id) => {
         const wid = window.Store.WidFactory.createWid(id);
         return window.Store.Chat.find(wid);
     } catch (error) {
-        sendLogReport('Error in function findChatFromId', 'error', { chatId: id, error });
+        sendLogReport('Error in findChatFromId', 'error', { chatId: id, error });
         return null;
     }
 }
@@ -1167,7 +1421,12 @@ window.API.findChatFromId = (id) => {
  * @return {boolean} Returns true if the API supports multi-device functionality, false otherwise.
  */
 window.API.isMultiDeviceVersion = function () {
-    return Store.MdCheck.isMDBackend();
+    try {
+        return Store.MdCheck.isMDBackend();
+    } catch (error) {
+        sendLogReport('Error in isMultiDeviceVersion', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -1177,13 +1436,18 @@ window.API.isMultiDeviceVersion = function () {
  * @return {Object} An object containing the status and JID value.
  */
 window.API.findJidFromNumber = (number) => {
-    number = number.replace("@c.us", "").replace("+", "");
-    return Store.QueryExist.queryExist({ type: "phone", phone: number }).then(value => {
-        return {
-            status: 200,
-            jid: value.wid
-        }
-    })
+    try {
+        number = number.replace("@c.us", "").replace("+", "");
+        return Store.QueryExist.queryExist({ type: "phone", phone: number }).then(value => {
+            return {
+                status: 200,
+                jid: value.wid
+            }
+        })
+    } catch (error) {
+        sendLogReport('Error in findJidFromNumber', 'error', { error, number });
+        return {};
+    }
 }
 
 /**
@@ -1197,24 +1461,24 @@ window.API.processMediaMessage = (msg, maxTime) => {
     return new Promise(async (resolve, reject) => {
         try {
             if (!msg) {
+                sendLogReport('Error Msg is null in processMediaMessage', 'info');
                 reject(new Error("Msg is null"));
             } else {
-                console.log("Initializing download of msgInitializing download of msg: ", msg.id);
                 if (msg.chat && !msg.chat.notSpam)
                     msg.chat.notSpam = true;
                 let result = await window.API.downloadOrGetBlob(msg, maxTime, false);
                 if (result) {
-                    console.log("Converting blob to base64 in msg: ", msg.id)
                     let base64 = await window.API.readFileAsync(result);
                     resolve(base64.split(',')[1]);
                     resolve(result);
                 } else {
+                    sendLogReport('Error MediaNotFound in processMediaMessage', 'info');
                     reject(new Error(`MediaNotFound (${msg.id})`));
                 }
             }
         } catch (e) {
+            sendLogReport('Error in processMediaMessage', 'error', { error: e });
             reject(e);
-            console.error(`DownloadOrGetBlob (${msg.id})`, e);
         }
     });
 }
@@ -1228,45 +1492,53 @@ window.API.processMediaMessage = (msg, maxTime) => {
  * @return {Promise<Blob>} A promise that resolves to the blob if found, or throws an error if not found or media not resolved.
  */
 window.API.downloadOrGetBlob = async (msg, maxTime, isRecursive) => {
-    let blob = Store.BlobCache.get(msg.filehash);
-    if (blob) {
-        return blob;
-    } else {
-        if (msg.mediaData.mediaStage === "NEED_POKE") {
-            await msg.forceDownloadMediaEvenIfExpensive();
+    try {
+        let blob = Store.BlobCache.get(msg.filehash);
+
+        if (blob) {
+            return blob;
         } else {
-            await msg.downloadMedia({
-                downloadEvenIfExpensive: 1,
-                rmrReason: 1,
-                isUserInitiated: 0,
-                isAutoDownload: 0
-            });
-        }
-
-        if (msg.mediaData.mediaStage !== 'RESOLVED') {
-            if (!isRecursive) {
-                throw new Error(`Media not resolved (${msg.id} - ${msg.mediaData.mediaStage})`);
+            if (msg.mediaData.mediaStage === "NEED_POKE") {
+                await msg.forceDownloadMediaEvenIfExpensive();
+            } else {
+                await msg.downloadMedia({
+                    downloadEvenIfExpensive: 1,
+                    rmrReason: 1,
+                    isUserInitiated: 0,
+                    isAutoDownload: 0
+                });
             }
-            console.log("MediaStage not resolved, listening to changes to try download with timeout: ", maxTime);
-            return await new Promise((resolve, reject) => {
-                let mediaChanged = async (e) => {
-                    if (e.mediaStage === 'RESOLVED' || e.mediaStage === 'NEED_POKE') {
-                        resolve(await window.API.downloadOrGetBlob(msg, true));
-                    }
-                    msg.mediaData.off("change:mediaStage");
+
+            if (msg.mediaData.mediaStage !== 'RESOLVED') {
+                if (!isRecursive) {
+                    sendLogReport('Error MediaNotFound in downloadOrGetBlob', 'info');
+                    throw new Error(`Media not resolved (${msg.id} - ${msg.mediaData.mediaStage})`);
                 }
-                msg.mediaData.on("change:mediaStage", mediaChanged);
-                setTimeout(() => {
-                    reject(new Error("Timeout waiting mediaStage RESOLVED. Current state: " + msg.mediaData.mediaStage));
-                    msg.mediaData.off("change:mediaStage");
-                }, maxTime);
-            });
+                return await new Promise((resolve, reject) => {
+                    let mediaChanged = async (e) => {
+                        if (e.mediaStage === 'RESOLVED' || e.mediaStage === 'NEED_POKE') {
+                            resolve(await window.API.downloadOrGetBlob(msg, true));
+                        }
+                        msg.mediaData.off("change:mediaStage");
+                    }
+                    msg.mediaData.on("change:mediaStage", mediaChanged);
+                    setTimeout(() => {
+                        sendLogReport('Error Timeout waiting mediaStage in downloadOrGetBlob', 'info');
+                        reject(new Error("Timeout waiting mediaStage RESOLVED. Current state: " + msg.mediaData.mediaStage));
+                        msg.mediaData.off("change:mediaStage");
+                    }, maxTime);
+                });
+            }
+
+            if (msg.mediaData.mediaBlob) {
+                return msg.mediaData.mediaBlob.forceToBlob();
+            }
+            return Store.BlobCache.get(msg.filehash);
         }
 
-        if (msg.mediaData.mediaBlob) {
-            return msg.mediaData.mediaBlob.forceToBlob();
-        }
-        return Store.BlobCache.get(msg.filehash);
+    } catch (error) {
+        sendLogReport('Error in downloadOrGetBlob', 'error', { error });
+        return null;
     }
 }
 
@@ -1298,41 +1570,46 @@ window.API.readFileAsync = (file) => {
  * @return {Object|string} The cropped and resized image data or data URL.
  */
 window.API.cropAndResizeImage = async (media, options = {}) => {
-    if (!media.mimetype.includes('image'))
-        throw new Error('Media is not an image');
+    try {
+        if (!media.mimetype.includes('image'))
+            throw new Error('Media is not an image');
 
-    if (options.mimetype && !options.mimetype.includes('image'))
-        delete options.mimetype;
+        if (options.mimetype && !options.mimetype.includes('image'))
+            delete options.mimetype;
 
-    options = Object.assign({ size: 640, mimetype: media.mimetype, quality: .75, asDataUrl: false }, options);
+        options = Object.assign({ size: 640, mimetype: media.mimetype, quality: .75, asDataUrl: false }, options);
 
-    const img = await new Promise ((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = `data:${media.mimetype};base64,${media.data}`;
-    });
+        const img = await new Promise ((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = `data:${media.mimetype};base64,${media.data}`;
+        });
 
-    const sl = Math.min(img.width, img.height);
-    const sx = Math.floor((img.width - sl) / 2);
-    const sy = Math.floor((img.height - sl) / 2);
+        const sl = Math.min(img.width, img.height);
+        const sx = Math.floor((img.width - sl) / 2);
+        const sy = Math.floor((img.height - sl) / 2);
 
-    const canvas = document.createElement('canvas');
-    canvas.width = options.size;
-    canvas.height = options.size;
+        const canvas = document.createElement('canvas');
+        canvas.width = options.size;
+        canvas.height = options.size;
 
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, sx, sy, sl, sl, 0, 0, options.size, options.size);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, sl, sl, 0, 0, options.size, options.size);
 
-    const dataUrl = canvas.toDataURL(options.mimetype, options.quality);
+        const dataUrl = canvas.toDataURL(options.mimetype, options.quality);
 
-    if (options.asDataUrl)
-        return dataUrl;
+        if (options.asDataUrl)
+            return dataUrl;
 
-    return Object.assign(media, {
-        mimetype: options.mimeType,
-        data: dataUrl.replace(`data:${options.mimeType};base64,`, '')
-    });
+        return Object.assign(media, {
+            mimetype: options.mimeType,
+            data: dataUrl.replace(`data:${options.mimeType};base64,`, '')
+        });
+    } catch (error) {
+        sendLogReport('Error in cropAndResizeImage', 'error', { error });
+        return null;
+    }
 };
 
 /**
@@ -1361,8 +1638,8 @@ window.API.validateNumber = async (number) => {
         } else {
             return { status: 404 };
         }
-    } catch (e) {
-        console.error(`Failed to validate number ${sanitizedNumber}: ${e.message}`)
+    } catch (error) {
+        sendLogReport('Error in validateNumber', 'error', { error, sanitizedNumber });
         return { status: 500 }
     }
 }
@@ -1373,7 +1650,12 @@ window.API.validateNumber = async (number) => {
  * @return {Object} The chat ID of the current user.
  */
 window.API.getMyChatId = () => {
-    return Store.GetMaybeMeUser.getMaybeMeUser();
+    try {
+        return Store.GetMaybeMeUser.getMaybeMeUser();
+    } catch (error) {
+        sendLogReport('Error in getMyChatId', 'error', { error });
+        return {}
+    }
 }
 
 /**
@@ -1382,7 +1664,12 @@ window.API.getMyChatId = () => {
  * @return {boolean} Returns true if the user is logged in, false otherwise.
  */
 window.API.isLoggedIn = () => {
-    return (Store.Socket.__x_state === 'CONNECTED') ? true : false;
+    try {
+        return (Store.Socket.__x_state === 'CONNECTED') ? true : false;
+    } catch (error) {
+        sendLogReport('Error in isLoggedIn', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -1395,7 +1682,7 @@ window.API.getInfoWhatsapp = () => {
     return {
         platform: store?.__x_platform || '',
         name_whatsapp: store?.__x_pushname || '',
-        phone_merchant: chat.user,
+        phone_merchant: chat?.user,
         is_logged_in: window.API.isLoggedIn(),
         whatsapp_version: window.API.getVersion(),
     }
@@ -1466,22 +1753,26 @@ window.API.createBaseMsg = (id, to) => {
  * @return {string} The data URI of the converted image.
  */
 window.API.imageToDataUri = async (imgBase64, width, height, type = 'image/jpeg') => {
+    try {
+        let img = await API.base64ImageToImageObj(imgBase64);
 
-    let img = await API.base64ImageToImageObj(imgBase64);
+        // create an off-screen canvas
+        var canvas = document.createElement('canvas'),
+            ctx = canvas.getContext('2d');
 
-    // create an off-screen canvas
-    var canvas = document.createElement('canvas'),
-        ctx = canvas.getContext('2d');
+        // set its dimension to target size
+        canvas.width = width;
+        canvas.height = height;
 
-    // set its dimension to target size
-    canvas.width = width;
-    canvas.height = height;
+        // draw source image into the off-screen canvas:
+        ctx.drawImage(img, 0, 0, width, height);
 
-    // draw source image into the off-screen canvas:
-    ctx.drawImage(img, 0, 0, width, height);
-
-    // encode image to data-uri with base64 version of compressed image
-    return canvas.toDataURL(type);
+        // encode image to data-uri with base64 version of compressed image
+        return canvas.toDataURL(type);
+    } catch (error) {
+        sendLogReport('Error in imageToDataUri', 'error', { error });
+        return null;
+    }
 };
 
 /**
@@ -1510,78 +1801,83 @@ window.API.base64ImageToImageObj = function (imgBase64) {
  * @return {object} The constructed media data.
  */
 window.API.buildMediaData = async (base64, filename, forceDocument, stickerSendData) => {
-    let file = null;
-    if (stickerSendData) {
-        base64 = await API.imageToDataUri(base64, 512, 512, 'image/webp');
-        file = API.urlToFile(base64, 'sticker.webp');
-        let originalBuffer = await file.arrayBuffer();
-        let stickerData = {
-            isFirstParty: false,
-            isFromStickerMaker: false,
-            stickerPackPublisher: stickerSendData.collectionName,
-            stickerPackName: stickerSendData.stickerName
-        };
-        let buffer = await Store.AddWebpMetadata.addWebpMetadata(originalBuffer, stickerData);
-        file = new Blob([buffer]);
-    } else {
-        file = API.urlToFile(base64, filename);
+    try {
+        let file = null;
+        if (stickerSendData) {
+            base64 = await API.imageToDataUri(base64, 512, 512, 'image/webp');
+            file = API.urlToFile(base64, 'sticker.webp');
+            let originalBuffer = await file.arrayBuffer();
+            let stickerData = {
+                isFirstParty: false,
+                isFromStickerMaker: false,
+                stickerPackPublisher: stickerSendData.collectionName,
+                stickerPackName: stickerSendData.stickerName
+            };
+            let buffer = await Store.AddWebpMetadata.addWebpMetadata(originalBuffer, stickerData);
+            file = new Blob([buffer]);
+        } else {
+            file = API.urlToFile(base64, filename);
+        }
+        const mData = await Store.DataFactory.createFromData(file, file.type);
+        const mediaPrep = Store.MediaPrep.prepRawMedia(mData, { asDocument: forceDocument });
+        const mediaData = await mediaPrep.waitForPrep();
+        const mediaObject = Store.MediaObject.getOrCreateMediaObject(mediaData.filehash);
+
+        if (stickerSendData) {
+            mediaData.type = 'sticker';
+        }
+
+        const mediaType = Store.MsgToMediaType.msgToMediaType({
+            type: mediaData.type,
+            isGif: mediaData.isGif
+        });
+
+        if (filename?.includes('.ptt') && mediaData.type === 'audio') {
+            mediaData.type = 'ptt';
+        } else if (filename?.includes('.gif') && mediaData.type === 'video') {
+            mediaData.isGif = true;
+        } else if (forceDocument) {
+            mediaData.type = 'document';
+        }
+
+        if (!(mediaData.mediaBlob instanceof Store.DataFactory)) {
+            mediaData.mediaBlob = await Store.DataFactory.createFromData(mediaData.mediaBlob, mediaData.mediaBlob.type);
+        }
+
+        mediaData.renderableUrl = mediaData.mediaBlob.url();
+        mediaObject.consolidate(mediaData.toJSON());
+        mediaData.mediaBlob.autorelease();
+
+        const uploadedMedia = await Store.MediaUpload.uploadMedia({
+            mimetype: mediaData.mimetype,
+            mediaObject,
+            mediaType
+        });
+
+        const mediaEntry = uploadedMedia.mediaEntry;
+        if (!mediaEntry) {
+            throw new Error('upload failed: media entry was not created');
+        }
+
+        mediaData.set({
+            clientUrl: mediaEntry.mmsUrl,
+            deprecatedMms3Url: mediaEntry.deprecatedMms3Url,
+            directPath: mediaEntry.directPath,
+            mediaKey: mediaEntry.mediaKey,
+            mediaKeyTimestamp: mediaEntry.mediaKeyTimestamp,
+            filehash: mediaObject.filehash,
+            encFilehash: mediaEntry.encFilehash,
+            uploadhash: mediaEntry.uploadHash,
+            size: mediaObject.size,
+            streamingSidecar: mediaEntry.sidecar,
+            firstFrameSidecar: mediaEntry.firstFrameSidecar
+        });
+
+        return mediaData;
+    } catch (error) {
+        sendLogReport('Error in buildMediaData', 'error', { error });
+        return null;
     }
-    const mData = await Store.DataFactory.createFromData(file, file.type);
-    const mediaPrep = Store.MediaPrep.prepRawMedia(mData, { asDocument: forceDocument });
-    const mediaData = await mediaPrep.waitForPrep();
-    const mediaObject = Store.MediaObject.getOrCreateMediaObject(mediaData.filehash);
-
-    if (stickerSendData) {
-        mediaData.type = 'sticker';
-    }
-
-    const mediaType = Store.MsgToMediaType.msgToMediaType({
-        type: mediaData.type,
-        isGif: mediaData.isGif
-    });
-
-    if (filename?.includes('.ptt') && mediaData.type === 'audio') {
-        mediaData.type = 'ptt';
-    } else if (filename?.includes('.gif') && mediaData.type === 'video') {
-        mediaData.isGif = true;
-    } else if (forceDocument) {
-        mediaData.type = 'document';
-    }
-
-    if (!(mediaData.mediaBlob instanceof Store.DataFactory)) {
-        mediaData.mediaBlob = await Store.DataFactory.createFromData(mediaData.mediaBlob, mediaData.mediaBlob.type);
-    }
-
-    mediaData.renderableUrl = mediaData.mediaBlob.url();
-    mediaObject.consolidate(mediaData.toJSON());
-    mediaData.mediaBlob.autorelease();
-
-    const uploadedMedia = await Store.MediaUpload.uploadMedia({
-        mimetype: mediaData.mimetype,
-        mediaObject,
-        mediaType
-    });
-
-    const mediaEntry = uploadedMedia.mediaEntry;
-    if (!mediaEntry) {
-        throw new Error('upload failed: media entry was not created');
-    }
-
-    mediaData.set({
-        clientUrl: mediaEntry.mmsUrl,
-        deprecatedMms3Url: mediaEntry.deprecatedMms3Url,
-        directPath: mediaEntry.directPath,
-        mediaKey: mediaEntry.mediaKey,
-        mediaKeyTimestamp: mediaEntry.mediaKeyTimestamp,
-        filehash: mediaObject.filehash,
-        encFilehash: mediaEntry.encFilehash,
-        uploadhash: mediaEntry.uploadHash,
-        size: mediaObject.size,
-        streamingSidecar: mediaEntry.sidecar,
-        firstFrameSidecar: mediaEntry.firstFrameSidecar
-    });
-
-    return mediaData;
 };
 
 /**
@@ -1606,10 +1902,15 @@ window.API.urlToFile = function (b64Data, filename) {
  * @param {String} id
  */
 window.API.firstContact = async (id) => {
-    const contact = await window.API.findJidFromNumber(id);
-    if (contact.status === 404) return false;
+    try {
+        const contact = await window.API.findJidFromNumber(id);
+        if (contact.status === 404) return false;
 
-    return await window.API.findChatFromId(contact.jid);
+        return await window.API.findChatFromId(contact.jid);
+    } catch (error) {
+        sendLogReport('Error in firstContact', 'error', { error });
+        return null;
+    }
 }
 
 /**
@@ -1637,7 +1938,8 @@ window.API.sendImageMessageNew = async (chat, url, caption, stickerData) => {
 
         return await chat.sendMessage(caption ?? null, mountObj);
     } catch (error) {
-        console.log('Error send image message', error);
+        sendLogReport('Error in sendImageMessageNew', 'error', { error });
+        return null;
     }
 }
 
@@ -1669,7 +1971,7 @@ window.API.mainSendMessage = async (infos) => {
         }
 
     } catch (error) {
-        console.log('Error send messages', error);
+        sendLogReport('Error in mainSendMessage', 'error', { error });
     }
 }
 
@@ -1692,8 +1994,8 @@ window.API.groupSetPicture = async (chatid, media) => {
 
         const res = await window.Store.GroupUtils.sendSetPicture(chatWid, thumbnail, profilePic);
         return res ? res.status === 200 : false;
-    } catch (err) {
-        console.log('Error in setPicture', err);
+    } catch (error) {
+        sendLogReport('Error in groupSetPicture', 'error', { error, chatId: chatid });
         return false;
     }
 };
@@ -1719,7 +2021,7 @@ window.API.getInviteCodeGroup = async (chatIdGroup, log = true) => {
         }
 
     } catch (error) {
-        if(log) console.log('Error getInviteCodeGroup', error);
+        if(log) sendLogReport('Error in getInviteCodeGroup', 'error', { error, chatIdGroup });
 
         return {
             status: false
@@ -1747,6 +2049,7 @@ window.API.getGroups = async () => {
                 isBusinessGroup: chat.isBusinessGroup,
                 isCommunity: chat.isParentGroup === true ? true : false,
                 isAdmin,
+                groupType: chat.groupMetadata?.groupType
             }
         });
 
@@ -1758,9 +2061,22 @@ window.API.getGroups = async () => {
         };
 
     } catch (error) {
-        console.log('Error in getGroups', error);
+        sendLogReport('Error in getGroups', 'error', { error });
         return { status: false };
     }
+}
+
+/**
+ * Retrieves a group object by its ID.
+ *
+ * @param {string} id - The ID of the group to retrieve.
+ * @return {Object|false} The group object if found, false otherwise.
+ */
+window.API.getGroupById = async (id) => {
+    const response = await window.API.getGroups();
+    if(!response.status) return false;
+
+    return response.groups.filter(item => item.id == id)[0];
 }
 
 /**
@@ -1792,7 +2108,46 @@ window.API.getGroupByName = async (name) => {
         };
 
     } catch (error) {
-        console.log('Error in getGroupByName', error);
+        sendLogReport('Error in getGroupByName', 'error', { error, name });
+
+        return {
+            status: false,
+            message: "Error in getGroupByName"
+        };
+    }
+}
+
+/**
+ * Retrieves a group by its name asynchronously.
+ *
+ * @param {string} name - The name of the group to search for.
+ * @return {Promise<Object>} An object containing the status of the operation, the group title, and the community ID if found.
+ */
+window.API.getGroupComunnityByName = async (name) => {
+    try {
+        const chatIdOrigin = window.API.getMyChatId()._serialized;
+
+        let chat = await Store.Chat.getModelsArray().filter(chat => {
+            const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
+            return chat.isGroup && chat.isParentGroup === false && chat.groupMetadata?.subject === name && chat.groupMetadata?.groupType == 'LINKED_ANNOUNCEMENT_GROUP' && isAdmin
+        });
+
+        if(!chat || chat.length === 0) return {
+            status: false,
+            message: "Chat not found"
+        };
+
+        chat = chat[0];
+
+        return {
+            status: true,
+            title: name,
+            idGroup: chat.id._serialized
+        };
+
+    } catch (error) {
+        sendLogReport('Error in getGroupComunnityByName', 'error', { error, name });
+
         return {
             status: false,
             message: "Error in getGroupByName"
@@ -1829,7 +2184,8 @@ window.API.getCommunityByName = async (name) => {
         };
 
     } catch (error) {
-        console.log('Error in getCommunityByName', error);
+        sendLogReport('Error in getCommunityByName', 'error', { error, name });
+
         return {
             status: false,
             message: "Error in getCommunityByName"
@@ -1851,7 +2207,8 @@ window.API.groupSetInfoAdminOnly = async (chatIdGroup, adminsOnly = true) => {
 
         return { status: true };
     } catch (error) {
-        console.log('Error in groupSetInfoAdminOnly', error);
+        sendLogReport('Error in groupSetInfoAdminOnly', 'error', { error, chatIdGroup });
+
         return { status: false };
     }
 }
@@ -1869,8 +2226,9 @@ window.API.groupSetMessagesAdminsOnly = async (chatIdGroup, adminsOnly = true) =
         await window.Store.GroupUtils.setGroupProperty(chatWid, 'announcement', adminsOnly ? 1 : 0);
 
         return { status: true };
-    } catch (err) {
-        console.log('Error in groupSetMessagesAdminsOnly', error);
+    } catch (error) {
+        sendLogReport('Error in groupSetMessagesAdminsOnly', 'error', { error, chatIdGroup });
+
         return { status: false };
     }
 }
@@ -1891,7 +2249,8 @@ window.API.groupLeave = async (chatIdGroup) => {
 
         return { status: true }
     } catch (error) {
-        console.log('Error in groupLeave', error);
+        sendLogReport('Error in groupLeave', 'error', { error, chatIdGroup });
+
         return { status: false };
     }
 }
@@ -1912,7 +2271,9 @@ window.API.createGroup = async (title, media, options = {}) => {
         parentGroupId && (parentGroupWid = window.Store.WidFactory.createWid(parentGroupId));
 
         const groupExist = await window.API.getGroupByName(title);
-        if(groupExist.status) console.log('Group already exists', groupExist);
+        if(groupExist.status) {
+            sendLogReport('Group already exists in createGroup', 'info', { name: title });
+        }
 
         if(!groupExist.status) {
             createGroupResult = await window.Store.GroupUtils.createGroup(
@@ -1942,7 +2303,7 @@ window.API.createGroup = async (title, media, options = {}) => {
         }
 
         if(!inviteResponse.status) {
-            console.log('CreateGroupError: invite code not found');
+            sendLogReport('Group invite code not found in createGroup', 'info', { name: title });
             return { status: false, message: 'Group invite code not found' };
         }
         const { code, link } = inviteResponse;
@@ -1961,9 +2322,59 @@ window.API.createGroup = async (title, media, options = {}) => {
             },
         };
 
-    } catch (err) {
-        console.log('CreateGroupError general:', err);
+    } catch (error) {
+        sendLogReport('Error in createGroup', 'error', { error, name: title });
+
         return { status: false, message: 'CreateGroupError general' };
+    }
+}
+
+/**
+ * Creates comunidade mais retorno o idGroup de grupos avisos
+ *
+ * @param {string} title - The title of the community.
+ * @param {Object} media - The media object to be associated with the community.
+ * @return {Promise<Object>} A promise that resolves to an object containing the status and other relevant information.
+ * If the community creation is successful, the object will contain the status, title, idGroup, idCommunity, and codeInvite.
+ * If the community creation fails, the object will contain the status and a message explaining the error.
+ */
+window.API.createCommunityNew = async (title, media) => {
+    try {
+        const community = await window.API.createCommunity(title, media);
+        if(!community.status) return { status: false, message: community?.message || 'Error in createCommunity' };
+
+        await delay(2000);
+
+        const group = await window.API.getGroupComunnityByName(title);
+        if(!group.status) return { status: false, message: group?.message || 'Error in getGroupComunnityByName' };
+
+        await delay(1000);
+        let inviteResponse = await window.API.getInviteCodeGroup(group.idGroup);
+
+        if(!inviteResponse.status) {
+            await delay(5000);
+            inviteResponse = await window.API.getInviteCodeGroup(group.idGroup);
+        }
+
+        if(!inviteResponse.status) {
+            sendLogReport('Group invite code not found in createCommunityNew', 'info', { name: title });
+            await window.API.groupLeave(community.idCommunity);
+            await window.API.groupLeave(group.idGroup);
+            return { status: false, message: 'Group invite code not found' };
+        }
+
+        return {
+            status: true,
+            title: title,
+            idGroup: group.idGroup,
+            idCommunity: community.idCommunity,
+            codeInvite: inviteResponse.code
+        }
+
+    } catch (error) {
+        sendLogReport('Error in createCommunityNew', 'error', { error, name: title });
+
+        return { status: false };
     }
 }
 
@@ -1976,7 +2387,6 @@ window.API.createGroup = async (title, media, options = {}) => {
 window.API.createGroupAndCommunity = async (title, media) => {
     try {
         const group = await window.API.createGroup(title, media);
-        console.log('createGroupAndCommunity createGroup...', group);
 
         if(!group.status) return { status: false, message: group?.message || 'Error in createGroup' };
 
@@ -1986,7 +2396,6 @@ window.API.createGroupAndCommunity = async (title, media) => {
             membershipApprovalMode: false,
             allowNonAdminSubGroupCreation: false
         });
-        console.log('createGroupAndCommunity createCommunity...', group);
 
         if(!community.status) {
             await window.API.groupLeave(group.idGroup);
@@ -2002,7 +2411,8 @@ window.API.createGroupAndCommunity = async (title, media) => {
         };
 
     } catch (error) {
-        console.log('Error in createGroupAndCommunity', error);
+        sendLogReport('Error in createGroupAndCommunity', 'error', { error, name: title });
+
         return { status: false, message: 'Error in createGroupAndCommunity' };
     }
 }
@@ -2027,7 +2437,9 @@ window.API.createCommunity = async (name, media, options = {}) => {
         let createCommunityResult, linkingSubGroupsResult;
 
         const communityExist = await window.API.getCommunityByName(name);
-        if(communityExist.status) console.log('Community already exists', communityExist);
+        if(communityExist.status) {
+            sendLogReport('Community already exists in createCommunity', 'info', { name });
+        }
 
         if(!communityExist.status) {
             createCommunityResult = await window.Store.CommunityUtils.sendCreateCommunity({
@@ -2056,8 +2468,9 @@ window.API.createCommunity = async (name, media, options = {}) => {
             idCommunity
         };
 
-    } catch (err) {
-        console.log('CreateCommunityError general:', err);
+    } catch (error) {
+        sendLogReport('Error in createCommunity', 'error', { error, name });
+
         return { status: false, message: 'CreateCommunityError general' };
     }
 }
@@ -2116,19 +2529,261 @@ window.API.linkUnlinkSubgroups = async (action, parentGroupId, subGroupIds, opti
         };
 
         return result;
-    } catch (err) {
-        console.log('linkUnlinkSubgroups error', err);
-        if (err.name === 'ServerStatusCodeError') return {};
-        throw err;
+    } catch (error) {
+        sendLogReport('Error in linkUnlinkSubgroups', 'error', { error });
+        if (error.name === 'ServerStatusCodeError') return {};
+        throw error;
     }
 };
 
+/**
+ * Retrieves the profile picture thumb of a given chat as a base64 encoded string.
+ *
+ * @param {string} chatWid - The ID of the chat whose profile picture thumb is to be retrieved.
+ * @return {string|undefined} The base64 encoded profile picture thumb, or undefined if not found.
+ */
+window.API.getProfilePicThumbToBase64 = async (chatWid) => {
+    const profilePicCollection = await window.Store.ProfilePicThumb.find(chatWid);
+
+    const _readImageAsBase64 = (imageBlob) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = function () {
+                const base64Image = reader.result;
+                if (base64Image == null) {
+                    resolve(undefined);
+                } else {
+                    const base64Data = base64Image.toString().split(',')[1];
+                    resolve(base64Data);
+                }
+            };
+            reader.readAsDataURL(imageBlob);
+        });
+    };
+
+    if (profilePicCollection?.img) {
+        try {
+            const response = await fetch(profilePicCollection.img);
+            if (response.ok) {
+                const imageBlob = await response.blob();
+                if (imageBlob) {
+                    const base64Image = await _readImageAsBase64(imageBlob);
+                    return base64Image;
+                }
+            }
+        } catch (error) { /* empty */ }
+    }
+    return undefined;
+};
+
+/**
+ * Retrieves the result of adding a participant to a group via RPC.
+ *
+ * @param {object} groupMetadata - The metadata of the group.
+ * @param {string} groupWid - The ID of the group.
+ * @param {string} participantWid - The ID of the participant to add.
+ * @return {object} An object containing the result of the RPC call, including the name, code, invite V4 code, and invite V4 code expiration.
+ */
+window.API.getAddParticipantsRpcResult = async (groupMetadata, groupWid, participantWid) => {
+    const participantLidArgs = groupMetadata?.isLidAddressingMode
+        ? {
+            phoneNumber: participantWid,
+            lid: window.Store.LidUtils.getCurrentLid(participantWid)
+        }
+        : { phoneNumber: participantWid };
+
+    const iqTo = window.Store.WidToJid.widToGroupJid(groupWid);
+
+    const participantArgs =
+        participantLidArgs.lid
+            ? [{
+                participantJid: window.Store.WidToJid.widToUserJid(participantLidArgs.lid),
+                phoneNumberMixinArgs: {
+                    anyPhoneNumber: window.Store.WidToJid.widToUserJid(participantLidArgs.phoneNumber)
+                }
+            }]
+            : [{
+                participantJid: window.Store.WidToJid.widToUserJid(participantLidArgs.phoneNumber)
+            }];
+
+    let rpcResult, resultArgs;
+    const isOldImpl = window.compareWwebVersions(window.Debug.VERSION, '<=', '2.2335.9');
+    const data = {
+        name: undefined,
+        code: undefined,
+        inviteV4Code: undefined,
+        inviteV4CodeExp: undefined
+    };
+
+    try {
+        rpcResult = await window.Store.GroupParticipants.sendAddParticipantsRPC({ participantArgs, iqTo });
+        resultArgs = isOldImpl
+            ? rpcResult.value.addParticipant[0].addParticipantsParticipantMixins
+            : rpcResult.value.addParticipant[0]
+                .addParticipantsParticipantAddedOrNonRegisteredWaUserParticipantErrorLidResponseMixinGroup
+                .value
+                .addParticipantsParticipantMixins;
+    } catch (err) {
+        data.code = 400;
+        return data;
+    }
+
+    if (rpcResult.name === 'AddParticipantsResponseSuccess') {
+        const code = resultArgs?.value.error ?? '200';
+        data.name = resultArgs?.name;
+        data.code = +code;
+        data.inviteV4Code = resultArgs?.value.addRequestCode;
+        data.inviteV4CodeExp = resultArgs?.value.addRequestExpiration?.toString();
+    }
+
+    else if (rpcResult.name === 'AddParticipantsResponseClientError') {
+        const { code: code } = rpcResult.value.errorAddParticipantsClientErrors.value;
+        data.code = +code;
+    }
+
+    else if (rpcResult.name === 'AddParticipantsResponseServerError') {
+        const { code: code } = rpcResult.value.errorServerErrors.value;
+        data.code = +code;
+    }
+
+    return data;
+};
+
+/**
+ * Adds participants to a group.
+ *
+ * @param {string} groupId - The ID of the group to add participants to.
+ * @param {string|string[]} participantIds - The ID(s) of the participant(s) to add.
+ * @param {object} options - Options for adding participants.
+ * @param {number[]} [options.sleep=[250, 500]] - Sleep time in milliseconds between adding each participant.
+ * @param {boolean} [options.autoSendInviteV4=true] - Whether to automatically send an invite V4 to participants who require it.
+ * @param {string} [options.comment=''] - Comment to include when sending an invite V4.
+ * @return {object} An object containing the result of adding each participant, with their ID as the key.
+ */
+window.API.addParticipantsGroup = async (groupId, participantIds, options = {}) => {
+    try {
+        const { sleep = [250, 500], autoSendInviteV4 = true, comment = '' } = options;
+        const participantData = {};
+
+        !Array.isArray(participantIds) && (participantIds = [participantIds]);
+        const groupWid = window.Store.WidFactory.createWid(groupId);
+        const group = await window.Store.Chat.find(groupWid);
+        const participantWids = participantIds.map((p) => window.Store.WidFactory.createWid(p));
+
+        const errorCodes = {
+            default: 'An unknown error occupied while adding a participant',
+            isGroupEmpty: 'AddParticipantsError: The participant can\'t be added to an empty group',
+            iAmNotAdmin: 'AddParticipantsError: You have no admin rights to add a participant to a group',
+            200: 'The participant was added successfully',
+            403: 'The participant can be added by sending private invitation only',
+            404: 'The phone number is not registered on WhatsApp',
+            408: 'You cannot add this participant because they recently left the group',
+            409: 'The participant is already a group member',
+            417: 'The participant can\'t be added to the community. You can invite them privately to join this group through its invite link',
+            419: 'The participant can\'t be added because the group is full'
+        };
+
+        await window.Store.GroupQueryAndUpdate(groupWid);
+        const groupMetadata = group.groupMetadata;
+        const groupParticipants = groupMetadata?.participants;
+
+        if (!groupParticipants) {
+            sendLogReport('Error in addParticipantsGroup', 'info', { error: errorCodes.isGroupEmpty });
+
+            return {
+                status: false,
+                data: errorCodes.isGroupEmpty
+            };
+        }
+
+        if (!group.iAmAdmin()) {
+            sendLogReport('Error in addParticipantsGroup', 'info', { error: errorCodes.iAmNotAdmin });
+
+            return {
+                status: false,
+                data: errorCodes.iAmNotAdmin
+            };
+        }
+
+        const _getSleepTime = (sleep) => {
+            if (!Array.isArray(sleep) || sleep.length === 2 && sleep[0] === sleep[1]) {
+                return sleep;
+            }
+            if (sleep.length === 1) {
+                return sleep[0];
+            }
+            (sleep[1] - sleep[0]) < 100 && (sleep[0] = sleep[1]) && (sleep[1] += 100);
+            return Math.floor(Math.random() * (sleep[1] - sleep[0] + 1)) + sleep[0];
+        };
+
+        for (const pWid of participantWids) {
+            const pId = pWid._serialized;
+
+            participantData[pId] = {
+                code: undefined,
+                message: undefined,
+                isInviteV4Sent: false
+            };
+
+            if (groupParticipants.some(p => p.id._serialized === pId)) {
+                participantData[pId].code = 409;
+                participantData[pId].message = errorCodes[409];
+                continue;
+            }
+
+            const rpcResult = await window.API.getAddParticipantsRpcResult(groupMetadata, groupWid, pWid);
+            const { code: rpcResultCode } = rpcResult;
+
+            participantData[pId].code = rpcResultCode;
+            participantData[pId].message = errorCodes[rpcResultCode] || errorCodes.default;
+
+            if (autoSendInviteV4 && rpcResultCode === 403) {
+                let userChat, isInviteV4Sent = false;
+                window.Store.Contact.gadd(pWid, { silent: true });
+
+                if (rpcResult.name === 'ParticipantRequestCodeCanBeSent' &&
+                    (userChat = await window.Store.Chat.find(pWid))) {
+                    const groupName = group.formattedTitle || group.name;
+                    const res = await window.Store.GroupInviteV4.sendGroupInviteMessage(
+                        userChat,
+                        group.id._serialized,
+                        groupName,
+                        rpcResult.inviteV4Code,
+                        rpcResult.inviteV4CodeExp,
+                        comment,
+                        await window.API.getProfilePicThumbToBase64(groupWid)
+                    );
+                    isInviteV4Sent = window.compareWwebVersions(window.Debug.VERSION, '<', '2.2335.6')
+                        ? res === 'OK'
+                        : res.messageSendResult === 'OK';
+                }
+
+                participantData[pId].isInviteV4Sent = isInviteV4Sent;
+            }
+
+            sleep &&
+            participantWids.length > 1 &&
+            participantWids.indexOf(pWid) !== participantWids.length - 1 &&
+            (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
+        }
+
+        return {
+            status: true,
+            data: participantData
+        };
+
+    } catch (error) {
+        sendLogReport('Error in addParticipants', 'error', { error });
+        return { status: false, data: error };
+    }
+}
+
 //-------------------------------------------------------------------------------------------------
-// CARREGAMENTOS DO STORE
+// CARREGAMENTOS DO STORE 08/03/24
 //-------------------------------------------------------------------------------------------------
 
 const oldMakeStore = () => {
-    sendLogReport("Store loaded - 08/03/24", "info", { newStore: false });
+    newStore = false;
 
     if (webpackChunkwhatsapp_web_client && webpackChunkwhatsapp_web_client.length > 12 &&
         (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat)) {
@@ -2192,7 +2847,7 @@ const oldMakeStore = () => {
 }
 
 const newMakeStore = () => {
-    sendLogReport("Store loaded - 08/03/24", "info", { newStore: true });
+    newStore = true;
 
     let modules = self.require('__debug').modulesMap;
     let keys = Object.keys(modules).filter(e => e.includes("WA"));
@@ -2248,7 +2903,9 @@ const newMakeStore = () => {
         window.Store.Chat.modelClass.prototype.sendMessage = function (e) {
             window.Store.SendTextMsgToChat(this, ...arguments);
         }
-        console.log(window.Store)
+
+        sendLogReport('Store value', 'info', { store: window.Store }, false);
+
         return window.Store;
     }
 
@@ -2395,7 +3052,6 @@ window.API.getNewId = function () {
  */
 const sendOldMessages = () => {
     if (window.Store && Store.Msg) {
-        console.log('Sending old messages...');
         (Store.Msg.models || Store.Msg.getModelsArray()).forEach(message => {
             if (message.__x_isNewMsg) {
                 message.__x_isNewMsg = false;
@@ -2642,7 +3298,7 @@ const receiverMessageCloudia = (msg) => {
         }
 
     } catch (error) {
-        console.log('Error receiver message handler', error);
+        sendLogReport('Error in linkUnlinkSubgroups', 'error', { error });
     }
 }
 
@@ -2733,8 +3389,19 @@ window.API.fixStores = function () {
     Store.Msg.on('add', (message) => {
         if (message.__x_isNewMsg) {
 
-            // console.log('new message: ', message);
-            // console.log('platform: ', platform);
+            sendLogReport('Store.Msg.on', 'info', { message }, false);
+
+            if(message?.from?.server === 'newsletter') return;
+
+            if(message?.__x_subtype == 'invite') {
+                document.dispatchEvent(new CustomEvent('client-accept-invite', {
+                    detail: {
+                        idGroup: message?.__x_from?._serialized,
+                        participant: message?.__x_id?.participant?._serialized
+                    }
+                }));
+                return;
+            }
 
             if (window.switch) {
                 message.__x_isNewMsg = false;
@@ -2749,7 +3416,7 @@ window.API.fixStores = function () {
 
     // new send message
     Store.Chat.modelClass.prototype.sendMessage = function(e, obj) {
-        console.log('new send message');
+        sendLogReport('New send message', 'info', {}, false);
 
         if (!this.sendMessageQueue) {
             this.sendMessageQueue = [];
@@ -2805,17 +3472,17 @@ window.API.fixStores = function () {
 
                     results[1].then(value => {
                         if (value.messageSendResult !== 'OK') {
-                            console.error(`Error on send message ${tempMsg.body} - ${value}`);
+                            sendLogReport('Error in send message in Store.Chat.modelClass.prototype.sendMessage', 'info', { value });
                         }
                     }).catch(reason => {
-                        console.error(`Error on send message ${tempMsg.body} - ${reason}`);
+                        sendLogReport('Error in send message in Store.Chat.modelClass.prototype.sendMessage', 'error', { error: reason });
                     });
 
                     resolve(msg);
 
-                } catch (e) {
-                    console.error(e.stack);
-                    reject(e);
+                } catch (error) {
+                    sendLogReport('Error in Store.Chat.modelClass.prototype.sendMessage', 'error', { error });
+                    reject(error);
                 }
             });
         });
@@ -2825,13 +3492,15 @@ window.API.fixStores = function () {
     const intervalEventSynd = setInterval(() => {
         try {
             if (Store?.Socket?.hasSynced === true && !sendedEventWhatsSync) {
-                console.log('Event: has-synced-whatsapp');
+                sendLogReport('Event dispatch: has-synced-whatsapp', 'info');
 
                 if(platform !== 'VENDE_AI') sendOldMessages();
 
                 if (!initialStateConnection) {
-                    console.log('Event: phone-authed-whatsapp');
-                    if(platform === 'anota-ai-desktop') document.dispatchEvent(new CustomEvent('phone-authed-whatsapp'));
+                    if(platform === 'anota-ai-desktop') {
+                        sendLogReport('Event dispatch: phone-authed-whatsapp', 'info');
+                        document.dispatchEvent(new CustomEvent('phone-authed-whatsapp'));
+                    }
                     qrcodeRead = true;
                 }
 
@@ -2854,17 +3523,22 @@ window.API.fixStores = function () {
  */
 window.API.waitStateLoad = function () {
     return new Promise((resolve, reject) => {
+        let count = 0;
         const intervalId = setInterval(() => {
             try {
                 window.makeStore();
 
                 if (window.Store) {
                     clearInterval(intervalId);
+                    sendLogReport('Load store success', 'info', { newStore });
                     window.API.fixStores();
                     resolve();
                 }
 
-            } catch (e) { }
+            } catch (error) {
+                count++;
+                if(count == 2000) sendLogReport('Error in load store', 'error', { error });
+            }
         }, 100);
     });
 };
