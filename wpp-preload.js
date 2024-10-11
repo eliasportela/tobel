@@ -1,19 +1,20 @@
 const { ipcRenderer } = require('electron');
+let empresa = {};
 
-document.addEventListener("btnLoad", (e) => {
-    ipcRenderer.send('reloadUrl');
-}, false);
+ipcRenderer.on('set_empresa', (event, arg) => {
+    empresa = arg;
+});
 
 document.addEventListener("message_received", (e) => {
-    ipcRenderer.send('asynchronous-message', e.detail);
+    ipcRenderer.send('asynchronous-message', { ...e.detail, token: empresa.token });
 }, false);
 
 document.addEventListener("toggle-reply", (e) => {
-    ipcRenderer.send('toggle-chat', e.detail);
+    ipcRenderer.send('toggle-chat', { ...e.detail, token: empresa.token });
 }, false);
 
 document.addEventListener("bot_number", (e) => {
-    ipcRenderer.send('bot-number', e.detail);
+    ipcRenderer.send('bot-number', { phone: e.detail, token: empresa.token });
 }, false);
 
 ipcRenderer.on('open_chat', (event, arg) => {
@@ -28,11 +29,15 @@ ipcRenderer.on('mark_unread', (event, arg) => {
     document.dispatchEvent(new CustomEvent('mark-unread', { detail: arg }));
 });
 
-// dados do cliente
-document.addEventListener("contact", (e) => {
-    ipcRenderer.send('contact', e.detail);
-}, false);
-
 ipcRenderer.on('fill-contact', (event, arg) => {
     document.dispatchEvent(new CustomEvent('fill-contact', { detail: arg }));
 });
+
+// dados do cliente
+document.addEventListener("contact", (e) => {
+    ipcRenderer.send('contact', {
+        id_empresa: empresa.id_empresa,
+        token: empresa.token,
+        from: e.detail.from,
+    });
+}, false);

@@ -14,6 +14,10 @@ document.addEventListener("toggleBot", (e) => {
     ipcRenderer.send('toggleBot', e.detail);
 }, false);
 
+document.addEventListener("toggleWpp", (e) => {
+    ipcRenderer.send('toggleWpp', e.detail);
+}, false);
+
 document.addEventListener("toggleStatus", (e) => {
     ipcRenderer.send('toggleStatus', e.detail);
 }, false);

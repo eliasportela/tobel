@@ -17,23 +17,22 @@ const fetch = require('electron-fetch').default;
 
 const config = new Config();
 const isHomolog = config.get('IS_HOMOLOG');
-const base_login = isHomolog ? 'https://hhh.lebot-web.lecard.delivery/' : 'https://lebot-web.lecard.delivery/';
-//const base_login = 'http://localhost:8080/';
+// const base_login = isHomolog ? 'https://hhh.lebot-web.lecard.delivery/' : 'https://lebot-web.lecard.delivery/';
+const base_login = 'http://localhost:8080/';
 
 let base_server = null;
 let api_url = null;
 let api_lebot = 1;
 
 let win = null;
-let wpp = null;
+let wpps = [];
 let winLoad = null;
+let empresas = [];
 
 let dados = null;
-let id_empresa = null;
 let version = app.getVersion();
 let pauseWpp = !!config.get('pauseWpp');
 let showVersionMenu = false;
-let botNumber = null;
 
 app.userAgentFallback = `Lebot/${version} (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36`;
 Menu.setApplicationMenu(createMenuContext());
@@ -74,7 +73,7 @@ app.on('window-all-closed', function () {
 })
 
 // Funcoes
-function createWindow () {
+function createWindow() {
   win = new BrowserWindow({
     title: 'LeBot',
     width: 1000,
@@ -121,44 +120,40 @@ function createWindow () {
   });
 }
 
-async function createBot() {
-  wpp = new BrowserView({
+async function createBot(empresa) {
+  const wpp = new BrowserView({
     webPreferences: {
       backgroundThrottling: false,
       nodeIntegration: true,
       webSecurity: false,
-      preload: path.join(__dirname, 'wpp-preload.js')
+      preload: path.join(__dirname, 'wpp-preload.js'),
+      partition: `persist:whatsapp${empresa.wpp_index}`
     }
   });
 
-  win.setBrowserView(wpp);
-  const bounds = win.getContentBounds();
-  wpp.setBounds({ x: 74, y: 0, width: (bounds.width - 70), height: bounds.height });
-  wpp.webContents.loadURL("https://web.whatsapp.com/");
-  wpp.setAutoResize({width: true, height: true});
+  await wpp.webContents.loadURL("https://web.whatsapp.com/");
+  await wpp.webContents.executeJavaScript(`const LEBOT=${api_lebot};`);
+  wpp.webContents.send('set_empresa', empresa);
+  wpp.setAutoResize({ width: true, height: true });
 
-  wpp.webContents.on('dom-ready', function (e) {
-    wpp.webContents.executeJavaScript(`const LEBOT=${api_lebot};`);
-
-    setTimeout(() => {
-      toggleStatus();
-      downloadApi();
-      wpp.webContents.focus();
-    }, 2000);
-  });
+  setTimeout(() => {
+    toggleStatus(wpp);
+    downloadApi(wpp);
+  }, 2000);
 
   wpp.webContents.setWindowOpenHandler(({ url }) => {
     require('electron').shell.openExternal(url);
     return { action: 'deny' };
   });
+
+  return wpp;
 }
 
-function downloadApi() {
+function downloadApi(wpp) {
   if (!api_url) {
     try {
       const file = fs.readFileSync(__dirname + '/assets/api.js', "utf8");
-      //const file = fs.readFileSync(__dirname + '/assets/wppconnect-wa.js', "utf8");
-      injectScript(file);
+      injectScript(wpp, file);
 
     } catch (error) {
       console.log('api lebot file error', error);
@@ -171,7 +166,7 @@ function downloadApi() {
           .then(res => res.text())
           .then(text => {
             if (text) {
-              injectScript(text);
+              injectScript(wpp, text);
 
             } else {
               showInjectError();
@@ -189,14 +184,14 @@ function downloadApi() {
   }
 }
 
-function injectScript(text) {
-  wpp.webContents.executeJavaScript(text);
+async function injectScript(wpp, text) {
+  await wpp.webContents.executeJavaScript(text);
 
   const file2 = fs.readFileSync(__dirname + '/assets/whatsapp.js', "utf8");
-  wpp.webContents.executeJavaScript(file2);
+  await wpp.webContents.executeJavaScript(file2);
 
   const file3 = fs.readFileSync(__dirname + '/assets/custom.css', "utf8");
-  wpp.webContents.insertCSS(file3);
+  await wpp.webContents.insertCSS(file3);
 }
 
 function showInjectError() {
@@ -286,7 +281,7 @@ function createMenuContext(createDev){
               type: 'info',
               buttons: ['OK'],
               title: 'Lincença',
-              message: 'Empresa: ' + (dados.dados ? dados.dados.nome_fantasia : "") + '\nStatus: Ativo\nVersão: ' + version
+              message: 'Empresa: ' + (dados.nome_fantasia) + '\nStatus: Ativo\nVersão: ' + version
             });
           }
         },
@@ -341,9 +336,9 @@ function createMenuContext(createDev){
           click: () => {
             win.webContents.openDevTools();
 
-            if (wpp) {
-              wpp.webContents.openDevTools();
-            }
+            wpps.forEach(wpp => {
+                wpp.webContents.openDevTools();
+            });
           }
         }
       ]
@@ -353,10 +348,13 @@ function createMenuContext(createDev){
   return Menu.buildFromTemplate(menus);
 }
 
-function toggleStatus() {
-  if (wpp) {
+function toggleStatus(wpp) {
+  if (wpps && wpps.length) {
     const code = pauseWpp ? 'localStorage.setItem("pauseWpp", 1);' : 'localStorage.removeItem("pauseWpp", 1);';
-    wpp.webContents.executeJavaScript(code);
+
+    wpps.forEach(wpp => {
+      wpp.webContents.executeJavaScript(code);
+    });
 
     if (pauseWpp) {
       config.set('pauseWpp', 'true');
@@ -371,6 +369,7 @@ function toggleStatus() {
 
 function sendToServer(event, arg) {
   const form = new FormData();
+  const token = arg.token;
   form.append('text', arg.text);
   form.append('user_id', arg.from);
   form.append('isMe', arg.isMe.toString());
@@ -389,7 +388,7 @@ function sendToServer(event, arg) {
     }
   }
 
-  fetch(base_server + "api/chatbot/" + dados.empresa, { method: 'POST', body: form })
+  fetch(base_server + "api/chatbot/" + token, { method: 'POST', body: form })
       .then(res => res.json())
       .then(json => {
         if (json.success && json.msgs && event) {
@@ -408,38 +407,56 @@ ipcMain.on('reloadUrl', () => {
 });
 
 function loadDependences() {
-  ipcMain.on('login', (event, arg) => {
-    if (arg && arg.token) {
-      dados = arg;
-      id_empresa = dados && dados.dados ? dados.dados.id_empresa : null;
-      api_url = dados.api_url || null;
-      api_lebot = api_url ? (dados.api_lebot || 1) : 1;
+  ipcMain.on('login', async (event, arg) => {
+    if (!arg || !arg.empresas) {
+      return;
+    }
 
-      if (dados.base_server) {
-        base_server = dados.base_server;
-      }
+    empresas = arg.empresas;
+    api_url = arg.api_url || null;
+    api_lebot = api_url ? (arg.api_lebot || 1) : 1;
+    base_server = arg.base_server || null;
 
-      if (!wpp && base_server) {
-        setTimeout(() => {
-          createBot();
-        }, 2500);
+    if (!wpps.length && base_server) {
+      for (let i=0; i < empresas.length; i++) {
+        empresas[i].wpp_index = (i + 1);
+        const wpp = await createBot(empresas[i]);
+
+        if (wpp) {
+          wpps.push(wpp);
+
+          if (empresas[i].isDefault) {
+            win.setBrowserView(wpp);
+            const bounds = win.getContentBounds();
+            wpp.setBounds({ x: 74, y: 30, width: (bounds.width - 70), height: (bounds.height - 30) });
+          }
+        }
       }
     }
   });
 
   ipcMain.on('toggleBot', (event, arg) => {
-    let bot = !!win.getBrowserView();
+    let bot = win.getBrowserView();
 
-    if (arg !== bot) {
+    if (arg !== (!!bot)) {
+      const wpp = wpps[0];
+
       if (arg) {
         win.setBrowserView(wpp);
         const bounds = win.getContentBounds();
-        wpp.setBounds({ x: 74, y: 0, width: (bounds.width - 70), height: bounds.height });
+        wpp.setBounds({ x: 74, y: 30, width: (bounds.width - 70), height: (bounds.height - 30) });
 
       } else {
-        win.removeBrowserView(wpp);
+        win.removeBrowserView(bot);
       }
     }
+  });
+
+  ipcMain.on('toggleWpp', (event, arg) => {
+    const wpp = wpps[arg];
+    win.setBrowserView(wpp);
+    const bounds = win.getContentBounds();
+    wpp.setBounds({ x: 74, y: 30, width: (bounds.width - 70), height: (bounds.height - 30) });
   });
 
   ipcMain.on('toggleStatus', (event, arg) => {
@@ -453,14 +470,14 @@ function loadDependences() {
   });
 
   ipcMain.on('toggle-chat', (event, arg) => {
-    if (arg && arg.from && arg.text) {
-      sendToServer(event, { from: arg.from, text: arg.text, isMe: true });
+    if (arg && arg.token && arg.from && arg.text) {
+      sendToServer(event, { token: arg.token, from: arg.from, text: arg.text, isMe: true });
     }
   });
 
   ipcMain.on('contact', (event, arg) => {
-    if (id_empresa && arg && arg.from) {
-      const url = base_server + "api/chatbot/contato/"+ dados.token +"?id=" + arg.from + "&id_empresa=" + id_empresa;
+    if (arg && arg.id_empresa && arg.from) {
+      const url = base_server + "api/chatbot/contato/"+ arg.token +"?id=" + arg.from + "&id_empresa=" + arg.id_empresa;
       fetch(url, { method: 'GET' })
           .then(res => res.json())
           .then(json => {
@@ -471,29 +488,33 @@ function loadDependences() {
     }
   });
 
-  ipcMain.on('bot-number', (event, phone) => {
-    if (phone) {
-      console.log('Wpp Session: ' + phone);
-      botNumber = phone;
-      win.webContents.send('wppSession', phone);
+  ipcMain.on('bot-number', (event, arg) => {
+    if (arg.phone) {
+      console.log('Wpp Session: ' + arg.phone);
+      win.webContents.send('wppSession', { phone: arg.phone, token: arg.token });
     }
   });
 
   ipcMain.on('dispararMensagens', (event, arg) => {
-    if (arg && arg.mensagens && arg.to) {
-      wpp.webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens, trigger: true });
+    if (arg && arg.mensagens && arg.to && arg.token) {
+      //wpp.webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens, trigger: true });
     }
   });
 
   ipcMain.on('acessarChats', (event, arg) => {
-    if (arg && arg.to) {
-      wpp.webContents.send('open_chat', arg.to);
+    if (arg && arg.to && arg.token) {
+      console.log(arg);
+      const empresa = empresas.find(e => e.token === arg.token);
+
+      if (empresa && wpps.length <= empresa.wpp_index) {
+        wpps[empresa.wpp_index].webContents.send('open_chat', arg.to);
+      }
     }
   });
 
   ipcMain.on('markUnread', (event, arg) => {
     if (arg) {
-      wpp.webContents.send('mark_unread', arg);
+      //wpp.webContents.send('mark_unread', arg);
     }
   });
 
