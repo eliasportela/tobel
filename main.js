@@ -491,7 +491,7 @@ function loadDependences() {
   ipcMain.on('bot-number', (event, arg) => {
     if (arg.phone) {
       console.log('Wpp Session: ' + arg.phone);
-      win.webContents.send('wppSession', { phone: arg.phone, token: arg.token });
+      win.webContents.send('wppSession', arg);
     }
   });
 

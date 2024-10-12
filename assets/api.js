@@ -1,11 +1,11 @@
-const versionAPI = '1.6.0';
+const versionAPI = '1.7.0';
 console.log(`API loaded: ${versionAPI}`);
 
 /**
  * API WHATSAPP
  *
  * @link https://github.com/githubanotaai/api-whatsapp
- * @version 1.6.0
+ * @version 1.7.0
  */
 
 //-------------------------------------------------------------------------------------------------
@@ -23,36 +23,36 @@ let messageLogs = {};
 let config = {};
 
 const maxLogsMessage = {
-    'load_store_success': 1,
-    'error_in_load_store': 1,
-    'error_addobjectsstore': 1,
-    'addobjectsstore_start': 1,
-    'fixobjectsstore_start': 1,
-    'error_in_function_fixobjectsstore': 1
+	'load_store_success': 1,
+	'error_in_load_store': 1,
+	'error_addobjectsstore': 1,
+	'addobjectsstore_start': 1,
+	'fixobjectsstore_start': 1,
+	'error_in_function_fixobjectsstore': 1
 }
 
 const countLogsMessage = (message) => {
-    try {
-        const key = logMessageTreatKey(message);
-        if(messageLogs[key] == undefined) {
-            messageLogs[key] = 0;
-        }else{
-            messageLogs[key] = messageLogs[key] + 1
-        }
+	try {
+		const key = logMessageTreatKey(message);
+		if(messageLogs[key] == undefined) {
+			messageLogs[key] = 0;
+		}else{
+			messageLogs[key] = messageLogs[key] + 1
+		}
 
-        if((!maxLogsMessage[key]) || (messageLogs[key] < maxLogsMessage[key])) {
-            return true;
-        }
+		if((!maxLogsMessage[key]) || (messageLogs[key] < maxLogsMessage[key])) {
+			return true;
+		}
 
-        return false;
-    } catch (error) {
-        console.log("Error in countLogsMessage", error);
-        return false;
-    }
+		return false;
+	} catch (error) {
+		console.log("Error in countLogsMessage", error);
+		return false;
+	}
 }
 
 const logMessageTreatKey = (message) => {
-    return message.toLowerCase().replace(/\s+/g, '_');
+	return message.toLowerCase().replace(/\s+/g, '_');
 }
 
 /**
@@ -64,314 +64,312 @@ const logMessageTreatKey = (message) => {
  * @param {boolean} send - Whether to send the log report.
  */
 const sendLogReport = (message, level, context = {}, send = true) => {
-    try {
-        if(!countLogsMessage(message)) return;
+	try {
+		if(!countLogsMessage(message)) return;
 
-        const log = {
-            source: 'api',
-            whatsAppVersion: (Debug || {})?.VERSION || null,
-            versionAPI,
-            message,
-            level,
-            context
-        }
-
-        if (level === 'error') console.log(message, log);
-        // if(send) document.dispatchEvent(new CustomEvent('log-report-api', { detail: log }));
-
-    } catch (error) {
-        console.log(error);
-    }
+		const log = {
+			source: 'api',
+			whatsAppVersion: (Debug || {})?.VERSION || null,
+			versionAPI,
+			message,
+			level,
+			context
+		}
+		console.log(message, log);
+		// if(send) document.dispatchEvent(new CustomEvent('log-report-api', { detail: log }));
+	} catch (error) {
+		console.log(error);
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
 const messageBlockWhats = [
-    "Sua conta do WhatsApp foi desconectada. Para acessar a conta novamente, confirme seu nÃºmero de telefone",
-    "You have been logged out. To log back in, you will need to verify your phone number"
+	"Sua conta do WhatsApp foi desconectada. Para acessar a conta novamente, confirme seu número de telefone",
+	"You have been logged out. To log back in, you will need to verify your phone number"
 ]
 
 const searchBlockedUser = () => {
-    let countCheckTextBan = 0;
-    const checkText = setInterval(() => {
-        const bodyText = document.body.innerText || document.body.textContent;
-        if (countCheckTextBan > 20) clearInterval(checkText);
-        if (messageBlockWhats.some(item => bodyText.includes(item))) {
-            sendLogReport('Event dispatch: whats-block-ban', 'info');
-            clearInterval(checkText);
-            document.dispatchEvent(new CustomEvent('whats-block-ban'))
-        }
-        countCheckTextBan++
-    }, 1000);
+	let countCheckTextBan = 0;
+	const checkText = setInterval(() => {
+		const bodyText = document.body.innerText || document.body.textContent;
+		if (countCheckTextBan > 20) clearInterval(checkText);
+		if (messageBlockWhats.some(item => bodyText.includes(item))) {
+			sendLogReport('Event dispatch: whats-block-ban', 'info');
+			clearInterval(checkText);
+			document.dispatchEvent(new CustomEvent('whats-block-ban'))
+		}
+		countCheckTextBan++
+	}, 1000);
 }
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
 window.compareWwebVersions = (lOperand, operator, rOperand) => {
-    if (!['>', '>=', '<', '<=', '='].includes(operator)) {
-        throw new class _ extends Error {
-            constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
-        }('Invalid comparison operator is provided');
+	if (!['>', '>=', '<', '<=', '='].includes(operator)) {
+		throw new class _ extends Error {
+			constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
+		}('Invalid comparison operator is provided');
 
-    }
-    if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
-        throw new class _ extends Error {
-            constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
-        }('A non-string WWeb version type is provided');
-    }
+	}
+	if (typeof lOperand !== 'string' || typeof rOperand !== 'string') {
+		throw new class _ extends Error {
+			constructor(m) { super(m); this.name = 'CompareWwebVersionsError'; }
+		}('A non-string WWeb version type is provided');
+	}
 
-    lOperand = lOperand.replace(/-beta$/, '');
-    rOperand = rOperand.replace(/-beta$/, '');
+	lOperand = lOperand.replace(/-beta$/, '');
+	rOperand = rOperand.replace(/-beta$/, '');
 
-    while (lOperand.length !== rOperand.length) {
-        lOperand.length > rOperand.length
-            ? rOperand = rOperand.concat('0')
-            : lOperand = lOperand.concat('0');
-    }
+	while (lOperand.length !== rOperand.length) {
+		lOperand.length > rOperand.length
+			? rOperand = rOperand.concat('0')
+			: lOperand = lOperand.concat('0');
+	}
 
-    lOperand = Number(lOperand.replace(/\./g, ''));
-    rOperand = Number(rOperand.replace(/\./g, ''));
+	lOperand = Number(lOperand.replace(/\./g, ''));
+	rOperand = Number(rOperand.replace(/\./g, ''));
 
-    return (
-        operator === '>' ? lOperand > rOperand :
-            operator === '>=' ? lOperand >= rOperand :
-                operator === '<' ? lOperand < rOperand :
-                    operator === '<=' ? lOperand <= rOperand :
-                        operator === '=' ? lOperand === rOperand :
-                            false
-    );
+	return (
+		operator === '>' ? lOperand > rOperand :
+			operator === '>=' ? lOperand >= rOperand :
+				operator === '<' ? lOperand < rOperand :
+					operator === '<=' ? lOperand <= rOperand :
+						operator === '=' ? lOperand === rOperand :
+							false
+	);
 };
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
 
 if (isConnected()) {
-    sendLogReport('Event dispatch: has-conected', 'info');
-    document.dispatchEvent(new CustomEvent('has-conected'));
+	sendLogReport('Event dispatch: has-conected', 'info');
+	document.dispatchEvent(new CustomEvent('has-conected'));
 } else {
-    sendLogReport('Event dispatch: has-disconected', 'info');
-    document.dispatchEvent(new CustomEvent('has-disconected'));
-    searchBlockedUser();
+	sendLogReport('Event dispatch: has-disconected', 'info');
+	document.dispatchEvent(new CustomEvent('has-disconected'));
+	searchBlockedUser();
 }
 
 document.addEventListener('settings', function (e) {
-    sendLogReport('Settings received', 'info');
-    settings = e.detail;
+	sendLogReport('Settings received', 'info');
+	settings = e.detail;
 }, false);
 
 document.addEventListener('platform', function (e) {
-    sendLogReport('Platform received', 'info', { platform: e.detail }, false);
-    platform = e.detail;
+	sendLogReport('Platform received', 'info', { platform: e.detail }, false);
+	platform = e.detail;
 }, false);
 
 document.addEventListener('configs', function (e) {
-    sendLogReport('Config received', 'info', { config: e.detail }, false);
-    config = e.detail;
+	sendLogReport('Config received', 'info', { config: e.detail }, false);
+	config = e.detail;
 
-    document.dispatchEvent(new CustomEvent('start-heartbeat'));
+	document.dispatchEvent(new CustomEvent('start-heartbeat'));
 }, false);
 
 document.addEventListener('start-heartbeat', function () {
-    const FIVE_MINUTES_IN_SECONDS = 1000 * 60 * 5;
-    setInterval(() => {
-        const connectionStatus = isConnected();
-        if (!connectionStatus) return;
+	const FIVE_MINUTES_IN_SECONDS = 1000 * 60 * 5;
+	setInterval(() => {
+		const connectionStatus = isConnected();
+		if (!connectionStatus) return;
+		
+		document.dispatchEvent(new CustomEvent("heartbeat", {
+			detail: { connection: connectionStatus }
+		}))
+	}, config?.timeoutHeartbeat || FIVE_MINUTES_IN_SECONDS);
 
-        document.dispatchEvent(new CustomEvent("heartbeat", {
-            detail: { connection: connectionStatus }
-        }))
-    }, config?.timeoutHeartbeat || FIVE_MINUTES_IN_SECONDS);
-
-    sendLogReport('heartbeat started', 'info', {}, false);
+	sendLogReport('heartbeat started', 'info', {}, false);
 }, false);
 
 const neededObjects = [
-    {
-        id: "MdCheck",
-        conditions: (module) => (module && module.isLegacyWebdBackend) ? module : null
-    },
-    { id: "Store", conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null },
-    { id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments) ? module.default : null },
-    { id: "MediaProcess", conditions: (module) => (module.BLOB) ? module : null },
-    { id: "Wap", conditions: (module) => (module.createGroup) ? module : null },
-    { id: "ServiceWorker", conditions: (module) => (module.default && module.default.killServiceWorker) ? module : null },
-    { id: "State", conditions: (module) => (module.STATE && module.STREAM) ? module : null },
-    { id: "WapDelete", conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null },
-    { id: "Conn", conditions: (module) => (module.Conn) ? module.Conn : null },
-    { id: "WapQuery", conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null) },
-    { id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null },
-    { id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null },
-    { id: "SendTextMsgToChat", conditions: (module) => (module.sendTextMsgToChat) ? module.sendTextMsgToChat : null },
-    { id: "MarkUnread", conditions: (module) => (module.markUnread) ? module.markUnread : null },
-    { id: "SendSeen", conditions: (module) => (module.sendSeen) ? module.sendSeen : null },
-    { id: "sendDelete", conditions: (module) => (module.sendDelete) ? module.sendDelete : null },
-    { id: "FeatureChecker", conditions: (module) => (module && module.getProtobufFeatureName) ? module : null },
-    { id: "GetMaybeMeUser", conditions: (module) => (module && module.getMaybeMeUser) ? module : null },
-    { id: "QueryExist", conditions: (module) => (module.queryExist) ? module : null },
-    { id: "Cmd", conditions: (module) => (module.Cmd) ? module.Cmd : null },
-    {
-        id: "ChatUtilsSetArchive",
-        conditions: (module) => (module.setArchive) ? module : null
-    },
-    {
-        id: "ChatState",
-        conditions: (module) => (module.sendChatStateComposing) ? module : null
-    },
-    {
-        id: "WidFactory",
-        conditions: (module) => (module.createWid) ? module : null
-    },
-    {
-        id: "isMDBackend",
-        conditions: (module) => (module.isMDBackend) ? module : null
-    },
-    {
-        id: "PresenceUtils",
-        conditions: (module) => (module.sendPresenceAvailable) ? module : null
-    },
-    {
-        id: "MediaPrep",
-        conditions: (module) => (module && module.uploadProductImage && module.MediaPrep) ? module : null
-    },
-    {
-        id: "Socket",
-        conditions: (module) => (module.Socket) ? module.Socket : null
-    },
-    {
-        id: "Global",
-        conditions: (module) => (module && module.StreamInfo) ? module : null
-    },
-    {
-        id: "DownloadMedia",
-        conditions: (module) => (module && module.downloadMedia) ? module : null
-    },
-    {
-        id: "BlobCache",
-        conditions: (module) => (module && module.InMemoryMediaBlobCache) ? module.InMemoryMediaBlobCache : null
-    },
-    {
-        id: "MediaUpload",
-        conditions: (module) => (module && module.uploadMedia) ? module : null
-    },
-    {
-        id: "MediaObject",
-        conditions: (module) => (module && module.getOrCreateMediaObject) ? module : null
-    },
-    {
-        id: "GlobalUnixTime",
-        conditions: (module) => (module && module.unixTime) ? module : null
-    },
-    {
-        id: "CreateMsgKey",
-        conditions: (module) => (module && module.default && module.default.fromString) ? module : null
-    },
-    {
-        id: "AddWebpMetadata",
-        conditions: (module) => (module && module.addWebpMetadata) ? module : null
-    },
-    {
-        id: "DataFactory",
-        conditions: (mod) => (mod.default && mod.default.createFromData) ? mod.default : null
-    },
-    {
-        id: "MsgToMediaType",
-        conditions: (module) => (module && module.msgToMediaType) ? module : null
-    },
-    {
-        id: "AddAndSendMsgToChat",
-        conditions: (module) => (module.addAndSendMsgToChat) ? module.addAndSendMsgToChat : null
-    },
+	{
+		id: "MdCheck",
+		conditions: (module) => (module && module.isLegacyWebdBackend) ? module : null
+	},
+	{ id: "Store", conditions: (module) => (module.default && module.default.Chat && module.default.Msg) ? module.default : null },
+	{ id: "MediaCollection", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.processAttachments) ? module.default : null },
+	{ id: "MediaProcess", conditions: (module) => (module.BLOB) ? module : null },
+	{ id: "Wap", conditions: (module) => (module.createGroup) ? module : null },
+	{ id: "ServiceWorker", conditions: (module) => (module.default && module.default.killServiceWorker) ? module : null },
+	{ id: "State", conditions: (module) => (module.STATE && module.STREAM) ? module : null },
+	{ id: "WapDelete", conditions: (module) => (module.sendConversationDelete && module.sendConversationDelete.length == 2) ? module : null },
+	{ id: "Conn", conditions: (module) => (module.Conn) ? module.Conn : null },
+	{ id: "WapQuery", conditions: (module) => (module.queryExist) ? module : ((module.default && module.default.queryExist) ? module.default : null) },
+	{ id: "CryptoLib", conditions: (module) => (module.decryptE2EMedia) ? module : null },
+	{ id: "UserConstructor", conditions: (module) => (module.default && module.default.prototype && module.default.prototype.isServer && module.default.prototype.isUser) ? module.default : null },
+	{ id: "SendTextMsgToChat", conditions: (module) => (module.sendTextMsgToChat) ? module.sendTextMsgToChat : null },
+	{ id: "MarkUnread", conditions: (module) => (module.markUnread) ? module.markUnread : null },
+	{ id: "SendSeen", conditions: (module) => (module.sendSeen) ? module.sendSeen : null },
+	{ id: "sendDelete", conditions: (module) => (module.sendDelete) ? module.sendDelete : null },
+	{ id: "FeatureChecker", conditions: (module) => (module && module.getProtobufFeatureName) ? module : null },
+	{ id: "GetMaybeMeUser", conditions: (module) => (module && module.getMaybeMeUser) ? module : null },
+	{ id: "QueryExist", conditions: (module) => (module.queryExist) ? module : null },
+	{ id: "Cmd", conditions: (module) => (module.Cmd) ? module.Cmd : null },
+	{
+		id: "ChatUtilsSetArchive",
+		conditions: (module) => (module.setArchive) ? module : null
+	},
+	{
+		id: "ChatState",
+		conditions: (module) => (module.sendChatStateComposing) ? module : null
+	},
+	{
+		id: "WidFactory",
+		conditions: (module) => (module.createWid) ? module : null
+	},
+	{
+		id: "isMDBackend",
+		conditions: (module) => (module.isMDBackend) ? module : null
+	},
+	{
+		id: "PresenceUtils",
+		conditions: (module) => (module.sendPresenceAvailable) ? module : null
+	},
+	{
+		id: "MediaPrep",
+		conditions: (module) => (module && module.uploadProductImage && module.MediaPrep) ? module : null
+	},
+	{
+		id: "Socket",
+		conditions: (module) => (module.Socket) ? module.Socket : null
+	},
+	{
+		id: "Global",
+		conditions: (module) => (module && module.StreamInfo) ? module : null
+	},
+	{
+		id: "DownloadMedia",
+		conditions: (module) => (module && module.downloadMedia) ? module : null
+	},
+	{
+		id: "BlobCache",
+		conditions: (module) => (module && module.InMemoryMediaBlobCache) ? module.InMemoryMediaBlobCache : null
+	},
+	{
+		id: "MediaUpload",
+		conditions: (module) => (module && module.uploadMedia) ? module : null
+	},
+	{
+		id: "MediaObject",
+		conditions: (module) => (module && module.getOrCreateMediaObject) ? module : null
+	},
+	{
+		id: "GlobalUnixTime",
+		conditions: (module) => (module && module.unixTime) ? module : null
+	},
+	{
+		id: "CreateMsgKey",
+		conditions: (module) => (module && module.default && module.default.fromString) ? module : null
+	},
+	{
+		id: "AddWebpMetadata",
+		conditions: (module) => (module && module.addWebpMetadata) ? module : null
+	},
+	{
+		id: "DataFactory",
+		conditions: (mod) => (mod.default && mod.default.createFromData) ? mod.default : null
+	},
+	{
+		id: "MsgToMediaType",
+		conditions: (module) => (module && module.msgToMediaType) ? module : null
+	},
+	{
+		id: "AddAndSendMsgToChat",
+		conditions: (module) => (module.addAndSendMsgToChat) ? module.addAndSendMsgToChat : null
+	},
 
-    //----------------------------------------------------------
+	//----------------------------------------------------------
 
-    // COMUNIDADES
+	// COMUNIDADES
 
-    {
-        id: "getDefaultSubgroup",
-        conditions: (module) => (module.getDefaultSubgroup) ? module : null
-    },
-    {
-        id: "sendCreateCommunity",
-        conditions: (module) => (module.sendCreateCommunity) ? module : null
-    },
-    {
-        id: "queryAndUpdateCommunityParticipants",
-        conditions: (module) => (module.queryAndUpdateCommunityParticipants) ? module : null
-    },
-    {
-        id: "getCommunityParticipants",
-        conditions: (module) => (module.getCommunityParticipants) ? module : null
-    },
-    {
-        id: "sendPromoteDemoteAdminRPC",
-        conditions: (module) => (module.sendPromoteDemoteAdminRPC) ? module : null
-    },
+	{
+		id: "getDefaultSubgroup",
+		conditions: (module) => (module.getDefaultSubgroup) ? module : null
+	},
+	{
+		id: "sendCreateCommunity",
+		conditions: (module) => (module.sendCreateCommunity) ? module : null
+	},
+	{
+		id: "queryAndUpdateCommunityParticipants",
+		conditions: (module) => (module.queryAndUpdateCommunityParticipants) ? module : null
+	},
+	{
+		id: "getCommunityParticipants",
+		conditions: (module) => (module.getCommunityParticipants) ? module : null
+	},
+	{
+		id: "sendPromoteDemoteAdminRPC",
+		conditions: (module) => (module.sendPromoteDemoteAdminRPC) ? module : null
+	},
 
 ];
 
 const fixObjectsStore = () => {
-    try {
-        sendLogReport('fixObjectsStore start', 'info', {}, false);
+	try {
+		sendLogReport('fixObjectsStore start', 'info', {}, false);
 
-        if (!window.Store.Chat._find || !window.Store.Chat.findImpl) {
-            window.Store.Chat._find = e => {
-                const target = window.Store.Chat.get(e);
-                return target ? Promise.resolve(target) : Promise.resolve({
-                    id: e
-                });
-            };
-            window.Store.Chat.findImpl = window.Store.Chat._find;
-        }
-    } catch (error) {
-        sendLogReport('Error in function fixObjectsStore', 'error', { error });
-    }
+		if (!window.Store.Chat._find || !window.Store.Chat.findImpl) {
+			window.Store.Chat._find = e => {
+				const target = window.Store.Chat.get(e);
+				return target ? Promise.resolve(target) : Promise.resolve({
+					id: e
+				});
+			};
+			window.Store.Chat.findImpl = window.Store.Chat._find;
+		}
+	} catch (error) {
+		sendLogReport('Error in function fixObjectsStore', 'error', { error });
+	}
 }
 
 const addObjectsStore = () => {
 
-    sendLogReport('addObjectsStore start', 'info', {}, false);
+	sendLogReport('addObjectsStore start', 'info', {}, false);
 
-    fixObjectsStore();
+	fixObjectsStore();
 
-    // new inject modules
-    try {
-        window.Store.WidToJid = window.require('WAWebWidToJid');
-        window.Store.LidUtils = window.require('WAWebApiContact');
-        window.Store.GroupQueryAndUpdate = window.require('WAWebGroupQueryJob').queryAndUpdateGroupMetadataById;
+	// new inject modules
+	try {
+		window.Store.WidToJid = window.require('WAWebWidToJid');
+		window.Store.LidUtils = window.require('WAWebApiContact');
+		window.Store.GroupQueryAndUpdate = window.require('WAWebGroupQueryJob').queryAndUpdateGroupMetadataById;
 
-        window.Store.GroupUtils =  {
-            ...window.require('WAWebGroupCreateJob'),
-            ...window.require('WAWebGroupModifyInfoJob'),
-            ...window.require('WAWebExitGroupAction'),
-            ...window.require('WAWebContactProfilePicThumbBridge')
-        }
-        window.Store.GroupParticipants = {
-            ...window.require('WAWebModifyParticipantsGroupAction'),
-            ...window.require('WASmaxGroupsAddParticipantsRPC')
-        };
-        window.Store.GroupInvite = {
-            ...window.require('WAWebGroupInviteJob'),
-            ...window.require('WAWebGroupQueryJob')
-        };
-        window.Store.GroupInviteV4 = {
-            ...window.require('WAWebGroupInviteV4Job'),
-            ...window.require('WAWebChatSendMessages')
-        };
-        window.Store.MembershipRequestUtils = {
-            ...window.require('WAWebApiMembershipApprovalRequestStore'),
-            ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
-        };
-        window.Store.MembershipRequestUtils = {
-            ...window.require('WAWebApiMembershipApprovalRequestStore'),
-            ...window.require('WASmaxGroupsMembershipRequestsActionRPC')
-        };
-    } catch (error) {
-        sendLogReport('Error in function addObjectsStore new store injection modules', 'error', { error });
-    }
+		window.Store.GroupUtils =  {
+			...window.require('WAWebGroupCreateJob'),
+			...window.require('WAWebGroupModifyInfoJob'),
+			...window.require('WAWebExitGroupAction'),
+			...window.require('WAWebContactProfilePicThumbBridge')
+		}
+		window.Store.GroupParticipants = {
+			...window.require('WAWebModifyParticipantsGroupAction'),
+			...window.require('WASmaxGroupsAddParticipantsRPC')
+		};
+		window.Store.GroupInvite = {
+			...window.require('WAWebGroupInviteJob'),
+			...window.require('WAWebGroupQueryJob')
+		};
+		window.Store.GroupInviteV4 = {
+			...window.require('WAWebGroupInviteV4Job'),
+			...window.require('WAWebChatSendMessages')
+		};
+		window.Store.MembershipRequestUtils = {
+			...window.require('WAWebApiMembershipApprovalRequestStore'),
+			...window.require('WASmaxGroupsMembershipRequestsActionRPC')
+		};
+		window.Store.MembershipRequestUtils = {
+			...window.require('WAWebApiMembershipApprovalRequestStore'),
+			...window.require('WASmaxGroupsMembershipRequestsActionRPC')
+		};
+	} catch (error) {
+		sendLogReport('Error in function addObjectsStore new store injection modules', 'error', { error });
+	}
 
-    window.Store.CommunityUtils = {
+	window.Store.CommunityUtils = {
         ...Store.getDefaultSubgroup,
         ...Store.sendCreateCommunity,
         ...Store.queryAndUpdateCommunityParticipants,
@@ -381,7 +379,7 @@ const addObjectsStore = () => {
 }
 
 //-------------------------------------------------------------------------------------------------
-// CÃ“DIGO ABSTRAIDO PARA CORE (window.Core)
+// CÓDIGO ABSTRAIDO PARA CORE (window.Core)
 //-------------------------------------------------------------------------------------------------
 
 window.Core = {};
@@ -390,95 +388,95 @@ window.Core = {};
 Returns a WhatsApp GroupMetadata object from a given group id.
 */
 window.Core.group = (_id) => {
-    let result = null;
-    (Store.GroupMetadata.models || Store.GroupMetadata.getModelsArray()).forEach(x => {
-        if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
-            result = x;
-        }
-    });
-    return result;
+	let result = null;
+	(Store.GroupMetadata.models || Store.GroupMetadata.getModelsArray()).forEach(x => {
+		if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
+			result = x;
+		}
+	});
+	return result;
 }
 
 /*
 Returns a WhatsApp Contact object from a given contact id.
 */
 window.Core.contact = (_id) => {
-    let result = null;
-    (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
-        if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
-            result = x;
-        }
-    });
-    return result;
+	let result = null;
+	(Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
+		if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
+			result = x;
+		}
+	});
+	return result;
 }
 
 window.Core.activeTab = () => {
-    let result = null;
-    if (Store != undefined &&
-        Store.Chat != undefined &&
-        (Store.Chat.models != undefined ||
-            Store.Chat.getModelsArray())) {
+	let result = null;
+	if (Store != undefined &&
+		Store.Chat != undefined &&
+		(Store.Chat.models != undefined ||
+			Store.Chat.getModelsArray())) {
 
-        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
-            if (x.hasOwnProperty("__x_active") && x.__x_active) {
-                result = x;
-            }
-        });
-    }
+		(Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+			if (x.hasOwnProperty("__x_active") && x.__x_active) {
+				result = x;
+			}
+		});
+	}
 
-    return result;
+	return result;
 }
 
 /*
 Returns a WhatsApp Chat object from a given chat id.
 */
 window.Core.chat = (_id) => {
-    let result = null;
-    if (Store != undefined &&
-        Store.Chat != undefined &&
-        (Store.Chat.models != undefined ||
-            Store.Chat.getModelsArray())) {
+	let result = null;
+	if (Store != undefined &&
+		Store.Chat != undefined &&
+		(Store.Chat.models != undefined ||
+			Store.Chat.getModelsArray())) {
 
-        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
-            if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
-                result = x;
-            }
-        });
-    }
-    return result;
+		(Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+			if (x.hasOwnProperty("__x_id") && x.__x_id == _id) {
+				result = x;
+			}
+		});
+	}
+	return result;
 }
 
 /*
 Returns a WhatsApp Msg object from a given serialized messsage id
 */
 window.Core.msg = (_id) => {
-    let result = null;
-    (Store.Msg.models || Store.Msg.getModelsArray()).forEach(x => {
-        if (x.hasOwnProperty("__x_id") && x.__x_id._serialized == _id) {
-            result = x;
-        }
-    });
-    return result;
+	let result = null;
+	(Store.Msg.models || Store.Msg.getModelsArray()).forEach(x => {
+		if (x.hasOwnProperty("__x_id") && x.__x_id._serialized == _id) {
+			result = x;
+		}
+	});
+	return result;
 }
 
 /*
 Returns the element of a collection that satisfies a predicate condition.
 */
 window.Core.find = (collection, predicate) => {
-    let result = null;
-    collection.forEach(x => {
-        if (predicate(x)) {
-            result = x;
-        }
-    });
-    return result;
+	let result = null;
+	collection.forEach(x => {
+		if (predicate(x)) {
+			result = x;
+		}
+	});
+	return result;
 }
 
 /*
 Calls a callback with an error object.
 */
 window.Core.error = (err, callback) => {
-    setTimeout(x => { (callback || Core.nop)({ error: err }); }, 1);
+	setTimeout(x => { (callback || Core.nop)({ error: err }); }, 1);
 }
 
 /*
@@ -492,168 +490,168 @@ window.Core.nop = () => { }
 
 const Listener = function () {
 
-    this.ExternalHandlers = {
+	this.ExternalHandlers = {
 
-        /*
-        Parameters:
-            1. The user that joined
-            2. The user that added them (undefined if they used a link? Should be checked)
-            3. The chat the user was added to
-        */
-        USER_JOIN_GROUP: [],
+		/*
+		Parameters:
+			1. The user that joined
+			2. The user that added them (undefined if they used a link? Should be checked)
+			3. The chat the user was added to
+		*/
+		USER_JOIN_GROUP: [],
 
-        /*
-        Parameters:
-            1. The user that was removed
-            2. The user that removed them (undefined if they used a link? Should be checked)
-            3. The chat the user was removed from
-        */
-        USER_LEAVE_GROUP: [],
+		/*
+		Parameters:
+			1. The user that was removed
+			2. The user that removed them (undefined if they used a link? Should be checked)
+			3. The chat the user was removed from
+		*/
+		USER_LEAVE_GROUP: [],
 
-        /*
-        Parameters:
-            1. The group ID
-            2. The user that changed the title
-            3. The new title
-            4. The subject type (should be 'subject')
-        */
-        GROUP_SUBJECT_CHANGE: [],
+		/*
+		Parameters:
+			1. The group ID
+			2. The user that changed the title
+			3. The new title
+			4. The subject type (should be 'subject')
+		*/
+		GROUP_SUBJECT_CHANGE: [],
 
-        /*
-        Parameters:
-            1. Sender of the message
-            2. Chat the message was sent at
-            3. Parsed Msg object
-        */
-        MESSAGE_RECEIVED: [],
+		/*
+		Parameters:
+			1. Sender of the message
+			2. Chat the message was sent at
+			3. Parsed Msg object
+		*/
+		MESSAGE_RECEIVED: [],
 
-        /*
-        Parameters:
-            1. The chat the message was sent to
-            2. Parsed Msg object
-        */
-        MESSAGE_SENT: []
-    };
+		/*
+		Parameters:
+			1. The chat the message was sent to
+			2. Parsed Msg object
+		*/
+		MESSAGE_SENT: []
+	};
 
-    /*
-    Handlers for different message types
-    */
-    const handlers = [
+	/*
+	Handlers for different message types
+	*/
+	const handlers = [
 
-        /*
-        User join / leave group.
-        */
-        {
-            predicate: msg => msg.__x_isNotification && msg.__x_eventType == "i" && msg.__x_type == "gp2",
-            handler: function (msg) {
-                var is_join = msg.__x_subtype == "add" || msg.__x_subtype == "invite";
-                var is_leave = msg.__x_subtype == "leave" || msg.__x_subtype == "remove";
-                var object = msg.__x_recipients[0];
-                var subject = msg.__x_sender;
-                var chat = msg.chat.__x_id;
+		/*
+		User join / leave group.
+		*/
+		{
+			predicate: msg => msg.__x_isNotification && msg.__x_eventType == "i" && msg.__x_type == "gp2",
+			handler: function (msg) {
+				var is_join = msg.__x_subtype == "add" || msg.__x_subtype == "invite";
+				var is_leave = msg.__x_subtype == "leave" || msg.__x_subtype == "remove";
+				var object = msg.__x_recipients[0];
+				var subject = msg.__x_sender;
+				var chat = msg.chat.__x_id;
 
-                if (is_join) {
-                    API.listener.ExternalHandlers.USER_JOIN_GROUP.forEach(x => x(object, subject, chat));
-                }
-                else if (is_leave) {
-                    API.listener.ExternalHandlers.USER_LEAVE_GROUP.forEach(x => x(object, subject, chat));
-                }
-            }
-        },
+				if (is_join) {
+					API.listener.ExternalHandlers.USER_JOIN_GROUP.forEach(x => x(object, subject, chat));
+				}
+				else if (is_leave) {
+					API.listener.ExternalHandlers.USER_LEAVE_GROUP.forEach(x => x(object, subject, chat));
+				}
+			}
+		},
 
-        /*
-        Group subject change.
-        */
-        {
-            predicate: msg => msg.__x_isNotification && msg.__x_eventType == "n",
-            handler: function (msg) {
-                var chat = msg.__x_to;
-                var changer = msg.__x_sender;
-                var new_title = msg.__x_body;
-                var subtype = msg.__x_subtype;
-                API.listener.ExternalHandlers.GROUP_SUBJECT_CHANGE.forEach(x => x(chat, changer, new_title, subtype));
-            }
-        },
+		/*
+		Group subject change.
+		*/
+		{
+			predicate: msg => msg.__x_isNotification && msg.__x_eventType == "n",
+			handler: function (msg) {
+				var chat = msg.__x_to;
+				var changer = msg.__x_sender;
+				var new_title = msg.__x_body;
+				var subtype = msg.__x_subtype;
+				API.listener.ExternalHandlers.GROUP_SUBJECT_CHANGE.forEach(x => x(chat, changer, new_title, subtype));
+			}
+		},
 
-        /*
-        Message received
-        */
-        {
-            predicate: msg => !msg.__x_isNotification && msg.__x_type !== "gp2",
-            handler: function (msg) {
-                var sender = msg.__x_sender || msg.__x_from;
-                var chat = msg.__x_from;
-                var message = msg.__x_id._serialized;
-                const isFromMe = msg.__x_id.fromMe
-                const sameMessage = lastReceivedMsg == msg
-                if (msg.__x_from.server == "broadcast" || isFromMe) {
-                    msg.__x_isStatusV3 = true;
-                } else {
-                    msg.__x_isStatusV3 = false;
-                }
+		/*
+		Message received
+		*/
+		{
+			predicate: msg => !msg.__x_isNotification && msg.__x_type !== "gp2",
+			handler: function (msg) {
+				var sender = msg.__x_sender || msg.__x_from;
+				var chat = msg.__x_from;
+				var message = msg.__x_id._serialized;
+				const isFromMe = msg.__x_id.fromMe
+				const sameMessage = lastReceivedMsg == msg
+				if (msg.__x_from.server == "broadcast" || isFromMe) {
+					msg.__x_isStatusV3 = true;
+				} else {
+					msg.__x_isStatusV3 = false;
+				}
 
-                if (msg.__x_from.server == "g.us") {
-                    msg.__x_isGroupMsg = true;
-                } else {
-                    msg.__x_isGroupMsg = false;
-                }
+				if (msg.__x_from.server == "g.us") {
+					msg.__x_isGroupMsg = true;
+				} else {
+					msg.__x_isGroupMsg = false;
+				}
 
-                if (isFromMe) {
-                    msg.isMyself = true
-                }
-                if (sameMessage) {
-                    return
-                }
+				if (isFromMe) {
+					msg.isMyself = true
+				}
+				if (sameMessage) {
+					return
+				}
 
-                sendLogReport('Message received', 'info', { message: msg }, false);
+				sendLogReport('Message received', 'info', { message: msg }, false);
 
-                lastReceivedMsg = msg
-                API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
-            }
-        },
+				lastReceivedMsg = msg
+				API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
+			}
+		},
 
-        /*
-        Message sent
-        */
-        {
-            predicate: msg => msg.__x_isUserCreatedType && !msg.__x_isNotification && msg.__x_isSentByMe,
-            handler: function (msg) {
-                var to = msg.__x_to;
+		/*
+		Message sent
+		*/
+		{
+			predicate: msg => msg.__x_isUserCreatedType && !msg.__x_isNotification && msg.__x_isSentByMe,
+			handler: function (msg) {
+				var to = msg.__x_to;
 
-                sendLogReport('Message sent', 'info', { message: msg }, false);
+				sendLogReport('Message sent', 'info', { message: msg }, false);
 
-                API.listener.ExternalHandlers.MESSAGE_SENT.forEach(x => x(to, msg, msg));
-            }
-        },
+				API.listener.ExternalHandlers.MESSAGE_SENT.forEach(x => x(to, msg, msg));
+			}
+		},
 
-        {
-            predicate: msg => msg.__x_type == 'payment',
-            handler: function (msg) {
-                var sender = msg.__x_sender;
-                var chat = msg.__x_from;
-                const isPayment = msg.__x_paymentStatus === 3 || msg.__x_paymentStatus === 4;
-                if (isPayment) {
-                    try {
-                        API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
-                    } catch (error) {
-                        console.log('isso aqui eh culpa do diegon', error)
-                    }
-                }
-            }
-        }
-    ];
+		{
+			predicate: msg => msg.__x_type == 'payment',
+			handler: function (msg) {
+				var sender = msg.__x_sender;
+				var chat = msg.__x_from;
+				const isPayment = msg.__x_paymentStatus === 3 || msg.__x_paymentStatus === 4;
+				if (isPayment) {
+					try {
+						API.listener.ExternalHandlers.MESSAGE_RECEIVED.forEach(x => x(sender, chat, msg));
+					} catch (error) {
+						console.log('isso aqui eh culpa do diegon', error)
+					}
+				}
+			}
+		}
+	];
 
-    /*
-    Handles a new incoming message
-    */
-    this.handle_msg = function (msg) {
-        for (let i = 0; i < handlers.length; i++) {
-            if (handlers[i].predicate(msg)) {
-                handlers[i].handler(msg);
-                return;
-            }
-        }
-    };
+	/*
+	Handles a new incoming message
+	*/
+	this.handle_msg = function (msg) {
+		for (let i = 0; i < handlers.length; i++) {
+			if (handlers[i].predicate(msg)) {
+				handlers[i].handler(msg);
+				return;
+			}
+		}
+	};
 
 };
 
@@ -667,11 +665,11 @@ window.API = {};
  * Exception constants.
 */
 window.API.Error = {
-    OK: true,
-    USER_NOT_FOUND: "The specified user ID was not found",
-    CHAT_NOT_FOUND: "The specified chat ID was not found",
-    GROUP_NOT_FOUND: "The specified group metadata ID was not found",
-    USER_NOT_IN_GROUP: "The specified user is not a member of the required group"
+	OK: true,
+	USER_NOT_FOUND: "The specified user ID was not found",
+	CHAT_NOT_FOUND: "The specified chat ID was not found",
+	GROUP_NOT_FOUND: "The specified group metadata ID was not found",
+	USER_NOT_IN_GROUP: "The specified user is not a member of the required group"
 }
 
 window.API.listener = new Listener();
@@ -683,25 +681,25 @@ window.API.listener = new Listener();
  * @returns {Promise<boolean>}
  */
 window.API.pinChat = async (chatId) => {
-    try {
-        let chat = window.Store.Chat.get(chatId);
-        if (chat.pin) {
-            return true;
-        }
-        const MAX_PIN_COUNT = 3;
-        const chatModels = window.Store.Chat.getModelsArray();
-        if (chatModels.length > MAX_PIN_COUNT) {
-            let maxPinned = chatModels[MAX_PIN_COUNT - 1].pin;
-            if (maxPinned) {
-                return false;
-            }
-        }
-        await window.Store.Cmd.pinChat(chat, true);
-        return true;
-    } catch (error) {
-        sendLogReport('Error pinChat', 'error', { error, chatId });
-        return null;
-    }
+	try {
+		let chat = window.Store.Chat.get(chatId);
+		if (chat.pin) {
+			return true;
+		}
+		const MAX_PIN_COUNT = 3;
+		const chatModels = window.Store.Chat.getModelsArray();
+		if (chatModels.length > MAX_PIN_COUNT) {
+			let maxPinned = chatModels[MAX_PIN_COUNT - 1].pin;
+			if (maxPinned) {
+				return false;
+			}
+		}
+		await window.Store.Cmd.pinChat(chat, true);
+		return true;
+	} catch (error) {
+		sendLogReport('Error pinChat', 'error', { error, chatId });
+		return null;
+	}
 }
 
 /**
@@ -711,17 +709,17 @@ window.API.pinChat = async (chatId) => {
  * @returns {Promise<boolean>}
  */
 window.API.unpinChat = async (chatId) => {
-    try {
-        let chat = window.Store.Chat.get(chatId);
-        if (!chat.pin) {
-            return false;
-        }
-        await window.Store.Cmd.pinChat(chat, false);
-        return false;
-    } catch (error) {
-        sendLogReport('Error unpinChat', 'error', { error, chatId });
-        return null;
-    }
+	try {
+		let chat = window.Store.Chat.get(chatId);
+		if (!chat.pin) {
+			return false;
+		}
+		await window.Store.Cmd.pinChat(chat, false);
+		return false;
+	} catch (error) {
+		sendLogReport('Error unpinChat', 'error', { error, chatId });
+		return null;
+	}
 }
 
 /**
@@ -731,18 +729,18 @@ window.API.unpinChat = async (chatId) => {
  * @param {*} phone_number
  */
 window.API.findContactId = (phone_number) => {
-    try {
-        var result = null;
-        (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
-            if (x.hasOwnProperty("__x_id") && (x.__x_id.match(/\d+/g) || []).join("") == phone_number) {
-                result = x.__x_id;
-            }
-        });
-        return result || null;
-    } catch (error) {
-        sendLogReport('Error in findContactId', 'error', { error });
-        return null;
-    }
+	try {
+		var result = null;
+		(Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => {
+			if (x.hasOwnProperty("__x_id") && (x.__x_id.match(/\d+/g) || []).join("") == phone_number) {
+				result = x.__x_id;
+			}
+		});
+		return result || null;
+	} catch (error) {
+		sendLogReport('Error in findContactId', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -751,18 +749,18 @@ window.API.findContactId = (phone_number) => {
  * @param {*} title
  */
 window.API.findChatIds = (title) => {
-    try {
-        var result = [];
-        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
-            if (x.hasOwnProperty("__x_formattedTitle") && ~(x.__x_formattedTitle.indexOf(title))) {
-                result.push(x.__x_id);
-            }
-        });
-        return result;
-    } catch (error) {
-        sendLogReport('Error in findChatIds', 'error', { error });
-        return null;
-    }
+	try {
+		var result = [];
+		(Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+			if (x.hasOwnProperty("__x_formattedTitle") && ~(x.__x_formattedTitle.indexOf(title))) {
+				result.push(x.__x_id);
+			}
+		});
+		return result;
+	} catch (error) {
+		sendLogReport('Error in findChatIds', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -771,17 +769,17 @@ window.API.findChatIds = (title) => {
  * @return {Array} An array of objects containing the chat ID, timestamp, and archive status of each chat.
  */
 window.API.getChats = () => {
-    try {
-        var result = [];
-        (Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
-            if (x.__x_isGroup === false)
-                result.push({ ...x.__x_id, timestamp: x.__x_t, archive: x.archive });
-        });
-        return result;
-    } catch (error) {
-        sendLogReport('Error in getChats', 'error', { error });
-        return null;
-    }
+	try {
+		var result = [];
+		(Store.Chat.models || Store.Chat.getModelsArray()).forEach(x => {
+			if (x.__x_isGroup === false)
+				result.push({ ...x.__x_id, timestamp: x.__x_t, archive: x.archive });
+		});
+		return result;
+	} catch (error) {
+		sendLogReport('Error in getChats', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -793,19 +791,19 @@ window.API.getChats = () => {
  * @param {*} callback - to be invoked after the operation finishes
  */
 window.API.addUserToGroup = (user_id, group_id, callback) => {
-    var group = Core.group(group_id);
-    var user = Core.contact(user_id);
+	var group = Core.group(group_id);
+	var user = Core.contact(user_id);
 
-    if (group == null) {
-        Core.error(API.Error.GROUP_NOT_FOUND, callback);
-        return;
-    }
-    if (user == null) {
-        Core.error(API.Error.USER_NOT_FOUND, callback);
-        return;
-    }
+	if (group == null) {
+		Core.error(API.Error.GROUP_NOT_FOUND, callback);
+		return;
+	}
+	if (user == null) {
+		Core.error(API.Error.USER_NOT_FOUND, callback);
+		return;
+	}
 
-    group.participants.addParticipant(user).then(callback);
+	group.participants.addParticipant(user).then(callback);
 }
 
 /**
@@ -817,19 +815,19 @@ window.API.addUserToGroup = (user_id, group_id, callback) => {
  * @param {*} callback - to be invoked after the operation finishes
  */
 window.API.removeUserFromGroup = (user_id, group_id, callback) => {
-    var group = Core.group(group_id);
-    if (group == null) {
-        Core.error(API.Error.GROUP_NOT_FOUND, callback);
-        return;
-    }
+	var group = Core.group(group_id);
+	if (group == null) {
+		Core.error(API.Error.GROUP_NOT_FOUND, callback);
+		return;
+	}
 
-    var user = Core.find(group.participants, x => x.hasOwnProperty("__x_id") && x.__x_id == user_id);
-    if (user == null) {
-        Core.error(API.Error.USER_NOT_IN_GROUP, callback || Core.nop);
-        return;
-    }
+	var user = Core.find(group.participants, x => x.hasOwnProperty("__x_id") && x.__x_id == user_id);
+	if (user == null) {
+		Core.error(API.Error.USER_NOT_IN_GROUP, callback || Core.nop);
+		return;
+	}
 
-    group.participants.removeParticipant(user).then(callback);
+	group.participants.removeParticipant(user).then(callback);
 }
 
 /**
@@ -840,20 +838,20 @@ window.API.removeUserFromGroup = (user_id, group_id, callback) => {
  * @param {*} callback - to be invoked after the operation finishes
  */
 window.API.setChatArchiveStatus = (chat_id, archive_status, callback) => {
-    try {
-        var chat = Core.chat(chat_id);
-        if (chat == null) {
-            Core.error(API.Error.CHAT_NOT_FOUND, callback);
-            sendLogReport('Chat not found in setChatArchiveStatus', 'info');
-            return;
-        }
+	try {
+		var chat = Core.chat(chat_id);
+		if (chat == null) {
+			Core.error(API.Error.CHAT_NOT_FOUND, callback);
+			sendLogReport('Chat not found in setChatArchiveStatus', 'info');
+			return;
+		}
 
-        Store.ChatUtilsSetArchive.setArchive(chat, !!archive_status);
-        sendLogReport('Chat archive status changed in setChatArchiveStatus', 'info', { status: !!archive_status });
+		Store.ChatUtilsSetArchive.setArchive(chat, !!archive_status);
+		sendLogReport('Chat archive status changed in setChatArchiveStatus', 'info', { status: !!archive_status });
 
-    } catch (error) {
-        sendLogReport('Error in setChatArchiveStatus', 'error', { error });
-    }
+	} catch (error) {
+		sendLogReport('Error in setChatArchiveStatus', 'error', { error });
+	}
 }
 
 /**
@@ -863,17 +861,17 @@ window.API.setChatArchiveStatus = (chat_id, archive_status, callback) => {
  * @returns
  */
 window.API.getChatArchiveStatus = (chat_id) => {
-    try {
-        var chat = Core.chat(chat_id);
-        if (chat == null) {
-            return null;
-        }
+	try {
+		var chat = Core.chat(chat_id);
+		if (chat == null) {
+			return null;
+		}
 
-        return chat.archive;
-    } catch (error) {
-        sendLogReport('Error in getChatArchiveStatus', 'error', { error });
-        return null;
-    }
+		return chat.archive;
+	} catch (error) {
+		sendLogReport('Error in getChatArchiveStatus', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -884,15 +882,15 @@ window.API.getChatArchiveStatus = (chat_id) => {
  * @param {*} callback - to be invoked after the operation completes
  */
 window.API.revokeGroupInviteLink = (group_id, callback) => {
-    var group = Core.group(group_id);
-    if (group == null) {
-        Core.error(Core.Error.GROUP_NOT_FOUND, callback);
-        return;
-    }
+	var group = Core.group(group_id);
+	if (group == null) {
+		Core.error(Core.Error.GROUP_NOT_FOUND, callback);
+		return;
+	}
 
-    group.revokeGroupInvite().then(function (e) {
-        (callback || Core.nop)({ status: e });
-    });
+	group.revokeGroupInvite().then(function (e) {
+		(callback || Core.nop)({ status: e });
+	});
 }
 
 /**
@@ -903,20 +901,20 @@ window.API.revokeGroupInviteLink = (group_id, callback) => {
  * @param {*} callback - to be invoked after the operation completes
  */
 window.API.setBlockedStatus = (user_id, blocked_status, callback) => {
-    try {
-        var user = Core.contact(user_id);
-        if (user == null) {
-            Core.error(API.Error.USER_NOT_FOUND, callback);
-            return;
-        }
+	try {
+		var user = Core.contact(user_id);
+		if (user == null) {
+			Core.error(API.Error.USER_NOT_FOUND, callback);
+			return;
+		}
 
-        user.setBlock(blocked_status).then(function (e) {
-            (callback || Core.nop)({ status: e });
-        });
-    } catch (error) {
-        sendLogReport('Error in setBlockedStatus', 'error', { error });
-        return null;
-    }
+		user.setBlock(blocked_status).then(function (e) {
+			(callback || Core.nop)({ status: e });
+		});
+	} catch (error) {
+		sendLogReport('Error in setBlockedStatus', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -926,136 +924,136 @@ window.API.setBlockedStatus = (user_id, blocked_status, callback) => {
  * @param {function} callback - The callback function to be called after the profile picture is retrieved.
  */
 window.API.getProfilePicFromId = (id, callback) => {
-    try {
-        window.Store.ProfilePicThumb.find(id).then(function (d) {
-            if (d.__x_img !== undefined) {
-                callback({ success: true, imagem: d.__x_img });
-            } else {
-                callback({ success: false });
-            }
-        }, function (e) {
-            callback({ success: false });
-        })
-    } catch (error) {
-        sendLogReport('Error in getProfilePicFromId', 'error', { error });
-        return null;
-    }
+	try {
+		window.Store.ProfilePicThumb.find(id).then(function (d) {
+			if (d.__x_img !== undefined) {
+				callback({ success: true, imagem: d.__x_img });
+			} else {
+				callback({ success: false });
+			}
+		}, function (e) {
+			callback({ success: false });
+		})
+	} catch (error) {
+		sendLogReport('Error in getProfilePicFromId', 'error', { error });
+		return null;
+	}
 }
 
 /**
- * ForÃ§o envio de mensagem de texto
+ * Forço envio de mensagem de texto
  *
  * @param {*} id
  * @param {*} message
  * @param {*} callback
  */
 window.API.forceSendMessageToID = (id, message, callback) => {
-    try {
-        window.API.findJidFromNumber(id).then(contact => {
-            if (contact.status === 404) {
-                sendLogReport('Contact not found in forceSendMessageToID', 'info');
-                callback({ success: false, message: "Contato nÃ£o encontrado." })
-            } else {
-                window.API.findChatFromId(contact.jid).then(chat => {
-                    chat.sendMessage(message);
-                    callback({ success: true })
-                }).catch(reject => {
-                    sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: reject });
-                    callback({ success: false, message: "Chat nÃ£o encontrado." })
-                });
-            }
-        }).catch((err) => {
-            sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: err });
-            callback({ success: false, message: "Chat nÃ£o encontrado." })
-        })
-    } catch (e) {
-        sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: e });
-        callback({ success: false, message: "Chat nÃ£o encontrado.", err: e })
-    }
+	try {
+		window.API.findJidFromNumber(id).then(contact => {
+			if (contact.status === 404) {
+				sendLogReport('Contact not found in forceSendMessageToID', 'info');
+				callback({ success: false, message: "Contato não encontrado." })
+			} else {
+				window.API.findChatFromId(contact.jid).then(chat => {
+					chat.sendMessage(message);
+					callback({ success: true })
+				}).catch(reject => {
+					sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: reject });
+					callback({ success: false, message: "Chat não encontrado." })
+				});
+			}
+		}).catch((err) => {
+			sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: err });
+			callback({ success: false, message: "Chat não encontrado." })
+		})
+	} catch (e) {
+		sendLogReport('Error in forceSendMessageToID, chat not found', 'error', { error: e });
+		callback({ success: false, message: "Chat não encontrado.", err: e })
+	}
 }
 
 /**
  * Envio mensagem de texto
- *
- * @param {*} chat_id
- * @param {*} message_text
- * @param {*} callback
+ * 
+ * @param {*} chat_id 
+ * @param {*} message_text 
+ * @param {*} callback 
  * @param {boolean} forceSend
  */
 window.API.sendTextMessage = async (chat_id, message_text, callback, forceSend = false) => {
-    try {
-        let chat = Core.chat(chat_id);
-        sendLogReport('sendTextMessage init...', 'info', { chat }, false);
+	try {
+		let chat = Core.chat(chat_id);
+		sendLogReport('sendTextMessage init...', 'info', { chat }, false);
 
-        if (chat == null) {
-            let isHotnumber = settings?.phone?.hot_number ? true : false;
+		if (chat == null) {
+			let isHotnumber = settings?.phone?.hot_number ? true : false;
 
-            if (!isHotnumber) {
-                const totalChats = Store.Chat.models || Store.Chat.getModelsArray()
-                const chatsWithoutGroups = totalChats.filter(chat => chat.__x_isGroup === false)
-                isHotnumber = chatsWithoutGroups.length >= 50
-            }
+			if (!isHotnumber) {
+				const totalChats = Store.Chat.models || Store.Chat.getModelsArray()
+				const chatsWithoutGroups = totalChats.filter(chat => chat.__x_isGroup === false)
+				isHotnumber = chatsWithoutGroups.length >= 50
+			}
 
-            if (Debug.VERSION >= "2.2224.7" && (isHotnumber || forceSend)){
-                sendLogReport('sendTextMessage forceSendMessageToID...', 'info', { chat, isHotnumber, forceSend }, false);
-                window.API.forceSendMessageToID(chat_id, message_text, callback)
-                return;
-            }
+			if (Debug.VERSION >= "2.2224.7" && (isHotnumber || forceSend)){
+				sendLogReport('sendTextMessage forceSendMessageToID...', 'info', { chat, isHotnumber, forceSend }, false);
+				window.API.forceSendMessageToID(chat_id, message_text, callback)
+				return;
+			}
 
-            // logs
-            let messageLog = "Chat not found in sendTextMessage";
-            if(!isHotnumber) messageLog = "Not hotnumber in sendTextMessage";
-            if (!forceSend) messageLog = "Not forceSend in sendTextMessage";
-            sendLogReport(messageLog, 'info', { chatId: chat_id, isHotnumber, forceSend, settings });
+			// logs
+			let messageLog = "Chat not found in sendTextMessage";
+			if(!isHotnumber) messageLog = "Not hotnumber in sendTextMessage";
+			if (!forceSend) messageLog = "Not forceSend in sendTextMessage";
+			sendLogReport(messageLog, 'info', { chatId: chat_id, isHotnumber, forceSend, settings });
 
-            return;
-        }
+			return;
+		}
 
-        window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
-            console.log(e);
-            (callback || Core.nop)({ status: e });
-        });
-    } catch (error) {
-        sendLogReport('Error in sendTextMessage', 'error', { error });
-    }
+		window.Store.SendTextMsgToChat(chat, message_text).then(function (e) {
+			console.log(e);
+			(callback || Core.nop)({ status: e });
+		});
+	} catch (error) {
+		sendLogReport('Error in sendTextMessage', 'error', { error });		
+	}
 }
 
 /**
- * VersÃ£o do whatsapp web
+ * Versão do whatsapp web
  */
 window.API.getVersion = () => {
-    try {
-        return (Debug || {}).VERSION;
-    } catch (error) {
-        sendLogReport('Error in getVersion', 'error', { error });
-        return null;
-    }
+	try {
+		return (Debug || {}).VERSION;
+	} catch (error) {
+		sendLogReport('Error in getVersion', 'error', { error });
+		return null;
+	}
 }
 
 /**
- * Pego as informaÃ§Ãµes do perfil do usuario conectado
+ * Pego as informações do perfil do usuario conectado
  */
 window.API.getMe = () => {
-    try {
-        return window.Store.Conn;
-    } catch (error) {
-        sendLogReport('Error in getMe', 'error', { error });
-        return {};
-    }
+	try {
+		return window.Store.Conn;
+	} catch (error) {
+		sendLogReport('Error in getMe', 'error', { error });
+		return {};
+	}
 }
 
 /**
- * Pego as informaÃ§Ãµes do perfil do usuario conectado
+ * Pego as informações do perfil do usuario conectado
  */
 window.API.getMeComplete = () => {
-    const chat = window.API.getMyChatId();
+	const chat = window.API.getMyChatId();
     const store = window.Store.Conn;
 
     return {
         platform: store?.__x_platform || '',
         name: store?.__x_pushname || '',
         phone: chat?.user,
-        isLoggedIn: window.WAPI.isLoggedIn()
+		isLoggedIn: window.WAPI.isLoggedIn()
     }
 }
 
@@ -1069,18 +1067,18 @@ window.API.getMeComplete = () => {
  * @return {Promise} A Promise that resolves when the message is sent successfully.
  */
 window.API.sendLinkMessage = (chat_id, message_text, link_preview, callback) => {
-    var chat = Core.chat(chat_id);
+	var chat = Core.chat(chat_id);
 
-    if (chat == null) {
-        Core.error(API.Error.CHAT_NOT_FOUND, callback)
-        sendLogReport('Chat not found in sendLinkMessage', 'info');
-        return;
-    }
+	if (chat == null) {
+		Core.error(API.Error.CHAT_NOT_FOUND, callback)
+		sendLogReport('Chat not found in sendLinkMessage', 'info');
+		return;
+	}
 
-    window.Store.SendTextMsgToChat(chat, message_text, { linkPreview: link_preview }).then(function (e) {
-        console.log(e);
-        (callback || Core.nop)({ status: e });
-    });
+	window.Store.SendTextMsgToChat(chat, message_text, { linkPreview: link_preview }).then(function (e) {
+		console.log(e);
+		(callback || Core.nop)({ status: e });
+	});
 }
 
 /**
@@ -1093,38 +1091,38 @@ window.API.sendLinkMessage = (chat_id, message_text, link_preview, callback) => 
  * @return {Promise<void>} A promise that resolves when the message is sent successfully, or rejects with an error.
  */
 window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
-    try {
-        let chat = Store.Chat.get(chat_id);
-        if (!chat) chat = await API.firstContact(chat_id);
-        if (!chat) {
-            sendLogReport('Chat not found in sendImageMessage', 'info', { chat_id, imageUrl, caption });
-        };
+	try {
+		let chat = Store.Chat.get(chat_id);
+		if (!chat) chat = await API.firstContact(chat_id);
+		if (!chat) {
+			sendLogReport('Chat not found in sendImageMessage', 'info', { chat_id, imageUrl, caption });
+		};
 
-        let image = imageUrl.base64Img;
+		let image = imageUrl.base64Img;
 
-        const mediaBlob = API.base64ImageToFile(image, "imagem", imageUrl.contentType);
+		const mediaBlob = API.base64ImageToFile(image, "imagem", imageUrl.contentType);
 
-        if (chat) {
-            var mc = new Store.MediaCollection(chat);
-            mc.processAttachments(
-                [{
-                    file: mediaBlob
-                }],
-                1,
-                chat
-            )
-                .then(() => {
-                    var media = (mc.models || mc.getModelsArray())[0];
-                    media.sendToChat(chat, {
-                        caption: caption,
-                    });
-                    callback();
-                })
-                .catch(e => sendLogReport('Error in sendImageMessage', 'error', { error: e }))
-        }
-    } catch (error) {
-        sendLogReport('Error in sendImageMessage', 'error', { error, chat_id, imageUrl, caption });
-    }
+		if (chat) {
+			var mc = new Store.MediaCollection(chat);
+			mc.processAttachments(
+				[{
+					file: mediaBlob
+				}],
+				1,
+				chat
+			)
+				.then(() => {
+					var media = (mc.models || mc.getModelsArray())[0];
+					media.sendToChat(chat, {
+						caption: caption,
+					});
+					callback();
+				})
+				.catch(e => sendLogReport('Error in sendImageMessage', 'error', { error: e }))
+		}
+	} catch (error) {
+		sendLogReport('Error in sendImageMessage', 'error', { error, chat_id, imageUrl, caption });
+	}
 }
 
 /**
@@ -1134,18 +1132,18 @@ window.API.sendImageMessage = async (chat_id, imageUrl, caption, callback) => {
  * @param {string} msg - The message to send in the chat.
  */
 window.API.openChat = (chat, msg) => {
-    try {
-        window.Store.Cmd.openChatBottom(chat);
+	try {
+		window.Store.Cmd.openChatBottom(chat);
 
-        if(msg) {
-            window.API.sendTextMessage(chat.id._serialized, msg, function () {
-                sendLogReport('Opened chat and sent message', 'info', { chatId: chat.id._serialized, messageSent: msg });
-            }, 'anota-ai-desktop');
-        }
+		if(msg) {
+			window.API.sendTextMessage(chat.id._serialized, msg, function () {
+				sendLogReport('Opened chat and sent message', 'info', { chatId: chat.id._serialized, messageSent: msg });
+			}, 'anota-ai-desktop');
+		}
 
-    } catch (error) {
-        sendLogReport('Error in openChat', 'error', { error, msg });
-    }
+	} catch (error) {
+		sendLogReport('Error in openChat', 'error', { error, msg });
+	}
 }
 
 /**
@@ -1156,17 +1154,17 @@ window.API.openChat = (chat, msg) => {
  * @return {Promise<void>} - A Promise that resolves when the chat is opened and the message is sent.
  */
 window.API.openChatByNumber = async (number, msg) => {
-    try {
-        let jid = await window.API.findJidFromNumber(number)
-        if (jid.status !== 200) {
-            sendLogReport('Chat not found in openChatByNumber', 'info', { number, msg });
-            return
-        }
-        let chat = await window.API.findChatFromId(jid.jid)
-        API.openChat(chat, msg)
-    } catch (error) {
-        sendLogReport('Error in openChatByNumber', 'error', { error, msg, number });
-    }
+	try {
+		let jid = await window.API.findJidFromNumber(number)
+		if (jid.status !== 200) {
+			sendLogReport('Chat not found in openChatByNumber', 'info', { number, msg });
+			return
+		}
+		let chat = await window.API.findChatFromId(jid.jid)
+		API.openChat(chat, msg)
+	} catch (error) {
+		sendLogReport('Error in openChatByNumber', 'error', { error, msg, number });
+	}
 }
 
 /**
@@ -1178,17 +1176,17 @@ window.API.openChatByNumber = async (number, msg) => {
  * @return {File} The File object representing the base64 image.
  */
 window.API.base64ImageToFile = (base64Img, filename, contentType) => {
-    const byteCharacters = atob(base64Img);
-    const byteNumbers = new Array(byteCharacters.length);
+	const byteCharacters = atob(base64Img);
+	const byteNumbers = new Array(byteCharacters.length);
 
-    for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
+	for (let i = 0; i < byteCharacters.length; i++) {
+		byteNumbers[i] = byteCharacters.charCodeAt(i);
+	}
 
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: contentType });
+	const byteArray = new Uint8Array(byteNumbers);
+	const blob = new Blob([byteArray], { type: contentType });
 
-    return new File([blob], filename, { type: contentType });
+	return new File([blob], filename, { type: contentType });
 }
 
 /**
@@ -1198,25 +1196,25 @@ window.API.base64ImageToFile = (base64Img, filename, contentType) => {
  * @param {function} [callback] - Optional callback function to handle the response.
  */
 window.API.sendSeen = (chat_id, callback) => {
-    try {
-        var chat = Core.chat(chat_id);
-        if (chat == null) {
-            sendLogReport('Chat not found in sendSeen', 'info', { chatId: chat_id });
-            Core.error(API.Error.CHAT_NOT_FOUND, callback)
-            return;
-        }
+	try {
+		var chat = Core.chat(chat_id);
+		if (chat == null) {
+			sendLogReport('Chat not found in sendSeen', 'info', { chatId: chat_id });
+			Core.error(API.Error.CHAT_NOT_FOUND, callback)
+			return;
+		}
 
-        window.Store.PresenceUtils.sendPresenceAvailable()
-        window.Store.SendSeen(chat, false).then(function (e) {
-            (callback || Core.nop)({ status: e });
-        });
+		window.Store.PresenceUtils.sendPresenceAvailable()
+		window.Store.SendSeen(chat, false).then(function (e) {
+			(callback || Core.nop)({ status: e });
+		});
 
-        const newId = window.Store.WidFactory.createWid(chat_id)
-        window.Store.ChatState.sendChatStateComposing(newId)
+		const newId = window.Store.WidFactory.createWid(chat_id)
+		window.Store.ChatState.sendChatStateComposing(newId)
 
-    } catch (error) {
-        sendLogReport('Error in sendSeen', 'error', { error, chatId: chat_id });
-    }
+	} catch (error) {
+		sendLogReport('Error in sendSeen', 'error', { error, chatId: chat_id });
+	}
 }
 
 /**
@@ -1225,17 +1223,17 @@ window.API.sendSeen = (chat_id, callback) => {
  * @param {*} user_id  - the id of the user to look for
  */
 window.API.getContactInfo = (user_id) => {
-    try {
-        var contact = Core.contact(user_id);
-        if (contact == null || !contact["all"]) {
-            return null;
-        }
+	try {
+		var contact = Core.contact(user_id);
+		if (contact == null || !contact["all"]) {
+			return null;
+		}
 
-        return contact.all;
-    } catch (error) {
-        sendLogReport('Error in getContactInfo', 'error', { error });
-        return null;
-    }
+		return contact.all;
+	} catch (error) {
+		sendLogReport('Error in getContactInfo', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1244,12 +1242,12 @@ window.API.getContactInfo = (user_id) => {
  * @param {*} message_id - the id of the message to look for
  */
 window.API.getMessageInfo = (message_id) => {
-    try {
-        return Core.find((Store.Msg.models || Store.Msg.getModelsArray()), x => x.__x_id._serialized == message_id);
-    } catch (error) {
-        sendLogReport('Error in getMessageInfo', 'error', { error });
-        return null;
-    }
+	try {
+		return Core.find((Store.Msg.models || Store.Msg.getModelsArray()), x => x.__x_id._serialized == message_id);
+	} catch (error) {
+		sendLogReport('Error in getMessageInfo', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1258,14 +1256,14 @@ window.API.getMessageInfo = (message_id) => {
  * @return {array} - the array of strings containing the IDs of the clients.
  */
 window.API.getContactList = () => {
-    try {
-        var result = [];
-        (Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => { result.push(x.__x_id); });
-        return result;
-    } catch (error) {
-        sendLogReport('Error in getContactList', 'error', { error });
-        return null;
-    }
+	try {
+		var result = [];
+		(Store.Contact.models || Store.Contact.getModelsArray()).forEach(x => { result.push(x.__x_id); });
+		return result;
+	} catch (error) {
+		sendLogReport('Error in getContactList', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1276,35 +1274,35 @@ window.API.getContactList = () => {
  * @param {*} callback - to be incoked after the operation completes
  */
 window.API.sendContactMessage = (chat_id, contacts, callback) =>{
-    if (contacts.constructor != Array) {
-        contacts = [contacts];
-    }
+	if (contacts.constructor != Array) {
+		contacts = [contacts];
+	}
 
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
-        Core.error(API.Error.CHAT_NOT_FOUND, callback);
-        return;
-    }
+	var chat = Core.chat(chat_id);
+	if (chat == null) {
+		Core.error(API.Error.CHAT_NOT_FOUND, callback);
+		return;
+	}
 
-    var toSend = [];
-    contacts.forEach(x => {
-        var c = Core.contact(x);
-        if (c != null) {
-            toSend.push(c);
-        }
-    });
+	var toSend = [];
+	contacts.forEach(x => {
+		var c = Core.contact(x);
+		if (c != null) {
+			toSend.push(c);
+		}
+	});
 
-    if (!toSend.length) {
-        Core.error(API.Error.USER_NOT_FOUND, callback);
-        return;
-    }
+	if (!toSend.length) {
+		Core.error(API.Error.USER_NOT_FOUND, callback);
+		return;
+	}
 
-    if (toSend.length == 1) {
-        chat.sendContact(toSend[0]);
-    }
-    else {
-        chat.sendContactList(toSend);
-    }
+	if (toSend.length == 1) {
+		chat.sendContact(toSend[0]);
+	}
+	else {
+		chat.sendContactList(toSend);
+	}
 }
 
 /**
@@ -1313,30 +1311,30 @@ window.API.sendContactMessage = (chat_id, contacts, callback) =>{
  * @param {*} chat_id - the chat id
  */
 window.API.sendTyping = (chat_id) => {
-    try {
-        var chat = Core.chat(chat_id);
-        if (chat == null) {
-            sendLogReport('Chat not found in sendTyping', 'info', { chatId: chat_id });
-            return API.Error.CHAT_NOT_FOUND;
-        }
+	try {
+		var chat = Core.chat(chat_id);
+		if (chat == null) {
+			sendLogReport('Chat not found in sendTyping', 'info', { chatId: chat_id });
+			return API.Error.CHAT_NOT_FOUND;
+		}
 
-        chat.markComposing();
-    } catch (error) {
-        sendLogReport('Error in sendTyping', 'error', { error, chatId: chat_id });
-    }
+		chat.markComposing();
+	} catch (error) {
+		sendLogReport('Error in sendTyping', 'error', { error, chatId: chat_id });
+	}
 }
 
 /**
  * Pego conversa atualmente aberta
  */
 window.API.getActiveTab = () => {
-    try {
-        var activeTab = Core.activeTab();
-        return activeTab;
-    } catch (error) {
-        sendLogReport('Error in getActiveTab', 'error', { error });
-        return {};
-    }
+	try {
+		var activeTab = Core.activeTab();
+		return activeTab;
+	} catch (error) {
+		sendLogReport('Error in getActiveTab', 'error', { error });
+		return {};
+	}
 }
 
 /**
@@ -1345,12 +1343,12 @@ window.API.getActiveTab = () => {
  * @param {*} chat_id - the chat id
  */
 window.API.sendRecording = (chat_id) => {
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
-        return API.Error.CHAT_NOT_FOUND;
-    }
+	var chat = Core.chat(chat_id);
+	if (chat == null) {
+		return API.Error.CHAT_NOT_FOUND;
+	}
 
-    chat.markRecording();
+	chat.markRecording();
 }
 
 /**
@@ -1359,12 +1357,12 @@ window.API.sendRecording = (chat_id) => {
  * @param {*} chat_id - the chat id
  */
 window.API.sendStopRecording = (chat_id) => {
-    var chat = Core.chat(chat_id);
-    if (chat == null) {
-        return API.Error.CHAT_NOT_FOUND;
-    }
+	var chat = Core.chat(chat_id);
+	if (chat == null) {
+		return API.Error.CHAT_NOT_FOUND;
+	}
 
-    chat.markPaused();
+	chat.markPaused();
 }
 
 /**
@@ -1375,12 +1373,12 @@ window.API.sendStopRecording = (chat_id) => {
  * @param {*} callback
  */
 window.API.initGroup = (group_id, callback) => {
-    var group = Core.group(group_id);
-    if (group == null) {
-        return API.Error.GROUP_NOT_FOUND;
-    }
+	var group = Core.group(group_id);
+	if (group == null) {
+		return API.Error.GROUP_NOT_FOUND;
+	}
 
-    group.update().then(callback);
+	group.update().then(callback);
 }
 
 /**
@@ -1389,13 +1387,13 @@ window.API.initGroup = (group_id, callback) => {
  * @param {*} msg_object
  */
 window.API.parseMsgObject = (msg_object) => {
-    var m = msg_object.all;
-    if (msg_object["__x__quotedMsgObj"]) {
-        m.quotedMsg = API.parseMsgObject(Core.msg(msg_object.__x__quotedMsgObj.__x_id._serialized));
-    }
-    m.chat = m.chat.all;
-    delete m.msgChunk;
-    return m;
+	var m = msg_object.all;
+	if (msg_object["__x__quotedMsgObj"]) {
+		m.quotedMsg = API.parseMsgObject(Core.msg(msg_object.__x__quotedMsgObj.__x_id._serialized));
+	}
+	m.chat = m.chat.all;
+	delete m.msgChunk;
+	return m;
 }
 
 /**
@@ -1405,14 +1403,14 @@ window.API.parseMsgObject = (msg_object) => {
  * @return {Object} The found chat object.
  */
 window.API.findChatFromId = (id) => {
-    try {
-        sendLogReport('findChatFromId start', 'info', { chatId: id });
-        const wid = window.Store.WidFactory.createWid(id);
-        return window.Store.Chat.find(wid);
-    } catch (error) {
-        sendLogReport('Error in findChatFromId', 'error', { chatId: id, error });
-        return null;
-    }
+	try {
+		sendLogReport('findChatFromId start', 'info', { chatId: id });
+		const wid = window.Store.WidFactory.createWid(id);
+		return window.Store.Chat.find(wid);
+	} catch (error) {
+		sendLogReport('Error in findChatFromId', 'error', { chatId: id, error });
+		return null;
+	}
 }
 
 /**
@@ -1421,12 +1419,12 @@ window.API.findChatFromId = (id) => {
  * @return {boolean} Returns true if the API supports multi-device functionality, false otherwise.
  */
 window.API.isMultiDeviceVersion = function () {
-    try {
-        return Store.MdCheck.isMDBackend();
-    } catch (error) {
-        sendLogReport('Error in isMultiDeviceVersion', 'error', { error });
-        return null;
-    }
+	try {
+		return Store.MdCheck.isMDBackend();
+	} catch (error) {
+		sendLogReport('Error in isMultiDeviceVersion', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1436,18 +1434,18 @@ window.API.isMultiDeviceVersion = function () {
  * @return {Object} An object containing the status and JID value.
  */
 window.API.findJidFromNumber = (number) => {
-    try {
-        number = number.replace("@c.us", "").replace("+", "");
-        return Store.QueryExist.queryExist({ type: "phone", phone: number }).then(value => {
-            return {
-                status: 200,
-                jid: value.wid
-            }
-        })
-    } catch (error) {
-        sendLogReport('Error in findJidFromNumber', 'error', { error, number });
-        return {};
-    }
+	try {
+		number = number.replace("@c.us", "").replace("+", "");
+		return Store.QueryExist.queryExist({ type: "phone", phone: number }).then(value => {
+			return {
+				status: 200,
+				jid: value.wid
+			}
+		})
+	} catch (error) {
+		sendLogReport('Error in findJidFromNumber', 'error', { error, number });
+		return {};
+	}
 }
 
 /**
@@ -1458,29 +1456,29 @@ window.API.findJidFromNumber = (number) => {
  * @return {Promise<string|Blob>} A promise that resolves with the base64 string or the blob if found, or rejects with an error if not found or media not resolved.
  */
 window.API.processMediaMessage = (msg, maxTime) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            if (!msg) {
-                sendLogReport('Error Msg is null in processMediaMessage', 'info');
-                reject(new Error("Msg is null"));
-            } else {
-                if (msg.chat && !msg.chat.notSpam)
-                    msg.chat.notSpam = true;
-                let result = await window.API.downloadOrGetBlob(msg, maxTime, false);
-                if (result) {
-                    let base64 = await window.API.readFileAsync(result);
-                    resolve(base64.split(',')[1]);
-                    resolve(result);
-                } else {
-                    sendLogReport('Error MediaNotFound in processMediaMessage', 'info');
-                    reject(new Error(`MediaNotFound (${msg.id})`));
-                }
-            }
-        } catch (e) {
-            sendLogReport('Error in processMediaMessage', 'error', { error: e });
-            reject(e);
-        }
-    });
+	return new Promise(async (resolve, reject) => {
+		try {
+			if (!msg) {
+				sendLogReport('Error Msg is null in processMediaMessage', 'info');
+				reject(new Error("Msg is null"));
+			} else {
+				if (msg.chat && !msg.chat.notSpam)
+					msg.chat.notSpam = true;
+				let result = await window.API.downloadOrGetBlob(msg, maxTime, false);
+				if (result) {
+					let base64 = await window.API.readFileAsync(result);
+					resolve(base64.split(',')[1]);
+					resolve(result);
+				} else {
+					sendLogReport('Error MediaNotFound in processMediaMessage', 'info');
+					reject(new Error(`MediaNotFound (${msg.id})`));
+				}
+			}
+		} catch (e) {
+			sendLogReport('Error in processMediaMessage', 'error', { error: e });
+			reject(e);
+		}
+	});
 }
 
 /**
@@ -1492,54 +1490,54 @@ window.API.processMediaMessage = (msg, maxTime) => {
  * @return {Promise<Blob>} A promise that resolves to the blob if found, or throws an error if not found or media not resolved.
  */
 window.API.downloadOrGetBlob = async (msg, maxTime, isRecursive) => {
-    try {
-        let blob = Store.BlobCache.get(msg.filehash);
+	try {
+		let blob = Store.BlobCache.get(msg.filehash);
 
-        if (blob) {
-            return blob;
-        } else {
-            if (msg.mediaData.mediaStage === "NEED_POKE") {
-                await msg.forceDownloadMediaEvenIfExpensive();
-            } else {
-                await msg.downloadMedia({
-                    downloadEvenIfExpensive: 1,
-                    rmrReason: 1,
-                    isUserInitiated: 0,
-                    isAutoDownload: 0
-                });
-            }
+		if (blob) {
+			return blob;
+		} else {
+			if (msg.mediaData.mediaStage === "NEED_POKE") {
+				await msg.forceDownloadMediaEvenIfExpensive();
+			} else {
+				await msg.downloadMedia({
+					downloadEvenIfExpensive: 1,
+					rmrReason: 1,
+					isUserInitiated: 0,
+					isAutoDownload: 0
+				});
+			}
 
-            if (msg.mediaData.mediaStage !== 'RESOLVED') {
-                if (!isRecursive) {
-                    sendLogReport('Error MediaNotFound in downloadOrGetBlob', 'info');
-                    throw new Error(`Media not resolved (${msg.id} - ${msg.mediaData.mediaStage})`);
-                }
-                return await new Promise((resolve, reject) => {
-                    let mediaChanged = async (e) => {
-                        if (e.mediaStage === 'RESOLVED' || e.mediaStage === 'NEED_POKE') {
-                            resolve(await window.API.downloadOrGetBlob(msg, true));
-                        }
-                        msg.mediaData.off("change:mediaStage");
-                    }
-                    msg.mediaData.on("change:mediaStage", mediaChanged);
-                    setTimeout(() => {
-                        sendLogReport('Error Timeout waiting mediaStage in downloadOrGetBlob', 'info');
-                        reject(new Error("Timeout waiting mediaStage RESOLVED. Current state: " + msg.mediaData.mediaStage));
-                        msg.mediaData.off("change:mediaStage");
-                    }, maxTime);
-                });
-            }
+			if (msg.mediaData.mediaStage !== 'RESOLVED') {
+				if (!isRecursive) {
+					sendLogReport('Error MediaNotFound in downloadOrGetBlob', 'info');
+					throw new Error(`Media not resolved (${msg.id} - ${msg.mediaData.mediaStage})`);
+				}
+				return await new Promise((resolve, reject) => {
+					let mediaChanged = async (e) => {
+						if (e.mediaStage === 'RESOLVED' || e.mediaStage === 'NEED_POKE') {
+							resolve(await window.API.downloadOrGetBlob(msg, true));
+						}
+						msg.mediaData.off("change:mediaStage");
+					}
+					msg.mediaData.on("change:mediaStage", mediaChanged);
+					setTimeout(() => {
+						sendLogReport('Error Timeout waiting mediaStage in downloadOrGetBlob', 'info');
+						reject(new Error("Timeout waiting mediaStage RESOLVED. Current state: " + msg.mediaData.mediaStage));
+						msg.mediaData.off("change:mediaStage");
+					}, maxTime);
+				});
+			}
 
-            if (msg.mediaData.mediaBlob) {
-                return msg.mediaData.mediaBlob.forceToBlob();
-            }
-            return Store.BlobCache.get(msg.filehash);
-        }
+			if (msg.mediaData.mediaBlob) {
+				return msg.mediaData.mediaBlob.forceToBlob();
+			}
+			return Store.BlobCache.get(msg.filehash);
+		}
 
-    } catch (error) {
-        sendLogReport('Error in downloadOrGetBlob', 'error', { error });
-        return null;
-    }
+	} catch (error) {
+		sendLogReport('Error in downloadOrGetBlob', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1549,17 +1547,17 @@ window.API.downloadOrGetBlob = async (msg, maxTime, isRecursive) => {
  * @return {Promise<string>} A Promise that resolves with the result of reading the file as a data URL.
  */
 window.API.readFileAsync = (file) => {
-    return new Promise((resolve, reject) => {
-        let reader = new FileReader();
+	return new Promise((resolve, reject) => {
+		let reader = new FileReader();
 
-        reader.onload = () => {
-            resolve(reader.result);
-        };
+		reader.onload = () => {
+			resolve(reader.result);
+		};
 
-        reader.onerror = reject;
+		reader.onerror = reject;
 
-        reader.readAsDataURL(file);
-    })
+		reader.readAsDataURL(file);
+	})
 };
 
 /**
@@ -1570,78 +1568,78 @@ window.API.readFileAsync = (file) => {
  * @return {Object|string} The cropped and resized image data or data URL.
  */
 window.API.cropAndResizeImage = async (media, options = {}) => {
-    try {
-        if (!media.mimetype.includes('image'))
-            throw new Error('Media is not an image');
+	try {
+		if (!media.mimetype.includes('image'))
+			throw new Error('Media is not an image');
 
-        if (options.mimetype && !options.mimetype.includes('image'))
-            delete options.mimetype;
+		if (options.mimetype && !options.mimetype.includes('image'))
+			delete options.mimetype;
 
-        options = Object.assign({ size: 640, mimetype: media.mimetype, quality: .75, asDataUrl: false }, options);
+		options = Object.assign({ size: 640, mimetype: media.mimetype, quality: .75, asDataUrl: false }, options);
 
-        const img = await new Promise ((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = `data:${media.mimetype};base64,${media.data}`;
-        });
+		const img = await new Promise ((resolve, reject) => {
+			const img = new Image();
+			img.onload = () => resolve(img);
+			img.onerror = reject;
+			img.src = `data:${media.mimetype};base64,${media.data}`;
+		});
 
-        const sl = Math.min(img.width, img.height);
-        const sx = Math.floor((img.width - sl) / 2);
-        const sy = Math.floor((img.height - sl) / 2);
+		const sl = Math.min(img.width, img.height);
+		const sx = Math.floor((img.width - sl) / 2);
+		const sy = Math.floor((img.height - sl) / 2);
 
-        const canvas = document.createElement('canvas');
-        canvas.width = options.size;
-        canvas.height = options.size;
+		const canvas = document.createElement('canvas');
+		canvas.width = options.size;
+		canvas.height = options.size;
 
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, sx, sy, sl, sl, 0, 0, options.size, options.size);
+		const ctx = canvas.getContext('2d');
+		ctx.drawImage(img, sx, sy, sl, sl, 0, 0, options.size, options.size);
 
-        const dataUrl = canvas.toDataURL(options.mimetype, options.quality);
+		const dataUrl = canvas.toDataURL(options.mimetype, options.quality);
 
-        if (options.asDataUrl)
-            return dataUrl;
+		if (options.asDataUrl)
+			return dataUrl;
 
-        return Object.assign(media, {
-            mimetype: options.mimeType,
-            data: dataUrl.replace(`data:${options.mimeType};base64,`, '')
-        });
-    } catch (error) {
-        sendLogReport('Error in cropAndResizeImage', 'error', { error });
-        return null;
-    }
+		return Object.assign(media, {
+			mimetype: options.mimeType,
+			data: dataUrl.replace(`data:${options.mimeType};base64,`, '')
+		});
+	} catch (error) {
+		sendLogReport('Error in cropAndResizeImage', 'error', { error });
+		return null;
+	}
 };
 
 /**
- * Pego as informaÃ§Ãµes dos estados do whatsapp, sync e outros
+ * Pego as informações dos estados do whatsapp, sync e outros
  *
  * @returns {Object}
  */
 window.API.getState = () => {
-    return Store.Socket;
+	return Store.Socket;
 };
 
 /**
- * Valido se nÃºmero possui whatsapp
+ * Valido se número possui whatsapp
  *
  * @param {string} number - The phone number to be validated.
  * @return {Object} An object containing the validation status and the number if valid, or an error status if invalid.
  */
 window.API.validateNumber = async (number) => {
-    const sanitizedNumber = number.replace("@c.us", "").replace("+", "");
+	const sanitizedNumber = number.replace("@c.us", "").replace("+", "");
 
-    try {
-        const response = await Store.QueryExist.queryExist({ type: "phone", phone: sanitizedNumber });
+	try {
+		const response = await Store.QueryExist.queryExist({ type: "phone", phone: sanitizedNumber });
 
-        if (response?.wid?.user) {
-            return { status: 200, number: response.wid.user };
-        } else {
-            return { status: 404 };
-        }
-    } catch (error) {
-        sendLogReport('Error in validateNumber', 'error', { error, sanitizedNumber });
-        return { status: 500 }
-    }
+		if (response?.wid?.user) {
+			return { status: 200, number: response.wid.user };
+		} else {
+			return { status: 404 };
+		}
+	} catch (error) {
+		sendLogReport('Error in validateNumber', 'error', { error, sanitizedNumber });
+		return { status: 500 }
+	}
 }
 
 /**
@@ -1650,12 +1648,12 @@ window.API.validateNumber = async (number) => {
  * @return {Object} The chat ID of the current user.
  */
 window.API.getMyChatId = () => {
-    try {
-        return Store.GetMaybeMeUser.getMaybeMeUser();
-    } catch (error) {
-        sendLogReport('Error in getMyChatId', 'error', { error });
-        return {}
-    }
+	try {
+		return Store.GetMaybeMeUser.getMaybeMeUser();
+	} catch (error) {
+		sendLogReport('Error in getMyChatId', 'error', { error });
+		return {}
+	}
 }
 
 /**
@@ -1664,12 +1662,12 @@ window.API.getMyChatId = () => {
  * @return {boolean} Returns true if the user is logged in, false otherwise.
  */
 window.API.isLoggedIn = () => {
-    try {
-        return (Store.Socket.__x_state === 'CONNECTED') ? true : false;
-    } catch (error) {
-        sendLogReport('Error in isLoggedIn', 'error', { error });
-        return null;
-    }
+	try {
+		return (Store.Socket.__x_state === 'CONNECTED') ? true : false;
+	} catch (error) {
+		sendLogReport('Error in isLoggedIn', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1753,26 +1751,26 @@ window.API.createBaseMsg = (id, to) => {
  * @return {string} The data URI of the converted image.
  */
 window.API.imageToDataUri = async (imgBase64, width, height, type = 'image/jpeg') => {
-    try {
-        let img = await API.base64ImageToImageObj(imgBase64);
+	try {
+		let img = await API.base64ImageToImageObj(imgBase64);
 
-        // create an off-screen canvas
-        var canvas = document.createElement('canvas'),
-            ctx = canvas.getContext('2d');
+		// create an off-screen canvas
+		var canvas = document.createElement('canvas'),
+			ctx = canvas.getContext('2d');
 
-        // set its dimension to target size
-        canvas.width = width;
-        canvas.height = height;
+		// set its dimension to target size
+		canvas.width = width;
+		canvas.height = height;
 
-        // draw source image into the off-screen canvas:
-        ctx.drawImage(img, 0, 0, width, height);
+		// draw source image into the off-screen canvas:
+		ctx.drawImage(img, 0, 0, width, height);
 
-        // encode image to data-uri with base64 version of compressed image
-        return canvas.toDataURL(type);
-    } catch (error) {
-        sendLogReport('Error in imageToDataUri', 'error', { error });
-        return null;
-    }
+		// encode image to data-uri with base64 version of compressed image
+		return canvas.toDataURL(type);
+	} catch (error) {
+		sendLogReport('Error in imageToDataUri', 'error', { error });
+		return null;
+	}
 };
 
 /**
@@ -1801,83 +1799,83 @@ window.API.base64ImageToImageObj = function (imgBase64) {
  * @return {object} The constructed media data.
  */
 window.API.buildMediaData = async (base64, filename, forceDocument, stickerSendData) => {
-    try {
-        let file = null;
-        if (stickerSendData) {
-            base64 = await API.imageToDataUri(base64, 512, 512, 'image/webp');
-            file = API.urlToFile(base64, 'sticker.webp');
-            let originalBuffer = await file.arrayBuffer();
-            let stickerData = {
-                isFirstParty: false,
-                isFromStickerMaker: false,
-                stickerPackPublisher: stickerSendData.collectionName,
-                stickerPackName: stickerSendData.stickerName
-            };
-            let buffer = await Store.AddWebpMetadata.addWebpMetadata(originalBuffer, stickerData);
-            file = new Blob([buffer]);
-        } else {
-            file = API.urlToFile(base64, filename);
-        }
-        const mData = await Store.DataFactory.createFromData(file, file.type);
-        const mediaPrep = Store.MediaPrep.prepRawMedia(mData, { asDocument: forceDocument });
-        const mediaData = await mediaPrep.waitForPrep();
-        const mediaObject = Store.MediaObject.getOrCreateMediaObject(mediaData.filehash);
+	try {
+		let file = null;
+		if (stickerSendData) {
+			base64 = await API.imageToDataUri(base64, 512, 512, 'image/webp');
+			file = API.urlToFile(base64, 'sticker.webp');
+			let originalBuffer = await file.arrayBuffer();
+			let stickerData = {
+				isFirstParty: false,
+				isFromStickerMaker: false,
+				stickerPackPublisher: stickerSendData.collectionName,
+				stickerPackName: stickerSendData.stickerName
+			};
+			let buffer = await Store.AddWebpMetadata.addWebpMetadata(originalBuffer, stickerData);
+			file = new Blob([buffer]);
+		} else {
+			file = API.urlToFile(base64, filename);
+		}
+		const mData = await Store.DataFactory.createFromData(file, file.type);
+		const mediaPrep = Store.MediaPrep.prepRawMedia(mData, { asDocument: forceDocument });
+		const mediaData = await mediaPrep.waitForPrep();
+		const mediaObject = Store.MediaObject.getOrCreateMediaObject(mediaData.filehash);
 
-        if (stickerSendData) {
-            mediaData.type = 'sticker';
-        }
+		if (stickerSendData) {
+			mediaData.type = 'sticker';
+		}
 
-        const mediaType = Store.MsgToMediaType.msgToMediaType({
-            type: mediaData.type,
-            isGif: mediaData.isGif
-        });
+		const mediaType = Store.MsgToMediaType.msgToMediaType({
+			type: mediaData.type,
+			isGif: mediaData.isGif
+		});
 
-        if (filename?.includes('.ptt') && mediaData.type === 'audio') {
-            mediaData.type = 'ptt';
-        } else if (filename?.includes('.gif') && mediaData.type === 'video') {
-            mediaData.isGif = true;
-        } else if (forceDocument) {
-            mediaData.type = 'document';
-        }
+		if (filename?.includes('.ptt') && mediaData.type === 'audio') {
+			mediaData.type = 'ptt';
+		} else if (filename?.includes('.gif') && mediaData.type === 'video') {
+			mediaData.isGif = true;
+		} else if (forceDocument) {
+			mediaData.type = 'document';
+		}
 
-        if (!(mediaData.mediaBlob instanceof Store.DataFactory)) {
-            mediaData.mediaBlob = await Store.DataFactory.createFromData(mediaData.mediaBlob, mediaData.mediaBlob.type);
-        }
+		if (!(mediaData.mediaBlob instanceof Store.DataFactory)) {
+			mediaData.mediaBlob = await Store.DataFactory.createFromData(mediaData.mediaBlob, mediaData.mediaBlob.type);
+		}
 
-        mediaData.renderableUrl = mediaData.mediaBlob.url();
-        mediaObject.consolidate(mediaData.toJSON());
-        mediaData.mediaBlob.autorelease();
+		mediaData.renderableUrl = mediaData.mediaBlob.url();
+		mediaObject.consolidate(mediaData.toJSON());
+		mediaData.mediaBlob.autorelease();
 
-        const uploadedMedia = await Store.MediaUpload.uploadMedia({
-            mimetype: mediaData.mimetype,
-            mediaObject,
-            mediaType
-        });
+		const uploadedMedia = await Store.MediaUpload.uploadMedia({
+			mimetype: mediaData.mimetype,
+			mediaObject,
+			mediaType
+		});
 
-        const mediaEntry = uploadedMedia.mediaEntry;
-        if (!mediaEntry) {
-            throw new Error('upload failed: media entry was not created');
-        }
+		const mediaEntry = uploadedMedia.mediaEntry;
+		if (!mediaEntry) {
+			throw new Error('upload failed: media entry was not created');
+		}
 
-        mediaData.set({
-            clientUrl: mediaEntry.mmsUrl,
-            deprecatedMms3Url: mediaEntry.deprecatedMms3Url,
-            directPath: mediaEntry.directPath,
-            mediaKey: mediaEntry.mediaKey,
-            mediaKeyTimestamp: mediaEntry.mediaKeyTimestamp,
-            filehash: mediaObject.filehash,
-            encFilehash: mediaEntry.encFilehash,
-            uploadhash: mediaEntry.uploadHash,
-            size: mediaObject.size,
-            streamingSidecar: mediaEntry.sidecar,
-            firstFrameSidecar: mediaEntry.firstFrameSidecar
-        });
+		mediaData.set({
+			clientUrl: mediaEntry.mmsUrl,
+			deprecatedMms3Url: mediaEntry.deprecatedMms3Url,
+			directPath: mediaEntry.directPath,
+			mediaKey: mediaEntry.mediaKey,
+			mediaKeyTimestamp: mediaEntry.mediaKeyTimestamp,
+			filehash: mediaObject.filehash,
+			encFilehash: mediaEntry.encFilehash,
+			uploadhash: mediaEntry.uploadHash,
+			size: mediaObject.size,
+			streamingSidecar: mediaEntry.sidecar,
+			firstFrameSidecar: mediaEntry.firstFrameSidecar
+		});
 
-        return mediaData;
-    } catch (error) {
-        sendLogReport('Error in buildMediaData', 'error', { error });
-        return null;
-    }
+		return mediaData;
+	} catch (error) {
+		sendLogReport('Error in buildMediaData', 'error', { error });
+		return null;
+	}
 };
 
 /**
@@ -1902,15 +1900,15 @@ window.API.urlToFile = function (b64Data, filename) {
  * @param {String} id
  */
 window.API.firstContact = async (id) => {
-    try {
-        const contact = await window.API.findJidFromNumber(id);
-        if (contact.status === 404) return false;
+	try {
+		const contact = await window.API.findJidFromNumber(id);
+		if (contact.status === 404) return false;
 
-        return await window.API.findChatFromId(contact.jid);
-    } catch (error) {
-        sendLogReport('Error in firstContact', 'error', { error });
-        return null;
-    }
+		return await window.API.findChatFromId(contact.jid);
+	} catch (error) {
+		sendLogReport('Error in firstContact', 'error', { error });
+		return null;
+	}
 }
 
 /**
@@ -1938,8 +1936,8 @@ window.API.sendImageMessageNew = async (chat, url, caption, stickerData) => {
 
         return await chat.sendMessage(caption ?? null, mountObj);
     } catch (error) {
-        sendLogReport('Error in sendImageMessageNew', 'error', { error });
-        return null;
+		sendLogReport('Error in sendImageMessageNew', 'error', { error });
+		return null;
     }
 }
 
@@ -1952,10 +1950,10 @@ window.API.sendImageMessageNew = async (chat, url, caption, stickerData) => {
  */
 window.API.mainSendMessage = async (infos) => {
     try {
-        const { senderId, arrayMessage } = infos;
-        let chat = Store.Chat.get(senderId);
-        if (!chat) chat = await API.firstContact(senderId);
-        if (!chat) return;
+		const { senderId, arrayMessage } = infos;
+		let chat = Store.Chat.get(senderId);
+		if (!chat) chat = await API.firstContact(senderId);
+		if (!chat) return;
 
         for (const message of arrayMessage) {
             API.sendSeen(senderId);
@@ -1971,7 +1969,7 @@ window.API.mainSendMessage = async (infos) => {
         }
 
     } catch (error) {
-        sendLogReport('Error in mainSendMessage', 'error', { error });
+		sendLogReport('Error in mainSendMessage', 'error', { error });
     }
 }
 
@@ -1987,17 +1985,17 @@ window.API.mainSendMessage = async (infos) => {
  * @return {Promise<boolean>} A promise that resolves to true if the profile picture was set successfully, or false otherwise.
  */
 window.API.groupSetPicture = async (chatid, media) => {
-    try {
-        const thumbnail = await window.API.cropAndResizeImage(media, { asDataUrl: true, mimetype: 'image/jpeg', size: 96 });
-        const profilePic = await window.API.cropAndResizeImage(media, { asDataUrl: true, mimetype: 'image/jpeg', size: 640 });
-        const chatWid = window.Store.WidFactory.createWid(chatid);
+	try {
+		const thumbnail = await window.API.cropAndResizeImage(media, { asDataUrl: true, mimetype: 'image/jpeg', size: 96 });
+		const profilePic = await window.API.cropAndResizeImage(media, { asDataUrl: true, mimetype: 'image/jpeg', size: 640 });
+		const chatWid = window.Store.WidFactory.createWid(chatid);
 
-        const res = await window.Store.GroupUtils.sendSetPicture(chatWid, thumbnail, profilePic);
-        return res ? res.status === 200 : false;
-    } catch (error) {
-        sendLogReport('Error in groupSetPicture', 'error', { error, chatId: chatid });
-        return false;
-    }
+		const res = await window.Store.GroupUtils.sendSetPicture(chatWid, thumbnail, profilePic);
+		return res ? res.status === 200 : false;
+	} catch (error) {
+		sendLogReport('Error in groupSetPicture', 'error', { error, chatId: chatid });
+		return false;
+	}
 };
 
 /**
@@ -2008,25 +2006,25 @@ window.API.groupSetPicture = async (chatid, media) => {
  * @return {Object} An object containing the status, code, and link of the group invite.
  */
 window.API.getInviteCodeGroup = async (chatIdGroup, log = true) => {
-    try {
-        const chatIdOrigin = window.API.getMyChatId()._serialized;
-        const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
-        const chatWidOrigin = window.Store.WidFactory.createWid(chatIdOrigin);
-        const codeRes = await window.Store.GroupInvite.queryGroupInviteCode(chatWid, chatWidOrigin);
+	try {
+		const chatIdOrigin = window.API.getMyChatId()._serialized;
+		const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
+		const chatWidOrigin = window.Store.WidFactory.createWid(chatIdOrigin);
+		const codeRes = await window.Store.GroupInvite.queryGroupInviteCode(chatWid, chatWidOrigin);
 
-        return {
-            status: true,
-            code: codeRes?.code ?? "",
-            link: `https://chat.whatsapp.com/${codeRes?.code}`,
-        }
+		return {
+			status: true,
+			code: codeRes?.code ?? "",
+			link: `https://chat.whatsapp.com/${codeRes?.code}`,
+		}
 
-    } catch (error) {
-        if(log) sendLogReport('Error in getInviteCodeGroup', 'error', { error, chatIdGroup });
+	} catch (error) {
+		if(log) sendLogReport('Error in getInviteCodeGroup', 'error', { error, chatIdGroup });
 
-        return {
-            status: false
-        }
-    }
+		return {
+			status: false
+		}
+	}
 }
 
 /**
@@ -2035,35 +2033,35 @@ window.API.getInviteCodeGroup = async (chatIdGroup, log = true) => {
  * @return {Promise<Object>} An object containing the status and groups properties.
  */
 window.API.getGroups = async () => {
-    try {
-        const chatIdOrigin = window.API.getMyChatId()._serialized;
-        const groupPromises  = await Store.Chat.getModelsArray().filter(chat => chat.isGroup).map(async chat => {
+	try {
+		const chatIdOrigin = window.API.getMyChatId()._serialized;
+		const groupPromises  = await Store.Chat.getModelsArray().filter(chat => chat.isGroup).map(async chat => {
 
-            const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
+			const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
 
-            return {
-                id: chat.id._serialized,
-                name: chat.name ? chat.name : chat?.groupMetadata?.subject,
-                isReadOnly: chat.isReadOnly,
-                archive: chat.archive,
-                isBusinessGroup: chat.isBusinessGroup,
-                isCommunity: chat.isParentGroup === true ? true : false,
-                isAdmin,
-                groupType: chat.groupMetadata?.groupType
-            }
-        });
+			return {
+				id: chat.id._serialized,
+				name: chat.name ? chat.name : chat?.groupMetadata?.subject,
+				isReadOnly: chat.isReadOnly,
+				archive: chat.archive,
+				isBusinessGroup: chat.isBusinessGroup,
+				isCommunity: chat.isParentGroup === true ? true : false,
+				isAdmin,
+				groupType: chat.groupMetadata?.groupType
+			}
+		});
 
-        let groups = await Promise.all(groupPromises);
+		let groups = await Promise.all(groupPromises);
 
-        return {
-            status: true,
-            groups
-        };
+		return {
+			status: true,
+			groups
+		};
 
-    } catch (error) {
-        sendLogReport('Error in getGroups', 'error', { error });
-        return { status: false };
-    }
+	} catch (error) {
+		sendLogReport('Error in getGroups', 'error', { error });
+		return { status: false };
+	}
 }
 
 /**
@@ -2073,10 +2071,10 @@ window.API.getGroups = async () => {
  * @return {Object|false} The group object if found, false otherwise.
  */
 window.API.getGroupById = async (id) => {
-    const response = await window.API.getGroups();
-    if(!response.status) return false;
+	const response = await window.API.getGroups();
+	if(!response.status) return false;
 
-    return response.groups.filter(item => item.id == id)[0];
+	return response.groups.filter(item => item.id == id)[0];
 }
 
 /**
@@ -2086,35 +2084,35 @@ window.API.getGroupById = async (id) => {
  * @return {Promise<Object>} An object containing the status of the operation, the group title, and the community ID if found.
  */
 window.API.getGroupByName = async (name) => {
-    try {
-        const chatIdOrigin = window.API.getMyChatId()._serialized;
+	try {
+		const chatIdOrigin = window.API.getMyChatId()._serialized;
 
-        let chat = await Store.Chat.getModelsArray().filter(chat => {
-            const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
-            return chat.isGroup && chat.isParentGroup === false && chat.groupMetadata?.subject === name && chat.groupMetadata?.groupType == 'LINKED_SUBGROUP' && isAdmin
-        });
+		let chat = await Store.Chat.getModelsArray().filter(chat => {
+			const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
+			return chat.isGroup && chat.isParentGroup === false && chat.groupMetadata?.subject === name && chat.groupMetadata?.groupType == 'LINKED_SUBGROUP' && isAdmin
+		});
 
-        if(!chat || chat.length === 0) return {
-            status: false,
-            message: "Chat not found"
-        };
+		if(!chat || chat.length === 0) return {
+			status: false,
+			message: "Chat not found"
+		};
 
-        chat = chat[0];
+		chat = chat[0];
 
-        return {
-            status: true,
-            title: name,
-            idGroup: chat.id._serialized
-        };
+		return {
+			status: true,
+			title: name,
+			idGroup: chat.id._serialized
+		};
 
-    } catch (error) {
-        sendLogReport('Error in getGroupByName', 'error', { error, name });
+	} catch (error) {
+		sendLogReport('Error in getGroupByName', 'error', { error, name });
 
-        return {
-            status: false,
-            message: "Error in getGroupByName"
-        };
-    }
+		return {
+			status: false,
+			message: "Error in getGroupByName"
+		};
+	}
 }
 
 /**
@@ -2124,35 +2122,35 @@ window.API.getGroupByName = async (name) => {
  * @return {Promise<Object>} An object containing the status of the operation, the group title, and the community ID if found.
  */
 window.API.getGroupComunnityByName = async (name) => {
-    try {
-        const chatIdOrigin = window.API.getMyChatId()._serialized;
+	try {
+		const chatIdOrigin = window.API.getMyChatId()._serialized;
 
-        let chat = await Store.Chat.getModelsArray().filter(chat => {
-            const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
-            return chat.isGroup && chat.isParentGroup === false && chat.groupMetadata?.subject === name && chat.groupMetadata?.groupType == 'LINKED_ANNOUNCEMENT_GROUP' && isAdmin
-        });
+		let chat = await Store.Chat.getModelsArray().filter(chat => {
+			const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
+			return chat.isGroup && chat.isParentGroup === false && chat.groupMetadata?.subject === name && chat.groupMetadata?.groupType == 'LINKED_ANNOUNCEMENT_GROUP' && isAdmin
+		});
 
-        if(!chat || chat.length === 0) return {
-            status: false,
-            message: "Chat not found"
-        };
+		if(!chat || chat.length === 0) return {
+			status: false,
+			message: "Chat not found"
+		};
 
-        chat = chat[0];
+		chat = chat[0];
 
-        return {
-            status: true,
-            title: name,
-            idGroup: chat.id._serialized
-        };
+		return {
+			status: true,
+			title: name,
+			idGroup: chat.id._serialized
+		};
 
-    } catch (error) {
-        sendLogReport('Error in getGroupComunnityByName', 'error', { error, name });
+	} catch (error) {
+		sendLogReport('Error in getGroupComunnityByName', 'error', { error, name });
 
-        return {
-            status: false,
-            message: "Error in getGroupByName"
-        };
-    }
+		return {
+			status: false,
+			message: "Error in getGroupByName"
+		};
+	}
 }
 
 /**
@@ -2162,35 +2160,35 @@ window.API.getGroupComunnityByName = async (name) => {
  * @return {Promise<Object>} A promise that resolves to an object containing the status, title, and idCommunity of the community. If the community is not found, the status will be false and the message will contain the error message.
  */
 window.API.getCommunityByName = async (name) => {
-    try {
-        const chatIdOrigin = window.API.getMyChatId()._serialized;
+	try {
+		const chatIdOrigin = window.API.getMyChatId()._serialized;
 
-        let chat = await Store.Chat.getModelsArray().filter(chat => {
-            const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
-            return chat.isGroup && chat.isParentGroup === true && chat.groupMetadata?.subject === name && isAdmin
-        });
+		let chat = await Store.Chat.getModelsArray().filter(chat => {
+			const isAdmin = chatIdOrigin === chat.groupMetadata?.attributes?.owner?._serialized ? true : false;
+			return chat.isGroup && chat.isParentGroup === true && chat.groupMetadata?.subject === name && isAdmin
+		});
 
-        if(!chat || chat.length === 0) return {
-            status: false,
-            message: "Chat not found"
-        };
+		if(!chat || chat.length === 0) return {
+			status: false,
+			message: "Chat not found"
+		};
 
-        chat = chat[0];
+		chat = chat[0];
 
-        return {
-            status: true,
-            title: name,
-            idCommunity: chat.id._serialized,
-        };
+		return {
+			status: true,
+			title: name,
+			idCommunity: chat.id._serialized,
+		};
 
-    } catch (error) {
-        sendLogReport('Error in getCommunityByName', 'error', { error, name });
+	} catch (error) {
+		sendLogReport('Error in getCommunityByName', 'error', { error, name });
 
-        return {
-            status: false,
-            message: "Error in getCommunityByName"
-        };
-    }
+		return {
+			status: false,
+			message: "Error in getCommunityByName"
+		};
+	}
 }
 
 /**
@@ -2201,16 +2199,16 @@ window.API.getCommunityByName = async (name) => {
  * @return {Promise<{ status: boolean }>} An object indicating the status of the operation.
  */
 window.API.groupSetInfoAdminOnly = async (chatIdGroup, adminsOnly = true) => {
-    try {
-        const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
-        await window.Store.GroupUtils.setGroupProperty(chatWid, 'restrict', adminsOnly ? 1 : 0);
+	try {
+		const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
+		await window.Store.GroupUtils.setGroupProperty(chatWid, 'restrict', adminsOnly ? 1 : 0);
 
-        return { status: true };
-    } catch (error) {
-        sendLogReport('Error in groupSetInfoAdminOnly', 'error', { error, chatIdGroup });
+		return { status: true };
+	} catch (error) {
+		sendLogReport('Error in groupSetInfoAdminOnly', 'error', { error, chatIdGroup });
 
-        return { status: false };
-    }
+		return { status: false };
+	}
 }
 
 /**
@@ -2221,16 +2219,16 @@ window.API.groupSetInfoAdminOnly = async (chatIdGroup, adminsOnly = true) => {
  * @return {Promise<{ status: boolean }>} - A promise that resolves to an object indicating the status of the operation.
  */
 window.API.groupSetMessagesAdminsOnly = async (chatIdGroup, adminsOnly = true) => {
-    try {
-        const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
-        await window.Store.GroupUtils.setGroupProperty(chatWid, 'announcement', adminsOnly ? 1 : 0);
+	try {
+		const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
+		await window.Store.GroupUtils.setGroupProperty(chatWid, 'announcement', adminsOnly ? 1 : 0);
 
-        return { status: true };
-    } catch (error) {
-        sendLogReport('Error in groupSetMessagesAdminsOnly', 'error', { error, chatIdGroup });
+		return { status: true };
+	} catch (error) {
+		sendLogReport('Error in groupSetMessagesAdminsOnly', 'error', { error, chatIdGroup });
 
-        return { status: false };
-    }
+		return { status: false };
+	}
 }
 
 /**
@@ -2240,19 +2238,19 @@ window.API.groupSetMessagesAdminsOnly = async (chatIdGroup, adminsOnly = true) =
  * @return {Promise<Object>} An object with a `status` property indicating success or failure and a `data` property containing the result of the `sendExitGroup` function if successful.
  */
 window.API.groupLeave = async (chatIdGroup) => {
-    try {
-        const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
-        const chat = await window.Store.Chat.find(chatWid);
-        await window.Store.GroupUtils.sendExitGroup(chat);
-        await window.Store.sendDelete(chat);
-        console.log('Group deleted: ', chatIdGroup);
+	try {
+		const chatWid = window.Store.WidFactory.createWid(chatIdGroup);
+		const chat = await window.Store.Chat.find(chatWid);
+		await window.Store.GroupUtils.sendExitGroup(chat);
+		await window.Store.sendDelete(chat);
+		console.log('Group deleted: ', chatIdGroup);
 
-        return { status: true }
-    } catch (error) {
-        sendLogReport('Error in groupLeave', 'error', { error, chatIdGroup });
+		return { status: true }
+	} catch (error) {
+		sendLogReport('Error in groupLeave', 'error', { error, chatIdGroup });
 
-        return { status: false };
-    }
+		return { status: false };
+	}
 }
 
 /**
@@ -2264,69 +2262,69 @@ window.API.groupLeave = async (chatIdGroup) => {
  * @return {Promise<{ status: boolean }} An object containing the status of the operation, group title, group ID, and participant data.
  */
 window.API.createGroup = async (title, media, options = {}) => {
-    try {
-        const { messageTimer = 0, parentGroupId } = options;
-        let createGroupResult, parentGroupWid;
+	try {
+		const { messageTimer = 0, parentGroupId } = options;
+		let createGroupResult, parentGroupWid;
 
-        parentGroupId && (parentGroupWid = window.Store.WidFactory.createWid(parentGroupId));
+		parentGroupId && (parentGroupWid = window.Store.WidFactory.createWid(parentGroupId));
 
-        const groupExist = await window.API.getGroupByName(title);
-        if(groupExist.status) {
-            sendLogReport('Group already exists in createGroup', 'info', { name: title });
-        }
+		const groupExist = await window.API.getGroupByName(title);
+		if(groupExist.status) {
+			sendLogReport('Group already exists in createGroup', 'info', { name: title });
+		}
 
-        if(!groupExist.status) {
-            createGroupResult = await window.Store.GroupUtils.createGroup(
-                {
-                    'memberAddMode': options.memberAddMode === undefined ? false : options.memberAddMode,
-                    'membershipApprovalMode': options.membershipApprovalMode === undefined ? false : options.membershipApprovalMode,
-                    'announce': options.announce === undefined ? true : options.announce,
-                    'ephemeralDuration': messageTimer,
-                    'full': undefined,
-                    'parentGroupId': parentGroupWid,
-                    'restrict': options.restrict === undefined ? true : options.restrict,
-                    'thumb': undefined,
-                    'title': title,
-                },
-                []
-            );
-        }
+		if(!groupExist.status) {
+			createGroupResult = await window.Store.GroupUtils.createGroup(
+				{
+					'memberAddMode': options.memberAddMode === undefined ? false : options.memberAddMode,
+					'membershipApprovalMode': options.membershipApprovalMode === undefined ? false : options.membershipApprovalMode,
+					'announce': options.announce === undefined ? true : options.announce,
+					'ephemeralDuration': messageTimer,
+					'full': undefined,
+					'parentGroupId': parentGroupWid,
+					'restrict': options.restrict === undefined ? true : options.restrict,
+					'thumb': undefined,
+					'title': title,
+				},
+				[]
+			);
+		}
 
-        const idGroup = !groupExist.status ? createGroupResult.wid?._serialized : groupExist.idGroup;
+		const idGroup = !groupExist.status ? createGroupResult.wid?._serialized : groupExist.idGroup;
 
-        await delay(1000);
-        let inviteResponse = await window.API.getInviteCodeGroup(idGroup);
+		await delay(1000);
+		let inviteResponse = await window.API.getInviteCodeGroup(idGroup);
 
-        if(!inviteResponse.status) {
-            await delay(5000);
-            inviteResponse = await window.API.getInviteCodeGroup(idGroup);
-        }
+		if(!inviteResponse.status) {
+			await delay(5000);
+			inviteResponse = await window.API.getInviteCodeGroup(idGroup);
+		}
 
-        if(!inviteResponse.status) {
-            sendLogReport('Group invite code not found in createGroup', 'info', { name: title });
-            return { status: false, message: 'Group invite code not found' };
-        }
-        const { code, link } = inviteResponse;
+		if(!inviteResponse.status) {
+			sendLogReport('Group invite code not found in createGroup', 'info', { name: title });
+			return { status: false, message: 'Group invite code not found' };
+		}
+		const { code, link } = inviteResponse;
 
-        await window.API.groupSetInfoAdminOnly(idGroup);
-        await window.API.groupSetMessagesAdminsOnly(idGroup);
-        if(media && !groupExist.status) await window.API.groupSetPicture(idGroup, media);
+		await window.API.groupSetInfoAdminOnly(idGroup);
+		await window.API.groupSetMessagesAdminsOnly(idGroup);
+		if(media && !groupExist.status) await window.API.groupSetPicture(idGroup, media);
 
-        return {
-            status: true,
-            title: title,
-            idGroup,
-            codeInvite: {
-                code,
-                link
-            },
-        };
+		return {
+			status: true,
+			title: title,
+			idGroup,
+			codeInvite: {
+				code,
+				link
+			},
+		};
 
-    } catch (error) {
-        sendLogReport('Error in createGroup', 'error', { error, name: title });
+	} catch (error) {
+		sendLogReport('Error in createGroup', 'error', { error, name: title });
 
-        return { status: false, message: 'CreateGroupError general' };
-    }
+		return { status: false, message: 'CreateGroupError general' };
+	}
 }
 
 /**
@@ -2339,43 +2337,43 @@ window.API.createGroup = async (title, media, options = {}) => {
  * If the community creation fails, the object will contain the status and a message explaining the error.
  */
 window.API.createCommunityNew = async (title, media) => {
-    try {
-        const community = await window.API.createCommunity(title, media);
-        if(!community.status) return { status: false, message: community?.message || 'Error in createCommunity' };
+	try {
+		const community = await window.API.createCommunity(title, media);
+		if(!community.status) return { status: false, message: community?.message || 'Error in createCommunity' };
 
-        await delay(2000);
+		await delay(2000);
 
-        const group = await window.API.getGroupComunnityByName(title);
-        if(!group.status) return { status: false, message: group?.message || 'Error in getGroupComunnityByName' };
+		const group = await window.API.getGroupComunnityByName(title);
+		if(!group.status) return { status: false, message: group?.message || 'Error in getGroupComunnityByName' };
 
-        await delay(1000);
-        let inviteResponse = await window.API.getInviteCodeGroup(group.idGroup);
+		await delay(1000);
+		let inviteResponse = await window.API.getInviteCodeGroup(group.idGroup);
 
-        if(!inviteResponse.status) {
-            await delay(5000);
-            inviteResponse = await window.API.getInviteCodeGroup(group.idGroup);
-        }
+		if(!inviteResponse.status) {
+			await delay(5000);
+			inviteResponse = await window.API.getInviteCodeGroup(group.idGroup);
+		}
 
-        if(!inviteResponse.status) {
-            sendLogReport('Group invite code not found in createCommunityNew', 'info', { name: title });
-            await window.API.groupLeave(community.idCommunity);
-            await window.API.groupLeave(group.idGroup);
-            return { status: false, message: 'Group invite code not found' };
-        }
+		if(!inviteResponse.status) {
+			sendLogReport('Group invite code not found in createCommunityNew', 'info', { name: title });
+			await window.API.groupLeave(community.idCommunity);
+			await window.API.groupLeave(group.idGroup);
+			return { status: false, message: 'Group invite code not found' };
+		}
 
-        return {
-            status: true,
-            title: title,
-            idGroup: group.idGroup,
-            idCommunity: community.idCommunity,
-            codeInvite: inviteResponse.code
-        }
+		return {
+			status: true,
+			title: title,
+			idGroup: group.idGroup,
+			idCommunity: community.idCommunity,
+			codeInvite: inviteResponse.code
+		}
 
-    } catch (error) {
-        sendLogReport('Error in createCommunityNew', 'error', { error, name: title });
+	} catch (error) {
+		sendLogReport('Error in createCommunityNew', 'error', { error, name: title });
 
-        return { status: false };
-    }
+		return { status: false };
+	}
 }
 
 /**
@@ -2385,36 +2383,36 @@ window.API.createCommunityNew = async (title, media) => {
  * @returns
  */
 window.API.createGroupAndCommunity = async (title, media) => {
-    try {
-        const group = await window.API.createGroup(title, media);
+	try {
+		const group = await window.API.createGroup(title, media);
 
-        if(!group.status) return { status: false, message: group?.message || 'Error in createGroup' };
+		if(!group.status) return { status: false, message: group?.message || 'Error in createGroup' };
 
-        const community = await window.API.createCommunity(title, media, {
-            description: '',
+		const community = await window.API.createCommunity(title, media, {
+			description: '',
             subGroupIds: [group.idGroup],
             membershipApprovalMode: false,
             allowNonAdminSubGroupCreation: false
-        });
+		});
 
-        if(!community.status) {
-            await window.API.groupLeave(group.idGroup);
-            return { status: false, message: community?.message || 'Error in createCommunity' };
-        }
+		if(!community.status) {
+			await window.API.groupLeave(group.idGroup);
+			return { status: false, message: community?.message || 'Error in createCommunity' };
+		}
 
-        return {
-            status: true,
-            title: title,
-            idGroup: group.idGroup,
-            idCommunity: community.idCommunity,
-            codeInvite: group.codeInvite.code
-        };
+		return {
+			status: true,
+			title: title,
+			idGroup: group.idGroup,
+			idCommunity: community.idCommunity,
+			codeInvite: group.codeInvite.code
+		};
 
-    } catch (error) {
-        sendLogReport('Error in createGroupAndCommunity', 'error', { error, name: title });
+	} catch (error) {
+		sendLogReport('Error in createGroupAndCommunity', 'error', { error, name: title });
 
-        return { status: false, message: 'Error in createGroupAndCommunity' };
-    }
+		return { status: false, message: 'Error in createGroupAndCommunity' };
+	}
 }
 
 /**
@@ -2426,53 +2424,53 @@ window.API.createGroupAndCommunity = async (title, media) => {
  * @returns
  */
 window.API.createCommunity = async (name, media, options = {}) => {
-    try {
-        let {
-            description: desc = '',
-            subGroupIds = null,
-            membershipApprovalMode: closed = true,
-            allowNonAdminSubGroupCreation: hasAllowNonAdminSubGroupCreation = false
-        } = options;
+	try {
+		let {
+			description: desc = '',
+			subGroupIds = null,
+			membershipApprovalMode: closed = true,
+			allowNonAdminSubGroupCreation: hasAllowNonAdminSubGroupCreation = false
+		} = options;
 
-        let createCommunityResult, linkingSubGroupsResult;
+		let createCommunityResult, linkingSubGroupsResult;
 
-        const communityExist = await window.API.getCommunityByName(name);
-        if(communityExist.status) {
-            sendLogReport('Community already exists in createCommunity', 'info', { name });
-        }
+		const communityExist = await window.API.getCommunityByName(name);
+		if(communityExist.status) {
+			sendLogReport('Community already exists in createCommunity', 'info', { name });
+		}
 
-        if(!communityExist.status) {
-            createCommunityResult = await window.Store.CommunityUtils.sendCreateCommunity({
-                name,
-                desc,
-                closed,
-                hasAllowNonAdminSubGroupCreation
-            });
-        }
+		if(!communityExist.status) {
+			createCommunityResult = await window.Store.CommunityUtils.sendCreateCommunity({
+				name,
+				desc,
+				closed,
+				hasAllowNonAdminSubGroupCreation
+			});
+		}
 
-        const idCommunity = !communityExist.status ? createCommunityResult.wid._serialized : communityExist.idCommunity;
+		const idCommunity = !communityExist.status ? createCommunityResult.wid._serialized : communityExist.idCommunity;
 
-        if (!communityExist.status && subGroupIds) {
-            linkingSubGroupsResult = await window.API.linkUnlinkSubgroups(
-                'LinkSubgroups',
-                idCommunity,
-                subGroupIds
-            );
-        }
+		if (!communityExist.status && subGroupIds) {
+			linkingSubGroupsResult = await window.API.linkUnlinkSubgroups(
+				'LinkSubgroups',
+				idCommunity,
+				subGroupIds
+			);
+		}
 
-        if(media && !communityExist.status) await window.API.groupSetPicture(idCommunity, media);
+		if(media && !communityExist.status) await window.API.groupSetPicture(idCommunity, media);
 
-        return {
-            status: true,
-            title: name,
-            idCommunity
-        };
+		return {
+			status: true,
+			title: name,
+			idCommunity
+		};
 
-    } catch (error) {
-        sendLogReport('Error in createCommunity', 'error', { error, name });
+	} catch (error) {
+		sendLogReport('Error in createCommunity', 'error', { error, name });
 
-        return { status: false, message: 'CreateCommunityError general' };
-    }
+		return { status: false, message: 'CreateCommunityError general' };
+	}
 }
 
 /**
@@ -2487,53 +2485,53 @@ window.API.createCommunity = async (name, media, options = {}) => {
  * @throws {Error} - If an error occurs during the operation.
  */
 window.API.linkUnlinkSubgroups = async (action, parentGroupId, subGroupIds, options = {}) => {
-    try {
-        !Array.isArray(subGroupIds) && (subGroupIds = [subGroupIds]);
-        const { removeOrphanMembers = false } = options;
-        const parentGroupWid = window.Store.WidFactory.createWid(parentGroupId);
-        const subGroupWids = subGroupIds.map((s) => window.Store.WidFactory.createWid(s));
-        const isLinking = action === 'LinkSubgroups';
-        let result;
+	try {
+		!Array.isArray(subGroupIds) && (subGroupIds = [subGroupIds]);
+		const { removeOrphanMembers = false } = options;
+		const parentGroupWid = window.Store.WidFactory.createWid(parentGroupId);
+		const subGroupWids = subGroupIds.map((s) => window.Store.WidFactory.createWid(s));
+		const isLinking = action === 'LinkSubgroups';
+		let result;
 
-        result = isLinking
-            ? await window.Store.CommunityUtils.sendLinkSubgroups({
-                parentGroupId: parentGroupWid,
-                subgroupIds: subGroupWids
-            })
-            : await window.Store.CommunityUtils.sendUnlinkSubgroups({
-                parentGroupId: parentGroupWid,
-                subgroupIds: subGroupWids,
-                removeOrphanMembers: removeOrphanMembers
-            });
+		result = isLinking
+		? await window.Store.CommunityUtils.sendLinkSubgroups({
+			parentGroupId: parentGroupWid,
+			subgroupIds: subGroupWids
+		})
+		: await window.Store.CommunityUtils.sendUnlinkSubgroups({
+			parentGroupId: parentGroupWid,
+			subgroupIds: subGroupWids,
+			removeOrphanMembers: removeOrphanMembers
+		});
 
-        const errorCodes = {
-            default: `An unknown error occupied while ${isLinking ? 'linking' : 'unlinking'} the group ${isLinking ? 'to' : 'from'} the comunity`,
-            401: 'SubGroupNotAuthorizedError',
-            403: 'SubGroupForbiddenError',
-            404: 'SubGroupNotExistError',
-            406: 'SubGroupNotAcceptableError',
-            409: 'SubGroupConflictError',
-            419: 'SubGroupResourceLimitError',
-            500: 'SubGroupServerError'
-        };
+		const errorCodes = {
+			default: `An unknown error occupied while ${isLinking ? 'linking' : 'unlinking'} the group ${isLinking ? 'to' : 'from'} the comunity`,
+			401: 'SubGroupNotAuthorizedError',
+			403: 'SubGroupForbiddenError',
+			404: 'SubGroupNotExistError',
+			406: 'SubGroupNotAcceptableError',
+			409: 'SubGroupConflictError',
+			419: 'SubGroupResourceLimitError',
+			500: 'SubGroupServerError'
+		};
 
-        result = {
-            ...(isLinking
-                ? { linkedGroupIds: result.linkedGroupJids }
-                : { unlinkedGroupIds: result.unlinkedGroupJids }),
-            failedGroups: result.failedGroups.map(group => ({
-                groupId: group.jid,
-                code: +group.error,
-                message: errorCodes[group.error] || errorCodes.default
-            }))
-        };
+		result = {
+			...(isLinking
+				? { linkedGroupIds: result.linkedGroupJids }
+				: { unlinkedGroupIds: result.unlinkedGroupJids }),
+			failedGroups: result.failedGroups.map(group => ({
+				groupId: group.jid,
+				code: +group.error,
+				message: errorCodes[group.error] || errorCodes.default
+			}))
+		};
 
-        return result;
-    } catch (error) {
-        sendLogReport('Error in linkUnlinkSubgroups', 'error', { error });
-        if (error.name === 'ServerStatusCodeError') return {};
-        throw error;
-    }
+		return result;
+	} catch (error) {
+		sendLogReport('Error in linkUnlinkSubgroups', 'error', { error });
+		if (error.name === 'ServerStatusCodeError') return {};
+		throw error;
+	}
 };
 
 /**
@@ -2543,37 +2541,37 @@ window.API.linkUnlinkSubgroups = async (action, parentGroupId, subGroupIds, opti
  * @return {string|undefined} The base64 encoded profile picture thumb, or undefined if not found.
  */
 window.API.getProfilePicThumbToBase64 = async (chatWid) => {
-    const profilePicCollection = await window.Store.ProfilePicThumb.find(chatWid);
+	const profilePicCollection = await window.Store.ProfilePicThumb.find(chatWid);
 
-    const _readImageAsBase64 = (imageBlob) => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = function () {
-                const base64Image = reader.result;
-                if (base64Image == null) {
-                    resolve(undefined);
-                } else {
-                    const base64Data = base64Image.toString().split(',')[1];
-                    resolve(base64Data);
-                }
-            };
-            reader.readAsDataURL(imageBlob);
-        });
-    };
+	const _readImageAsBase64 = (imageBlob) => {
+		return new Promise((resolve) => {
+			const reader = new FileReader();
+			reader.onloadend = function () {
+				const base64Image = reader.result;
+				if (base64Image == null) {
+					resolve(undefined);
+				} else {
+					const base64Data = base64Image.toString().split(',')[1];
+					resolve(base64Data);
+				}
+			};
+			reader.readAsDataURL(imageBlob);
+		});
+	};
 
-    if (profilePicCollection?.img) {
-        try {
-            const response = await fetch(profilePicCollection.img);
-            if (response.ok) {
-                const imageBlob = await response.blob();
-                if (imageBlob) {
-                    const base64Image = await _readImageAsBase64(imageBlob);
-                    return base64Image;
-                }
-            }
-        } catch (error) { /* empty */ }
-    }
-    return undefined;
+	if (profilePicCollection?.img) {
+		try {
+			const response = await fetch(profilePicCollection.img);
+			if (response.ok) {
+				const imageBlob = await response.blob();
+				if (imageBlob) {
+					const base64Image = await _readImageAsBase64(imageBlob);
+					return base64Image;
+				}
+			}
+		} catch (error) { /* empty */ }
+	}
+	return undefined;
 };
 
 /**
@@ -2585,68 +2583,68 @@ window.API.getProfilePicThumbToBase64 = async (chatWid) => {
  * @return {object} An object containing the result of the RPC call, including the name, code, invite V4 code, and invite V4 code expiration.
  */
 window.API.getAddParticipantsRpcResult = async (groupMetadata, groupWid, participantWid) => {
-    const participantLidArgs = groupMetadata?.isLidAddressingMode
-        ? {
-            phoneNumber: participantWid,
-            lid: window.Store.LidUtils.getCurrentLid(participantWid)
-        }
-        : { phoneNumber: participantWid };
+	const participantLidArgs = groupMetadata?.isLidAddressingMode
+		? {
+			phoneNumber: participantWid,
+			lid: window.Store.LidUtils.getCurrentLid(participantWid)
+		}
+		: { phoneNumber: participantWid };
 
-    const iqTo = window.Store.WidToJid.widToGroupJid(groupWid);
+	const iqTo = window.Store.WidToJid.widToGroupJid(groupWid);
 
-    const participantArgs =
-        participantLidArgs.lid
-            ? [{
-                participantJid: window.Store.WidToJid.widToUserJid(participantLidArgs.lid),
-                phoneNumberMixinArgs: {
-                    anyPhoneNumber: window.Store.WidToJid.widToUserJid(participantLidArgs.phoneNumber)
-                }
-            }]
-            : [{
-                participantJid: window.Store.WidToJid.widToUserJid(participantLidArgs.phoneNumber)
-            }];
+	const participantArgs =
+		participantLidArgs.lid
+			? [{
+				participantJid: window.Store.WidToJid.widToUserJid(participantLidArgs.lid),
+				phoneNumberMixinArgs: {
+					anyPhoneNumber: window.Store.WidToJid.widToUserJid(participantLidArgs.phoneNumber)
+				}
+			}]
+			: [{
+				participantJid: window.Store.WidToJid.widToUserJid(participantLidArgs.phoneNumber)
+			}];
 
-    let rpcResult, resultArgs;
-    const isOldImpl = window.compareWwebVersions(window.Debug.VERSION, '<=', '2.2335.9');
-    const data = {
-        name: undefined,
-        code: undefined,
-        inviteV4Code: undefined,
-        inviteV4CodeExp: undefined
-    };
+	let rpcResult, resultArgs;
+	const isOldImpl = window.compareWwebVersions(window.Debug.VERSION, '<=', '2.2335.9');
+	const data = {
+		name: undefined,
+		code: undefined,
+		inviteV4Code: undefined,
+		inviteV4CodeExp: undefined
+	};
 
-    try {
-        rpcResult = await window.Store.GroupParticipants.sendAddParticipantsRPC({ participantArgs, iqTo });
-        resultArgs = isOldImpl
-            ? rpcResult.value.addParticipant[0].addParticipantsParticipantMixins
-            : rpcResult.value.addParticipant[0]
-                .addParticipantsParticipantAddedOrNonRegisteredWaUserParticipantErrorLidResponseMixinGroup
-                .value
-                .addParticipantsParticipantMixins;
-    } catch (err) {
-        data.code = 400;
-        return data;
-    }
+	try {
+		rpcResult = await window.Store.GroupParticipants.sendAddParticipantsRPC({ participantArgs, iqTo });
+		resultArgs = isOldImpl
+			? rpcResult.value.addParticipant[0].addParticipantsParticipantMixins
+			: rpcResult.value.addParticipant[0]
+				.addParticipantsParticipantAddedOrNonRegisteredWaUserParticipantErrorLidResponseMixinGroup
+				.value
+				.addParticipantsParticipantMixins;
+	} catch (err) {
+		data.code = 400;
+		return data;
+	}
 
-    if (rpcResult.name === 'AddParticipantsResponseSuccess') {
-        const code = resultArgs?.value.error ?? '200';
-        data.name = resultArgs?.name;
-        data.code = +code;
-        data.inviteV4Code = resultArgs?.value.addRequestCode;
-        data.inviteV4CodeExp = resultArgs?.value.addRequestExpiration?.toString();
-    }
+	if (rpcResult.name === 'AddParticipantsResponseSuccess') {
+		const code = resultArgs?.value.error ?? '200';
+		data.name = resultArgs?.name;
+		data.code = +code;
+		data.inviteV4Code = resultArgs?.value.addRequestCode;
+		data.inviteV4CodeExp = resultArgs?.value.addRequestExpiration?.toString();
+	}
 
-    else if (rpcResult.name === 'AddParticipantsResponseClientError') {
-        const { code: code } = rpcResult.value.errorAddParticipantsClientErrors.value;
-        data.code = +code;
-    }
+	else if (rpcResult.name === 'AddParticipantsResponseClientError') {
+		const { code: code } = rpcResult.value.errorAddParticipantsClientErrors.value;
+		data.code = +code;
+	}
 
-    else if (rpcResult.name === 'AddParticipantsResponseServerError') {
-        const { code: code } = rpcResult.value.errorServerErrors.value;
-        data.code = +code;
-    }
+	else if (rpcResult.name === 'AddParticipantsResponseServerError') {
+		const { code: code } = rpcResult.value.errorServerErrors.value;
+		data.code = +code;
+	}
 
-    return data;
+	return data;
 };
 
 /**
@@ -2661,121 +2659,121 @@ window.API.getAddParticipantsRpcResult = async (groupMetadata, groupWid, partici
  * @return {object} An object containing the result of adding each participant, with their ID as the key.
  */
 window.API.addParticipantsGroup = async (groupId, participantIds, options = {}) => {
-    try {
-        const { sleep = [250, 500], autoSendInviteV4 = true, comment = '' } = options;
-        const participantData = {};
+	try {
+		const { sleep = [250, 500], autoSendInviteV4 = true, comment = '' } = options;
+		const participantData = {};
 
-        !Array.isArray(participantIds) && (participantIds = [participantIds]);
-        const groupWid = window.Store.WidFactory.createWid(groupId);
-        const group = await window.Store.Chat.find(groupWid);
-        const participantWids = participantIds.map((p) => window.Store.WidFactory.createWid(p));
+		!Array.isArray(participantIds) && (participantIds = [participantIds]);
+		const groupWid = window.Store.WidFactory.createWid(groupId);
+		const group = await window.Store.Chat.find(groupWid);
+		const participantWids = participantIds.map((p) => window.Store.WidFactory.createWid(p));
 
-        const errorCodes = {
-            default: 'An unknown error occupied while adding a participant',
-            isGroupEmpty: 'AddParticipantsError: The participant can\'t be added to an empty group',
-            iAmNotAdmin: 'AddParticipantsError: You have no admin rights to add a participant to a group',
-            200: 'The participant was added successfully',
-            403: 'The participant can be added by sending private invitation only',
-            404: 'The phone number is not registered on WhatsApp',
-            408: 'You cannot add this participant because they recently left the group',
-            409: 'The participant is already a group member',
-            417: 'The participant can\'t be added to the community. You can invite them privately to join this group through its invite link',
-            419: 'The participant can\'t be added because the group is full'
-        };
+		const errorCodes = {
+			default: 'An unknown error occupied while adding a participant',
+			isGroupEmpty: 'AddParticipantsError: The participant can\'t be added to an empty group',
+			iAmNotAdmin: 'AddParticipantsError: You have no admin rights to add a participant to a group',
+			200: 'The participant was added successfully',
+			403: 'The participant can be added by sending private invitation only',
+			404: 'The phone number is not registered on WhatsApp',
+			408: 'You cannot add this participant because they recently left the group',
+			409: 'The participant is already a group member',
+			417: 'The participant can\'t be added to the community. You can invite them privately to join this group through its invite link',
+			419: 'The participant can\'t be added because the group is full'
+		};
 
-        await window.Store.GroupQueryAndUpdate(groupWid);
-        const groupMetadata = group.groupMetadata;
-        const groupParticipants = groupMetadata?.participants;
+		await window.Store.GroupQueryAndUpdate(groupWid);
+		const groupMetadata = group.groupMetadata;
+		const groupParticipants = groupMetadata?.participants;
 
-        if (!groupParticipants) {
-            sendLogReport('Error in addParticipantsGroup', 'info', { error: errorCodes.isGroupEmpty });
+		if (!groupParticipants) {
+			sendLogReport('Error in addParticipantsGroup', 'info', { error: errorCodes.isGroupEmpty });
 
-            return {
-                status: false,
-                data: errorCodes.isGroupEmpty
-            };
-        }
+			return {
+				status: false,
+				data: errorCodes.isGroupEmpty
+			};
+		}
 
-        if (!group.iAmAdmin()) {
-            sendLogReport('Error in addParticipantsGroup', 'info', { error: errorCodes.iAmNotAdmin });
+		if (!group.iAmAdmin()) {
+			sendLogReport('Error in addParticipantsGroup', 'info', { error: errorCodes.iAmNotAdmin });
 
-            return {
-                status: false,
-                data: errorCodes.iAmNotAdmin
-            };
-        }
+			return {
+				status: false,
+				data: errorCodes.iAmNotAdmin
+			};
+		}
 
-        const _getSleepTime = (sleep) => {
-            if (!Array.isArray(sleep) || sleep.length === 2 && sleep[0] === sleep[1]) {
-                return sleep;
-            }
-            if (sleep.length === 1) {
-                return sleep[0];
-            }
-            (sleep[1] - sleep[0]) < 100 && (sleep[0] = sleep[1]) && (sleep[1] += 100);
-            return Math.floor(Math.random() * (sleep[1] - sleep[0] + 1)) + sleep[0];
-        };
+		const _getSleepTime = (sleep) => {
+			if (!Array.isArray(sleep) || sleep.length === 2 && sleep[0] === sleep[1]) {
+				return sleep;
+			}
+			if (sleep.length === 1) {
+				return sleep[0];
+			}
+			(sleep[1] - sleep[0]) < 100 && (sleep[0] = sleep[1]) && (sleep[1] += 100);
+			return Math.floor(Math.random() * (sleep[1] - sleep[0] + 1)) + sleep[0];
+		};
 
-        for (const pWid of participantWids) {
-            const pId = pWid._serialized;
+		for (const pWid of participantWids) {
+			const pId = pWid._serialized;
 
-            participantData[pId] = {
-                code: undefined,
-                message: undefined,
-                isInviteV4Sent: false
-            };
+			participantData[pId] = {
+				code: undefined,
+				message: undefined,
+				isInviteV4Sent: false
+			};
 
-            if (groupParticipants.some(p => p.id._serialized === pId)) {
-                participantData[pId].code = 409;
-                participantData[pId].message = errorCodes[409];
-                continue;
-            }
+			if (groupParticipants.some(p => p.id._serialized === pId)) {
+				participantData[pId].code = 409;
+				participantData[pId].message = errorCodes[409];
+				continue;
+			}
 
-            const rpcResult = await window.API.getAddParticipantsRpcResult(groupMetadata, groupWid, pWid);
-            const { code: rpcResultCode } = rpcResult;
+			const rpcResult = await window.API.getAddParticipantsRpcResult(groupMetadata, groupWid, pWid);
+			const { code: rpcResultCode } = rpcResult;
 
-            participantData[pId].code = rpcResultCode;
-            participantData[pId].message = errorCodes[rpcResultCode] || errorCodes.default;
+			participantData[pId].code = rpcResultCode;
+			participantData[pId].message = errorCodes[rpcResultCode] || errorCodes.default;
 
-            if (autoSendInviteV4 && rpcResultCode === 403) {
-                let userChat, isInviteV4Sent = false;
-                window.Store.Contact.gadd(pWid, { silent: true });
+			if (autoSendInviteV4 && rpcResultCode === 403) {
+				let userChat, isInviteV4Sent = false;
+				window.Store.Contact.gadd(pWid, { silent: true });
 
-                if (rpcResult.name === 'ParticipantRequestCodeCanBeSent' &&
-                    (userChat = await window.Store.Chat.find(pWid))) {
-                    const groupName = group.formattedTitle || group.name;
-                    const res = await window.Store.GroupInviteV4.sendGroupInviteMessage(
-                        userChat,
-                        group.id._serialized,
-                        groupName,
-                        rpcResult.inviteV4Code,
-                        rpcResult.inviteV4CodeExp,
-                        comment,
-                        await window.API.getProfilePicThumbToBase64(groupWid)
-                    );
-                    isInviteV4Sent = window.compareWwebVersions(window.Debug.VERSION, '<', '2.2335.6')
-                        ? res === 'OK'
-                        : res.messageSendResult === 'OK';
-                }
+				if (rpcResult.name === 'ParticipantRequestCodeCanBeSent' &&
+					(userChat = await window.Store.Chat.find(pWid))) {
+					const groupName = group.formattedTitle || group.name;
+					const res = await window.Store.GroupInviteV4.sendGroupInviteMessage(
+						userChat,
+						group.id._serialized,
+						groupName,
+						rpcResult.inviteV4Code,
+						rpcResult.inviteV4CodeExp,
+						comment,
+						await window.API.getProfilePicThumbToBase64(groupWid)
+					);
+					isInviteV4Sent = window.compareWwebVersions(window.Debug.VERSION, '<', '2.2335.6')
+						? res === 'OK'
+						: res.messageSendResult === 'OK';
+				}
 
-                participantData[pId].isInviteV4Sent = isInviteV4Sent;
-            }
+				participantData[pId].isInviteV4Sent = isInviteV4Sent;
+			}
 
-            sleep &&
-            participantWids.length > 1 &&
-            participantWids.indexOf(pWid) !== participantWids.length - 1 &&
-            (await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
-        }
+			sleep &&
+				participantWids.length > 1 &&
+				participantWids.indexOf(pWid) !== participantWids.length - 1 &&
+				(await new Promise((resolve) => setTimeout(resolve, _getSleepTime(sleep))));
+		}
 
-        return {
-            status: true,
-            data: participantData
-        };
+		return {
+			status: true,
+			data: participantData
+		};
 
-    } catch (error) {
-        sendLogReport('Error in addParticipants', 'error', { error });
-        return { status: false, data: error };
-    }
+	} catch (error) {
+		sendLogReport('Error in addParticipants', 'error', { error });
+		return { status: false, data: error };
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2783,145 +2781,145 @@ window.API.addParticipantsGroup = async (groupId, participantIds, options = {}) 
 //-------------------------------------------------------------------------------------------------
 
 const oldMakeStore = () => {
-    newStore = false;
+	newStore = false;
 
-    if (webpackChunkwhatsapp_web_client && webpackChunkwhatsapp_web_client.length > 12 &&
-        (!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat)) {
-        (function () {
+	if (webpackChunkwhatsapp_web_client && webpackChunkwhatsapp_web_client.length > 12 &&
+		(!window.Store || !window.Store.Chat || !window.Store.SendTextMsgToChat)) {
+		(function () {
 
-            function getStore2(modules) {
-                let foundCount = 0;
-                for (let idx in modules) {
-                    if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
-                        neededObjects.forEach((needObj) => {
-                            if (!needObj.conditions || needObj.foundedModule)
-                                return;
-                            let neededModule = needObj.conditions(modules[idx]);
-                            if (neededModule !== null) {
-                                foundCount++;
-                                needObj.foundedModule = neededModule;
-                            }
-                        });
+			function getStore2(modules) {
+				let foundCount = 0;
+				for (let idx in modules) {
+					if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
+						neededObjects.forEach((needObj) => {
+							if (!needObj.conditions || needObj.foundedModule)
+								return;
+							let neededModule = needObj.conditions(modules[idx]);
+							if (neededModule !== null) {
+								foundCount++;
+								needObj.foundedModule = neededModule;
+							}
+						});
 
-                        if (foundCount == neededObjects.length) {
-                            break;
-                        }
-                    }
-                }
+						if (foundCount == neededObjects.length) {
+							break;
+						}
+					}
+				}
 
-                let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
-                window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
-                neededObjects.splice(neededObjects.indexOf(neededStore), 1);
-                neededObjects.forEach((needObj) => {
-                    if (needObj.foundedModule) {
-                        window.Store[needObj.id] = needObj.foundedModule;
-                    }
-                });
+				let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
+				window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
+				neededObjects.splice(neededObjects.indexOf(neededStore), 1);
+				neededObjects.forEach((needObj) => {
+					if (needObj.foundedModule) {
+						window.Store[needObj.id] = needObj.foundedModule;
+					}
+				});
 
-                window.Store.Chat.modelClass.prototype.sendMessage = function (e) {
-                    window.Store.SendTextMsgToChat(this, ...arguments);
-                }
-                console.log(window.Store)
-                return window.Store;
-            }
+				window.Store.Chat.modelClass.prototype.sendMessage = function (e) {
+					window.Store.SendTextMsgToChat(this, ...arguments);
+				}
+				console.log(window.Store)
+				return window.Store;
+			}
 
 
-            let tag = new Date().getTime();
-            webpackChunkwhatsapp_web_client.push([
-                ["parasite" + tag],
-                {
+			let tag = new Date().getTime();
+			webpackChunkwhatsapp_web_client.push([
+				["parasite" + tag],
+				{
 
-                },
-                function (o, e, t) {
-                    let modules = [];
-                    for (let idx in o.m) {
-                        let module = o(idx);
-                        modules.push(module);
-                    }
-                    getStore2(modules);
-                }
-            ]);
+				},
+				function (o, e, t) {
+					let modules = [];
+					for (let idx in o.m) {
+						let module = o(idx);
+						modules.push(module);
+					}
+					getStore2(modules);
+				}
+			]);
 
-        })();
-    }
+		})();
+	}
 }
 
 const newMakeStore = () => {
-    newStore = true;
+	newStore = true;
 
-    let modules = self.require('__debug').modulesMap;
-    let keys = Object.keys(modules).filter(e => e.includes("WA"));
-    let modulesFactory = {};
-    for (let key of keys) {
-        if (!modules[key])
-            continue;
-        let module = modules[key];
-        modulesFactory[key] = {
-            default: module.defaultExport,
-            factory: module.factory,
-            ...module
-        };
-        if (Object.keys(modulesFactory[key].default).length == 0) {
-            try {
-                self.ErrorGuard.skipGuardGlobal(true);
-                Object.assign(modulesFactory[key], self.importNamespace(key));
-            } catch (e) {
-                console.error("Error importing:", key)
-            }
-        }
-    }
+	let modules = self.require('__debug').modulesMap;
+	let keys = Object.keys(modules).filter(e => e.includes("WA"));
+	let modulesFactory = {};
+	for (let key of keys) {
+		if (!modules[key])
+			continue;
+		let module = modules[key];
+		modulesFactory[key] = {
+			default: module.defaultExport,
+			factory: module.factory,
+			...module
+		};
+		if (Object.keys(modulesFactory[key].default).length == 0) {
+			try {
+				self.ErrorGuard.skipGuardGlobal(true);
+				Object.assign(modulesFactory[key], self.importNamespace(key));
+			} catch (e) {
+				console.error("Error importing:", key)
+			}
+		}
+	}
 
-    function getStore(modules) {
-        let foundCount = 0;
-        for (let idx in modules) {
-            if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
-                neededObjects.forEach((needObj) => {
-                    if (!needObj.conditions || needObj.foundedModule)
-                        return;
-                    let neededModule = needObj.conditions(modules[idx]);
-                    if (neededModule !== null) {
-                        foundCount++;
-                        needObj.foundedModule = neededModule;
-                    }
-                });
+	function getStore(modules) {
+		let foundCount = 0;
+		for (let idx in modules) {
+			if ((typeof modules[idx] === "object") && (modules[idx] !== null)) {
+				neededObjects.forEach((needObj) => {
+					if (!needObj.conditions || needObj.foundedModule)
+						return;
+					let neededModule = needObj.conditions(modules[idx]);
+					if (neededModule !== null) {
+						foundCount++;
+						needObj.foundedModule = neededModule;
+					}
+				});
 
-                if (foundCount == neededObjects.length) {
-                    break;
-                }
-            }
-        }
+				if (foundCount == neededObjects.length) {
+					break;
+				}
+			}
+		}
 
-        let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
-        window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
-        neededObjects.splice(neededObjects.indexOf(neededStore), 1);
-        neededObjects.forEach((needObj) => {
-            if (needObj.foundedModule) {
-                window.Store[needObj.id] = needObj.foundedModule;
-            }
-        });
+		let neededStore = neededObjects.find((needObj) => needObj.id === "Store");
+		window.Store = neededStore.foundedModule ? neededStore.foundedModule : {};
+		neededObjects.splice(neededObjects.indexOf(neededStore), 1);
+		neededObjects.forEach((needObj) => {
+			if (needObj.foundedModule) {
+				window.Store[needObj.id] = needObj.foundedModule;
+			}
+		});
 
-        window.Store.Chat.modelClass.prototype.sendMessage = function (e) {
-            window.Store.SendTextMsgToChat(this, ...arguments);
-        }
+		window.Store.Chat.modelClass.prototype.sendMessage = function (e) {
+			window.Store.SendTextMsgToChat(this, ...arguments);
+		}
 
-        sendLogReport('Store value', 'info', { store: window.Store }, false);
+		sendLogReport('Store value', 'info', { store: window.Store }, false);
 
-        return window.Store;
-    }
+		return window.Store;
+	}
 
-    getStore(modulesFactory);
+	getStore(modulesFactory);
 }
 
 const chooseFunction = () => {
-    const store = (Debug || {}).VERSION.includes("2.3000") ? newMakeStore() : oldMakeStore()
+	const store = (Debug || {}).VERSION.includes("2.3000") ? newMakeStore() : oldMakeStore()
 
-    try {
-        addObjectsStore();
-    } catch (error) {
-        sendLogReport('Error addObjectsStore', 'error', { error });
-    }
+	try {
+		addObjectsStore();
+	} catch (error) {
+		sendLogReport('Error addObjectsStore', 'error', { error });
+	}
 
-    return store;
+	return store;
 }
 
 window.makeStore = chooseFunction
@@ -2931,7 +2929,7 @@ window.makeStore = chooseFunction
 //-------------------------------------------------------------------------------------------------
 
 const delay = (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
+	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
@@ -2941,24 +2939,24 @@ const delay = (ms) => {
  * @return {Promise<string>} A promise that resolves with the base64 string of the image.
  */
 const convertToBase64 = (imgUrl) => new Promise(resolve => {
-    var img = new Image();
-    img.src = imgUrl;
-    img.setAttribute('crossOrigin', 'anonymous');
-    img.onload = (() => {
-        var canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        var ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        var dataURL = canvas.toDataURL("image/gif");
-        resolve(dataURL.replace(/^data:image\/(png|jpg);base64,/, "data:image/gif;base64,"));
-    });
+	var img = new Image();
+	img.src = imgUrl;
+	img.setAttribute('crossOrigin', 'anonymous');
+	img.onload = (() => {
+		var canvas = document.createElement("canvas");
+		canvas.width = img.width;
+		canvas.height = img.height;
+		var ctx = canvas.getContext("2d");
+		ctx.drawImage(img, 0, 0);
+		var dataURL = canvas.toDataURL("image/gif");
+		resolve(dataURL.replace(/^data:image\/(png|jpg);base64,/, "data:image/gif;base64,"));
+	});
 });
 
 /**
  * @description Remove caracteres especiais e acentos antes do envio ao rasa
  *
- * @param {String} message - mensagem a ser obtida a intenÃ§Ã£o
+ * @param {String} message - mensagem a ser obtida a intenção
  *
  * @returns {String} Mensagem a ser enviada pro rasa
  */
@@ -3013,22 +3011,22 @@ const treatPauseBot = (msg) => {
  * @return {Boolean}
  */
 const propMessageSendedBot = (msg) => {
-    let isBotSendMessage = false;
+	let isBotSendMessage = false;
 
-    try {
-        const to = msg.__x_to._serialized;
-        const botSendedStorage = localStorage.getItem(`bot-msg-${to}`);
+	try {
+		const to = msg.__x_to._serialized;
+		const botSendedStorage = localStorage.getItem(`bot-msg-${to}`);
 
-        if(to == botSendedStorage) {
-            isBotSendMessage = true;
-            localStorage.removeItem(`bot-msg-${to}`);
-        }
+		if(to == botSendedStorage) {
+			isBotSendMessage = true;
+			localStorage.removeItem(`bot-msg-${to}`);
+		}
 
-    } catch (error) {
-        console.log('Error get bot message', error);
-    }
+	} catch (error) {
+		console.log('Error get bot message', error);
+	}
 
-    return isBotSendMessage;
+	return isBotSendMessage;
 }
 
 /**
@@ -3051,16 +3049,16 @@ window.API.getNewId = function () {
  * Sends old messages if the Store and Msg objects are available.
  */
 const sendOldMessages = () => {
-    if (window.Store && Store.Msg) {
-        (Store.Msg.models || Store.Msg.getModelsArray()).forEach(message => {
-            if (message.__x_isNewMsg) {
-                message.__x_isNewMsg = false;
-                if(platform === 'anota-ai-desktop') window.API.listener.handle_msg(message);
-                if(platform === 'CLOUDIA') receiverMessageCloudia(message);
-                if(platform === 'VENDE_AI') receiverMessageCloudiaVendeAi(message);
-            }
-        });
-    }
+	if (window.Store && Store.Msg) {
+		(Store.Msg.models || Store.Msg.getModelsArray()).forEach(message => {
+			if (message.__x_isNewMsg) {
+				message.__x_isNewMsg = false;
+				if(platform === 'anota-ai-desktop') window.API.listener.handle_msg(message);
+				if(platform === 'CLOUDIA') receiverMessageCloudia(message);
+				if(platform === 'VENDE_AI') receiverMessageCloudiaVendeAi(message);
+			}
+		});
+	}
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -3114,7 +3112,7 @@ window.WAPI.messageAnalitycsTreat = (message) => {
  * @return {string} The version of the Debug object.
  */
 window.WAPI.getVersion = () => {
-    return window.API.getVersion();
+	return window.API.getVersion();
 }
 
 /**
@@ -3123,7 +3121,7 @@ window.WAPI.getVersion = () => {
  * @return {boolean} Returns true if the user is logged in, false otherwise.
  */
 window.WAPI.isLoggedIn = () => {
-    return window.API.isLoggedIn();
+	return window.API.isLoggedIn();
 }
 
 /**
@@ -3176,10 +3174,10 @@ window.WAPI.mainSendMessage = async (infos) => {
 }
 
 /**
- * Pego as informaÃ§Ãµes do perfil do usuario conectado
+ * Pego as informações do perfil do usuario conectado
  */
 window.WAPI.getMe = () => {
-    return window.API.getMe();
+	return window.API.getMe();
 }
 
 /**
@@ -3188,7 +3186,7 @@ window.WAPI.getMe = () => {
  * @param {Object} msg - The incoming message object.
  */
 const receiverMessageCloudia = (msg) => {
-    try {
+	try {
         const sender = msg.__x_sender || msg.__x_from;
         const isFromMe = msg.__x_id.fromMe;
 
@@ -3222,7 +3220,7 @@ const receiverMessageCloudia = (msg) => {
                 const differenceDate = timeNow - timeSendMessage;
                 const diffInMinutes = Math.round(differenceDate / oneMinute);
                 if (diffInMinutes > 10) {
-                    console.log('NÃ£o envia mensagens que tenham sido enviadas a mais de 10 minutos')
+                    console.log('Não envia mensagens que tenham sido enviadas a mais de 10 minutos')
                     return;
                 }
             }
@@ -3252,32 +3250,32 @@ const receiverMessageCloudia = (msg) => {
             const ACCEPTED_MESSAGE_TYPES = ['chat', 'ptt', 'location', "ciphertext"];
 
             if (ACCEPTED_MESSAGE_TYPES.includes(msg.__x_type)) {
-                console.log("[CLOUDIA] dispatching messageReceived event");
+				console.log("[CLOUDIA] dispatching messageReceived event");
 
-                if (msg.__x_type == "ptt") {
-                    window.API.processMediaMessage(msg, 60000).then(item => {
-                        objSendToServer.media = item;
-                        objSendToServer.mimetype = msg.__x_mimetype;
-                        objSendToServer.duration = msg.__x_duration;
+				if (msg.__x_type == "ptt") {
+					window.API.processMediaMessage(msg, 60000).then(item => {
+						objSendToServer.media = item;
+						objSendToServer.mimetype = msg.__x_mimetype;
+						objSendToServer.duration = msg.__x_duration;
 
-                        document.dispatchEvent(new CustomEvent("messageReceived", {
-                            detail: objSendToServer,
-                        }));
+						document.dispatchEvent(new CustomEvent("messageReceived", {
+							detail: objSendToServer,
+						}));
 
-                        document.dispatchEvent(new CustomEvent('sendMessageAnalitycs', {
-                            detail: window.WAPI.messageAnalitycsTreat(msg)
-                        }));
-                    });
+						document.dispatchEvent(new CustomEvent('sendMessageAnalitycs', {
+							detail: window.WAPI.messageAnalitycsTreat(msg)
+						}));
+					});
 
-                }else{
+				}else{
 
-                    document.dispatchEvent( new CustomEvent('messageReceived', {
-                        detail: objSendToServer
-                    }))
-                    document.dispatchEvent(new CustomEvent('sendMessageAnalitycs', {
-                        detail: window.WAPI.messageAnalitycsTreat(msg)
-                    }));
-                }
+					document.dispatchEvent( new CustomEvent('messageReceived', {
+						detail: objSendToServer
+					}))
+					document.dispatchEvent(new CustomEvent('sendMessageAnalitycs', {
+						detail: window.WAPI.messageAnalitycsTreat(msg)
+					}));
+				}
 
             } else {
                 console.log(`[CLOUDIA] Ignoring message type ${msg.__x_type}`)
@@ -3298,7 +3296,7 @@ const receiverMessageCloudia = (msg) => {
         }
 
     } catch (error) {
-        sendLogReport('Error in linkUnlinkSubgroups', 'error', { error });
+		sendLogReport('Error in linkUnlinkSubgroups', 'error', { error });
     }
 }
 
@@ -3309,68 +3307,68 @@ const receiverMessageCloudia = (msg) => {
  */
 const receiverMessageCloudiaVendeAi = (msg) => {
 
-    const userId = window.API.getMyChatId().user ?? "";
-    const isBotSendMessage = propMessageSendedBot(msg);
+	const userId = window.API.getMyChatId().user ?? "";
+	const isBotSendMessage = propMessageSendedBot(msg);
 
-    let defaultObj = {
-        to: msg?.__x_to.user,
-        from: msg?.__x_from.user,
-        type: msg?.__x_type,
-        text: msg?.__x_body,
-        userId,
-        received_user_name: msg?.notifyName,
-        whatsInfo: {
-            id: {
-                fromMe: msg.__x_id.fromMe,
-                id: msg.__x_id.id
-            },
-            message_type: "message_received",
-            body: msg.__x_type === "chat" ? msg.__x_body : msg.__x_type,
-            type: msg.__x_type,
-            message_timestamp: msg.__x_t,
-            isNewMsg: msg.__x_isNewMsg,
-            from: msg.__x_from._serialized,
-            to: msg.__x_to._serialized,
-            disappearingModeInitiator: msg.__x_disappearingModeInitiator,
-            disappearingModeTrigger: msg.__x_disappearingModeTrigger,
-            disappearingModeInitiatedByMe: msg.__x_disappearingModeInitiatedByMe,
-            isFromTemplate: false
-        }
-    }
+	let defaultObj = {
+		to: msg?.__x_to.user,
+		from: msg?.__x_from.user,
+		type: msg?.__x_type,
+		text: msg?.__x_body,
+		userId,
+		received_user_name: msg?.notifyName,
+		whatsInfo: {
+			id: {
+				fromMe: msg.__x_id.fromMe,
+				id: msg.__x_id.id
+			},
+			message_type: "message_received",
+			body: msg.__x_type === "chat" ? msg.__x_body : msg.__x_type,
+			type: msg.__x_type,
+			message_timestamp: msg.__x_t,
+			isNewMsg: msg.__x_isNewMsg,
+			from: msg.__x_from._serialized,
+			to: msg.__x_to._serialized,
+			disappearingModeInitiator: msg.__x_disappearingModeInitiator,
+			disappearingModeTrigger: msg.__x_disappearingModeTrigger,
+			disappearingModeInitiatedByMe: msg.__x_disappearingModeInitiatedByMe,
+			isFromTemplate: false
+		}
+	}
 
-    if (msg.__x_id.fromMe) {
-        const event = new CustomEvent("messageSent", {
-            detail: {
-                ...defaultObj,
-                isBotSendMessage,
-                sender_user_name: window.API.getMeComplete().name,
-                whatsInfo: {
-                    ...defaultObj.whatsInfo,
-                    message_type: isBotSendMessage ? "txt_bot" : "message_sent",
-                    disappearingModeInitiator: msg.__x_disappearingModeInitiator ?? false,
-                    disappearingModeTrigger: msg.__x_disappearingModeTrigger ?? false,
-                    disappearingModeInitiatedByMe: msg.__x_disappearingModeInitiatedByMe ?? false,
-                }
-            }
-        })
+	if (msg.__x_id.fromMe) {
+		const event = new CustomEvent("messageSent", {
+			detail: {
+				...defaultObj,
+				isBotSendMessage,
+				sender_user_name: window.API.getMeComplete().name,
+				whatsInfo: {
+					...defaultObj.whatsInfo,
+					message_type: isBotSendMessage ? "txt_bot" : "message_sent",
+					disappearingModeInitiator: msg.__x_disappearingModeInitiator ?? false,
+					disappearingModeTrigger: msg.__x_disappearingModeTrigger ?? false,
+					disappearingModeInitiatedByMe: msg.__x_disappearingModeInitiatedByMe ?? false,
+				}
+			}
+		})
 
-        return document.dispatchEvent(event);
-    }
+		return document.dispatchEvent(event);
+	}
 
-    if(msg.__x_type == 'ptt') {
-        return window.API.processMediaMessage(msg, 60000).then(item => {
-            defaultObj.media = item;
-            defaultObj.mimetype = msg.__x_mimetype;
+	if(msg.__x_type == 'ptt') {
+		return window.API.processMediaMessage(msg, 60000).then(item => {
+			defaultObj.media = item;
+			defaultObj.mimetype = msg.__x_mimetype;
 
-            document.dispatchEvent(new CustomEvent("messageReceived", {
-                detail: defaultObj,
-            }));
-        });
-    }
+			document.dispatchEvent(new CustomEvent("messageReceived", {
+				detail: defaultObj,
+			}));
+		});
+	}
 
-    return document.dispatchEvent(new CustomEvent("messageReceived", {
-        detail: defaultObj
-    }));
+	return document.dispatchEvent(new CustomEvent("messageReceived", {
+		detail: defaultObj
+	}));
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -3378,172 +3376,172 @@ const receiverMessageCloudiaVendeAi = (msg) => {
 //-------------------------------------------------------------------------------------------------
 
 /**
- * FaÃ§o o tratamento de eventos recebidos pelo whatsapp
+ * Faço o tratamento de eventos recebidos pelo whatsapp
  */
 window.API.fixStores = function () {
 
-    let sendedEventWhatsSync = false;
-    let qrcodeRead = false;
+	let sendedEventWhatsSync = false;
+	let qrcodeRead = false;
 
-    // receiver new message event
-    Store.Msg.on('add', (message) => {
-        if (message.__x_isNewMsg) {
+	// receiver new message event
+	Store.Msg.on('add', (message) => {
+		if (message.__x_isNewMsg) {
 
-            sendLogReport('Store.Msg.on', 'info', { message }, false);
+			sendLogReport('Store.Msg.on', 'info', { message }, false);
 
-            if(message?.from?.server === 'newsletter') return;
+			if(message?.from?.server === 'newsletter') return;
 
-            if(message?.__x_subtype == 'invite') {
-                document.dispatchEvent(new CustomEvent('client-accept-invite', {
-                    detail: {
-                        idGroup: message?.__x_from?._serialized,
-                        participant: message?.__x_id?.participant?._serialized
-                    }
-                }));
-                return;
-            }
+			if(message?.__x_subtype == 'invite') {
+				document.dispatchEvent(new CustomEvent('client-accept-invite', {
+					detail: {
+						idGroup: message?.__x_from?._serialized,
+						participant: message?.__x_id?.participant?._serialized
+					}
+				}));
+				return;
+			}
 
-            if (window.switch) {
-                message.__x_isNewMsg = false;
-                message.isNewMsg = false;
-            }
+			if (window.switch) {
+				message.__x_isNewMsg = false;
+				message.isNewMsg = false;
+			}
 
-            if(platform === 'anota-ai-desktop') window.API.listener.handle_msg(message);
-            if(platform === 'CLOUDIA') receiverMessageCloudia(message);
-            if(platform === 'VENDE_AI') receiverMessageCloudiaVendeAi(message);
-        }
-    })
+			if(platform === 'anota-ai-desktop') window.API.listener.handle_msg(message);
+			if(platform === 'CLOUDIA') receiverMessageCloudia(message);
+			if(platform === 'VENDE_AI') receiverMessageCloudiaVendeAi(message);
+		}
+	})
 
-    // new send message
-    Store.Chat.modelClass.prototype.sendMessage = function(e, obj) {
-        sendLogReport('New send message', 'info', {}, false);
+	// new send message
+	Store.Chat.modelClass.prototype.sendMessage = function(e, obj) {
+		sendLogReport('New send message', 'info', {}, false);
 
-        if (!this.sendMessageQueue) {
-            this.sendMessageQueue = [];
-        }
-        if (!this.sendMessageInterval) {
-            this.sendMessageInterval = setInterval(() => {
-                if (this.sendMessageQueue && this.sendMessageQueue.length > 0) {
-                    this.sendMessageQueue.shift()();
-                }
-            }, 10);
-        }
+		if (!this.sendMessageQueue) {
+			this.sendMessageQueue = [];
+		}
+		if (!this.sendMessageInterval) {
+			this.sendMessageInterval = setInterval(() => {
+				if (this.sendMessageQueue && this.sendMessageQueue.length > 0) {
+					this.sendMessageQueue.shift()();
+				}
+			}, 10);
+		}
 
-        return new Promise((resolve, reject) => {
-            this.sendMessageQueue.push(async () => {
-                try {
-                    let newId = new Store.CreateMsgKey.default({
-                        from: Store.GetMaybeMeUser.getMaybeMeUser(),
-                        to: this.id,
-                        id: API.getNewId(),
-                        participant: this.isGroup ? Store.GetMaybeMeUser.getMaybeMeUser() : undefined,
-                        selfDir: "out"
-                    });
+		return new Promise((resolve, reject) => {
+			this.sendMessageQueue.push(async () => {
+				try {
+					let newId = new Store.CreateMsgKey.default({
+						from: Store.GetMaybeMeUser.getMaybeMeUser(),
+						to: this.id,
+						id: API.getNewId(),
+						participant: this.isGroup ? Store.GetMaybeMeUser.getMaybeMeUser() : undefined,
+						selfDir: "out"
+					});
 
-                    let tempMsg = API.createBaseMsg(newId, this.id);
-                    tempMsg.type = 'chat';
+					let tempMsg = API.createBaseMsg(newId, this.id);
+					tempMsg.type = 'chat';
 
-                    if (obj) {
-                        if (obj.quotedMsg) {
-                            Object.assign(tempMsg, obj.quotedMsg.msgContextInfo(this.id));
-                        }
-                        if (obj.media) {
-                            let forceSticker = !!obj.media.stickerData;
-                            let stickerData = forceSticker ? {
-                                stickerName: obj.media.stickerData.stickerName,
-                                collectionName: obj.media.stickerData.collectionName
-                            } : null;
-                            let mediaOptions = await API.buildMediaData(obj.media.data, obj.media.fileName, obj.media.forceDocument, stickerData);
-                            Object.assign(tempMsg, {
-                                ...mediaOptions,
-                            });
+					if (obj) {
+						if (obj.quotedMsg) {
+							Object.assign(tempMsg, obj.quotedMsg.msgContextInfo(this.id));
+						}
+						if (obj.media) {
+							let forceSticker = !!obj.media.stickerData;
+							let stickerData = forceSticker ? {
+								stickerName: obj.media.stickerData.stickerName,
+								collectionName: obj.media.stickerData.collectionName
+							} : null;
+							let mediaOptions = await API.buildMediaData(obj.media.data, obj.media.fileName, obj.media.forceDocument, stickerData);
+							Object.assign(tempMsg, {
+								...mediaOptions,
+							});
 
-                            if (!obj.media.forceDocument && e) {
-                                tempMsg.caption = e;
-                                e = ''
-                            }
-                        }
-                    }
+							if (!obj.media.forceDocument && e) {
+								tempMsg.caption = e;
+								e = ''
+							}
+						}
+					}
 
-                    if (!tempMsg.body) tempMsg.body = e;
+					if (!tempMsg.body) tempMsg.body = e;
 
-                    let results = Store.AddAndSendMsgToChat(this, tempMsg);
-                    let msg = await results[0];
+					let results = Store.AddAndSendMsgToChat(this, tempMsg);
+					let msg = await results[0];
 
-                    results[1].then(value => {
-                        if (value.messageSendResult !== 'OK') {
-                            sendLogReport('Error in send message in Store.Chat.modelClass.prototype.sendMessage', 'info', { value });
-                        }
-                    }).catch(reason => {
-                        sendLogReport('Error in send message in Store.Chat.modelClass.prototype.sendMessage', 'error', { error: reason });
-                    });
+					results[1].then(value => {
+						if (value.messageSendResult !== 'OK') {
+							sendLogReport('Error in send message in Store.Chat.modelClass.prototype.sendMessage', 'info', { value });
+						}
+					}).catch(reason => {
+						sendLogReport('Error in send message in Store.Chat.modelClass.prototype.sendMessage', 'error', { error: reason });
+					});
 
-                    resolve(msg);
+					resolve(msg);
 
-                } catch (error) {
-                    sendLogReport('Error in Store.Chat.modelClass.prototype.sendMessage', 'error', { error });
-                    reject(error);
-                }
-            });
-        });
-    }
+				} catch (error) {
+					sendLogReport('Error in Store.Chat.modelClass.prototype.sendMessage', 'error', { error });
+					reject(error);
+				}
+			});
+		});
+	}
 
-    // whatsapp has synced event
-    const intervalEventSynd = setInterval(() => {
-        try {
-            if (Store?.Socket?.hasSynced === true && !sendedEventWhatsSync) {
-                sendLogReport('Event dispatch: has-synced-whatsapp', 'info');
+	// whatsapp has synced event
+	const intervalEventSynd = setInterval(() => {
+		try {
+			if (Store?.Socket?.hasSynced === true && !sendedEventWhatsSync) {
+				sendLogReport('Event dispatch: has-synced-whatsapp', 'info');
 
-                if(platform !== 'VENDE_AI') sendOldMessages();
+				if(platform !== 'VENDE_AI') sendOldMessages();
 
-                if (!initialStateConnection) {
-                    if(platform === 'anota-ai-desktop') {
-                        sendLogReport('Event dispatch: phone-authed-whatsapp', 'info');
-                        document.dispatchEvent(new CustomEvent('phone-authed-whatsapp'));
-                    }
-                    qrcodeRead = true;
-                }
+				if (!initialStateConnection) {
+					if(platform === 'anota-ai-desktop') {
+						sendLogReport('Event dispatch: phone-authed-whatsapp', 'info');
+						document.dispatchEvent(new CustomEvent('phone-authed-whatsapp'));
+					}
+					qrcodeRead = true;
+				}
 
-                document.dispatchEvent(new CustomEvent('has-synced-whatsapp', { detail: { hasSynced: true, qrcodeRead } }));
+				document.dispatchEvent(new CustomEvent('has-synced-whatsapp', { detail: { hasSynced: true, qrcodeRead } }));
 
-                if(platform === 'CLOUDIA') document.dispatchEvent(new CustomEvent('send-total-chats'));
-                if(platform === 'VENDE_AI') document.dispatchEvent(new CustomEvent('phone-authed-whatsapp'));
+				if(platform === 'CLOUDIA') document.dispatchEvent(new CustomEvent('send-total-chats'));
+				if(platform === 'VENDE_AI') document.dispatchEvent(new CustomEvent('phone-authed-whatsapp'));
 
-                sendedEventWhatsSync = true;
-                clearInterval(intervalEventSynd);
-            }
+				sendedEventWhatsSync = true;
+				clearInterval(intervalEventSynd);
+			}
 
-        } catch (e) { }
-    }, 100);
+		} catch (e) { }
+	}, 100);
 
 }
 
 /**
- * FaÃ§o um interval atÃ© que o store seja carregado (Inicio do fluxo)
+ * Faço um interval até que o store seja carregado (Inicio do fluxo)
  */
 window.API.waitStateLoad = function () {
-    return new Promise((resolve, reject) => {
-        let count = 0;
-        const intervalId = setInterval(() => {
-            try {
-                window.makeStore();
+	return new Promise((resolve, reject) => {
+		let count = 0;
+		const intervalId = setInterval(() => {
+			try {
+				window.makeStore();
 
-                if (window.Store) {
-                    clearInterval(intervalId);
-                    sendLogReport('Load store success', 'info', { newStore });
-                    window.API.fixStores();
-                    resolve();
-                }
+				if (window.Store) {
+					clearInterval(intervalId);
+					sendLogReport('Load store success', 'info', { newStore });
+					window.API.fixStores();
+					resolve();
+				}
 
-            } catch (error) {
-                count++;
-                if(count == 2000) sendLogReport('Error in load store', 'error', { error });
-            }
-        }, 100);
-    });
+			} catch (error) {
+				count++;
+				if(count == 2000) sendLogReport('Error in load store', 'error', { error });
+			}
+		}, 100);
+	});
 };
 
 setTimeout(() => {
-    sendLogReport("Start api", "info");
-    API.waitStateLoad();
+	sendLogReport("Start api", "info");
+	API.waitStateLoad();
 }, 10000);

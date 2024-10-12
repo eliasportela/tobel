@@ -14,7 +14,13 @@ document.addEventListener("toggle-reply", (e) => {
 }, false);
 
 document.addEventListener("bot_number", (e) => {
-    ipcRenderer.send('bot-number', { phone: e.detail, token: empresa.token });
+    ipcRenderer.send('bot-number', {
+        phone: e.detail,
+        key: empresa.key,
+        token: empresa.token,
+        wpp: empresa.wpp_index,
+        id_empresa: empresa.id_empresa
+    });
 }, false);
 
 ipcRenderer.on('open_chat', (event, arg) => {
