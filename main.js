@@ -558,7 +558,9 @@ function loadDependences() {
   ipcMain.on('update', (event, option) => {
     if (app.isPackaged) {
       showVersionMenu = false;
-      autoUpdater.checkForUpdates();
+      autoUpdater.checkForUpdates().then(r => {
+        console.log(r);
+      });
 
     } else {
       dialog.showMessageBox(win, {
