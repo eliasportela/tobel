@@ -18,8 +18,9 @@ document.addEventListener("bot_number", (e) => {
         phone: e.detail,
         key: empresa.key,
         token: empresa.token,
-        wpp: empresa.wpp_index,
-        id_empresa: empresa.id_empresa
+        wpp: empresa.wpp,
+        id_empresa: empresa.id_empresa,
+        bandeiras: empresa.bandeiras
     });
 }, false);
 

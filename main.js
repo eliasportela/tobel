@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow, BrowserView, ipcMain, Menu, dialog, globalShortcut, session } = require('electron');
+const {app, BrowserWindow, BrowserView, ipcMain, Menu, dialog, globalShortcut, powerSaveBlocker} = require('electron');
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -29,10 +29,10 @@ let wpps = [];
 let winLoad = null;
 let empresas = [];
 
-let dados = null;
 let version = app.getVersion();
 let pauseWpp = !!config.get('pauseWpp');
 let showVersionMenu = false;
+let idPowerSave = null;
 
 app.userAgentFallback = `Lebot/${version} (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36`;
 Menu.setApplicationMenu(createMenuContext());
@@ -69,6 +69,10 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', function () {
+  if (idPowerSave) {
+    powerSaveBlocker.stop(idPowerSave)
+  }
+
   app.quit();
 })
 
@@ -84,6 +88,7 @@ function createWindow() {
     show: false,
     icon: path.join(__dirname, './build/icon.ico'),
     webPreferences: {
+      backgroundThrottling: false,
       nodeIntegration: true,
       webSecurity: false,
       preload: path.join(__dirname, 'preload.js')
@@ -127,7 +132,7 @@ async function createBot(empresa) {
       nodeIntegration: true,
       webSecurity: false,
       preload: path.join(__dirname, 'wpp-preload.js'),
-      partition: `persist:whatsapp${empresa.wpp_index}`
+      partition: `persist:whatsapp${empresa.id_empresa}`
     }
   });
 
@@ -281,7 +286,7 @@ function createMenuContext(createDev){
               type: 'info',
               buttons: ['OK'],
               title: 'Lincença',
-              message: 'Empresa: ' + (dados.nome_fantasia) + '\nStatus: Ativo\nVersão: ' + version
+              message: 'LeBot - LeCard\nStatus: Ativo\nVersão: ' + version
             });
           }
         },
@@ -419,7 +424,7 @@ function loadDependences() {
 
     if (!wpps.length && base_server) {
       for (let i=0; i < empresas.length; i++) {
-        empresas[i].wpp_index = (i + 1);
+        empresas[i].wpp = (i + 1);
         const wpp = await createBot(empresas[i]);
 
         if (wpp) {
@@ -433,15 +438,19 @@ function loadDependences() {
         }
       }
     }
+
+    if (!idPowerSave) {
+      idPowerSave = powerSaveBlocker.start('prevent-display-sleep');
+    }
   });
 
   ipcMain.on('toggleBot', (event, arg) => {
     let bot = win.getBrowserView();
 
-    if (arg !== (!!bot)) {
-      const wpp = wpps[0];
+    if (arg && arg.wpp && arg.bot !== !!bot) {
+      const wpp = wpps[arg.wpp - 1];
 
-      if (arg) {
+      if (arg.bot) {
         win.setBrowserView(wpp);
         const bounds = win.getContentBounds();
         wpp.setBounds({ x: 74, y: 30, width: (bounds.width - 70), height: (bounds.height - 30) });
@@ -453,10 +462,12 @@ function loadDependences() {
   });
 
   ipcMain.on('toggleWpp', (event, arg) => {
-    const wpp = wpps[arg];
-    win.setBrowserView(wpp);
-    const bounds = win.getContentBounds();
-    wpp.setBounds({ x: 74, y: 30, width: (bounds.width - 70), height: (bounds.height - 30) });
+    if (arg && arg.wpp && arg.wpp <= wpps.length) {
+      const wpp = wpps[arg.wpp - 1];
+      win.setBrowserView(wpp);
+      const bounds = win.getContentBounds();
+      wpp.setBounds({ x: 74, y: 30, width: (bounds.width - 70), height: (bounds.height - 30) });
+    }
   });
 
   ipcMain.on('toggleStatus', (event, arg) => {
@@ -490,53 +501,58 @@ function loadDependences() {
 
   ipcMain.on('bot-number', (event, arg) => {
     if (arg.phone) {
-      console.log('Wpp Session: ' + arg.phone);
+      console.log('Wpp Session', arg.phone);
       win.webContents.send('wppSession', arg);
     }
   });
 
   ipcMain.on('dispararMensagens', (event, arg) => {
-    if (arg && arg.mensagens && arg.to && arg.token) {
-      //wpp.webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens, trigger: true });
+    if (arg && arg.mensagens && arg.to && arg.wpp) {
+      wpps[arg.wpp - 1].webContents.send('asynchronous-reply', { from: arg.to, msgs: arg.mensagens, trigger: true });
     }
   });
 
   ipcMain.on('acessarChats', (event, arg) => {
-    if (arg && arg.to && arg.token) {
-      console.log(arg);
-      const empresa = empresas.find(e => e.token === arg.token);
-
-      if (empresa && wpps.length <= empresa.wpp_index) {
-        wpps[empresa.wpp_index].webContents.send('open_chat', arg.to);
-      }
+    if (arg && arg.to && arg.wpp && arg.wpp <= wpps.length) {
+      wpps[arg.wpp - 1].webContents.send('open_chat', arg.to);
     }
   });
 
   ipcMain.on('markUnread', (event, arg) => {
-    if (arg) {
-      //wpp.webContents.send('mark_unread', arg);
+    if (arg && arg.phone && arg.wpp && arg.wpp <= wpps.length) {
+      wpps[arg.wpp - 1].webContents.send('mark_unread', arg.phone);
     }
   });
 
-  ipcMain.on('fechar', (event, arg) => {
-    if (!arg) { return; }
+  ipcMain.on('fechar', async (event, arg) => {
+    if (!arg) {
+      return;
+    }
 
     if (arg.resetar) {
-      session.defaultSession.clearStorageData().then(() => {
-        if (arg.reiniciar) {
-          app.relaunch();
+      if (arg.wpp) {
+        const wpp = arg.wpp <= wpps.length ? wpps[arg.wpp - 1] : null;
+
+        if (wpp) {
+          await wpp.webContents.session.clearCache();
+          await wpp.webContents.session.clearStorageData();
         }
 
-        app.quit();
-      });
+      } else {
+        const { webContents } = require('electron');
 
-    } else {
-      if (arg.reiniciar) {
-        app.relaunch();
+        for (const wpp of webContents.getAllWebContents()) {
+          await wpp.session.clearCache();
+          await wpp.session.clearStorageData();
+        }
       }
-
-      app.quit();
     }
+
+    if (arg.reiniciar) {
+      app.relaunch();
+    }
+
+    app.quit();
   });
 
   ipcMain.on('update', (event, option) => {
