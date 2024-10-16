@@ -17,8 +17,8 @@ const fetch = require('electron-fetch').default;
 
 const config = new Config();
 const isHomolog = config.get('IS_HOMOLOG');
-// const base_login = isHomolog ? 'https://hhh.lebot-web.lecard.delivery/' : 'https://lebot-web.lecard.delivery/';
-const base_login = 'http://localhost:8080/';
+const base_login = isHomolog ? 'https://hhh.lebot-web.lecard.delivery/' : 'https://lebot-web.lecard.delivery/';
+// const base_login = 'http://localhost:8080/';
 
 let base_server = null;
 let api_url = null;

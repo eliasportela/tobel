@@ -17,6 +17,10 @@
     "appId": "delivery.lecard.lebot",
     "artifactName": "lebot-${version}.${ext}"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eliasportela/lebot.git"
+  },
   "devDependencies": {
     "electron": "^22.3",
     "electron-builder": "~22.10.5"
