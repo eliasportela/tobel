@@ -126,13 +126,17 @@ function createWindow() {
 }
 
 async function createBot(empresa) {
+  if (!empresa.id_usuario) {
+    return null;
+  }
+
   const wpp = new BrowserView({
     webPreferences: {
       backgroundThrottling: false,
       nodeIntegration: true,
       webSecurity: false,
       preload: path.join(__dirname, 'wpp-preload.js'),
-      partition: `persist:whatsapp${empresa.id_empresa}`
+      partition: `persist:whatsapp${empresa.id_usuario}`
     }
   });
 
